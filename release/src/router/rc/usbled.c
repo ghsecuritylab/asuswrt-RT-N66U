@@ -160,6 +160,7 @@ usbled_main(int argc, char *argv[])
 	sigaddset(&sigs_to_catch, SIGTERM);
 	sigaddset(&sigs_to_catch, SIGUSR1);
 	sigaddset(&sigs_to_catch, SIGUSR2);
+	sigaddset(&sigs_to_catch, SIGTSTP);
 	sigprocmask(SIG_UNBLOCK, &sigs_to_catch, NULL);
 
 	signal(SIGALRM, usbled);

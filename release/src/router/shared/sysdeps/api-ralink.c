@@ -215,13 +215,14 @@ void set_radio(int on, int unit, int subunit)
 		doSystem("iwpriv %s set RadioOn=%d", WIF_2G, on);
 	else doSystem("iwpriv %s set RadioOn=%d", WIF, on);
 
+#if 0
 	if (subunit > 0)
 		snprintf(prefix, sizeof(prefix), "wl%d.%d_", unit, subunit);
 	else
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-
 	sprintf(tmpstr, "%d", on);
         nvram_set(strcat_r(prefix, "radio", tmp),  tmpstr);
 	nvram_commit();
+#endif
 }
 

@@ -16,20 +16,20 @@
 
 #define	MOD_MAJOR_VERSION	2012
 
-#define	MOD_MINOR_VERSION	7
+#define	MOD_MINOR_VERSION	8
 
-#define	MOD_RC_NUMBER		19
+#define	MOD_RC_NUMBER		3
 
 #define	MOD_INCREMENTAL_NUMBER	0
 
 #define	MOD_BUILD_NUMBER	0
 
-#define	MOD_VERSION		2012, 7, 19, 0
+#define	MOD_VERSION		2012, 8, 3, 0
 
-#define	MOD_VERSION_NUM		0x00071300
+#define	MOD_VERSION_NUM		0x00080300
 
 /* Driver Version String, ASCII, 32 chars max */
-#define	MOD_VERSION_STR		"2012.7.19.0"
-#define	MOD_ROUTER_VERSION_STR	"2012.7.19.0"
+#define	MOD_VERSION_STR		"2012.8.3.0"
+#define	MOD_ROUTER_VERSION_STR	"2012.8.3.0"
 
 #endif /* _version_h_ */

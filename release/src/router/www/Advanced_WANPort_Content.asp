@@ -748,8 +748,8 @@ function del_Row(obj){
 			  	</thead>
 			  
 			  	<tr>
-		  			<th><!--a class="hintstyle" href="javascript:void(0);"-->Source IP<!--/a--></th>
-        		<th>Destination IP</th>
+		  			<th><!--a class="hintstyle" href="javascript:void(0);"--><#FirewallConfig_LanWanSrcIP_itemname#><!--/a--></th>
+        		<th><#FirewallConfig_LanWanDstIP_itemname#></th>
         		<th>WAN Unit</th>
         		<th>Add / Delete</th>
 			  	</tr>			  

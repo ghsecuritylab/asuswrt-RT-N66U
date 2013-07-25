@@ -873,6 +873,31 @@ function confirm_temp(){
 	this.FromObject ="";
 	$j("#test_panel").fadeOut(300);
 }
+
+
+var isNotIE = (navigator.userAgent.search("MSIE") == -1); 
+function switchType(_method){
+	if(isNotIE){
+		document.form.cloud_password.type = _method ? "text" : "password";		
+	}
+}
+
+function switchType_IE(obj){
+		if(isNotIE) return;		
+		
+		var tmp = "";
+		tmp = obj.value;
+		if(obj.id.indexOf('text') < 0){		//password
+							obj.style.display = "none";
+							document.getElementById('cloud_password_text').style.display = "";
+							document.getElementById('cloud_password_text').value = tmp;						
+							document.getElementById('cloud_password_text').focus();
+		}else{														//text					
+							obj.style.display = "none";
+							document.getElementById('cloud_password').style.display = "";
+							document.getElementById('cloud_password').value = tmp;
+		}
+}
 </script>
 </head>
 
@@ -885,7 +910,7 @@ function confirm_temp(){
 	<div id="tree"></div>
 </div>
 <div id="test_panel" class="panel_new" >
-		<div class="machineName" style="font-family:Microsoft JhengHei;font-size:12pt;font-weight:bolder; margin-top:25px;margin-left:30px;"><% nvram_get("productid"); %></div>
+		<div class="machineName" style="font-family:Microsoft JhengHei;font-size:12pt;font-weight:bolder; margin-top:25px;margin-left:30px;"><#Web_Title2#></div>
 		<div id="e0" class="FdTemp" style="font-size:10pt; margin-top:8px;margin-left:30px;margin-bottom:1px;height:345px;overflow:auto;width:455px;"></div>
 	<div style="background-image:url(images/Tree/bg_02.png);background-repeat:no-repeat;height:90px;">		
 		<input class="button_gen" type="button" style="margin-left:27%;margin-top:18px;" onclick="cancel_temp();" value="<#CTL_Cancel#>">
@@ -1006,7 +1031,7 @@ function confirm_temp(){
       					<th width="10%">Rule</a></th>
       					<th width="30%">Folder</th>
       					<th width="15%">Status</th>
-      					<th width="10%">Delete</th>
+      					<th width="10%"><#CTL_del#></th>
     					</tr>
 
 						</table>
@@ -1041,16 +1066,17 @@ function confirm_temp(){
 
 						  <tr>
 							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								<#AiDisk_Password#>
+								<#PPPConnection_Password_itemname#>
 							</th>			
 							<td>
-							  <input type="text" maxlength="32" class="input_32_table" style="height: 25px;" id="cloud_password" name="cloud_password" value="" onKeyPress="">
+								<input id="cloud_password" name="cloud_password" type="password" autocapitalization="off" onBlur="switchType(false);" onFocus="switchType(true);switchType_IE(this);" maxlength="32" class="input_32_table" style="height: 25px;" value="">
+							  <input id="cloud_password_text" name="cloud_password_text" type="text" autocapitalization="off" onBlur="switchType_IE(this);" maxlength="32" class="input_32_table" style="height:25px; display:none;" value="">
 							</td>
 						  </tr>						  				
 					  				
 						  <tr>
 							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								Directory
+								Folder
 							</th>
 							<td>
 			          <input type="text" id="PATH" class="input_32_table" style="height: 25px;" name="cloud_dir" value="" onclick=""/>
@@ -1087,7 +1113,7 @@ function confirm_temp(){
 						</table>
 
 	  				<div class="apply_gen" id="creatBtn" style="margin-top:30px;display:none;">
-							<input name="applybutton" id="applybutton" type="button" class="button_gen_long" onclick="isEdit=1;showAddTable();" value="<#AddAccountTitle#>">
+							<input name="applybutton" id="applybutton" type="button" class="button_gen_long" onclick="isEdit=1;showAddTable();" value="<#AddAccountTitle#>" style="word-wrap:break-word;word-break:normal;">
 							<img id="update_scan" style="display:none;" src="images/InternetScan.gif" />
 	  				</div>
 

@@ -280,6 +280,8 @@ void init_switch_mode()
 		nvram_set("wl_mode_ex", "ap");
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
+		nvram_set("wl0_bss_enabled", "1");
+		nvram_set("wl1_bss_enabled", "1");
 #endif
 	}
 	else if (nvram_match("sw_mode_ex", "4"))		// Router mode
@@ -289,6 +291,8 @@ void init_switch_mode()
 		nvram_set("wl_mode_ex", "ap");
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
+		nvram_set("wl0_bss_enabled", "1");
+		nvram_set("wl1_bss_enabled", "1");
 #endif
 	}
 #ifdef RTCONFIG_WIRELESSREPEATER
@@ -343,6 +347,8 @@ void init_switch_mode()
 		nvram_set("wl_mode_ex", "ap");
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
+		nvram_set("wl0_bss_enabled", "1");
+		nvram_set("wl1_bss_enabled", "1");
 #endif
 	}
 }
@@ -1386,7 +1392,7 @@ void setup_dnsmq(int mode)
 	if(mode) {
 		eval("iptables", "-t", "nat", "-I", "PREROUTING", "-p", "tcp", "-d", "10.0.0.1", "--dport", "80", "-j", "DNAT", "--to-destination", strcat_r(nvram_safe_get("lan_ipaddr"), ":80", tmp)); 
 	
-		//sprintf(v, "%x my.%s", inet_addr("10.0.0.1"), nvram_safe_get("productid"));
+		//sprintf(v, "%x my.%s", inet_addr("10.0.0.1"), get_productid());
 		sprintf(v, "%x www.asusnetwork.net", inet_addr(nvram_safe_get("lan_ipaddr")));
 		f_write_string("/proc/net/dnsmqctrl", v, 0, 0);
 	}

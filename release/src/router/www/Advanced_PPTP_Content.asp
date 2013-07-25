@@ -433,7 +433,7 @@ function set_pptpd_broadcast(obj){
 								  <div class="formfontdesc"><#PPTP_desc2#> <% nvram_get("wan0_ipaddr"); %></div>
 								  <div class="formfontdesc" style="margin-top:-10px;font-weight: bolder;"><#PPTP_desc3#></div>
 									<div class="formfontdesc" style="margin-top:-10px;">
-										(7) <a id="faq" href="" target="_blank" style="font-family:Lucida Console;text-decoration:underline;">VPN server FAQ</a>
+										(7) <a id="faq" href="" target="_blank" style="font-family:Lucida Console;text-decoration:underline;"><#BOP_isp_heart_item#> FAQ</a>
 									</div>
 
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
@@ -451,7 +451,7 @@ function set_pptpd_broadcast(obj){
 												<!-- need to unify -->
 												<!--select name="pptpd_enable" class="input_option">
 													<option class="content_input_fd" value="0" <% nvram_match("pptpd_enable", "0","selected"); %>><#btn_disable#></option>
-													<option class="content_input_fd" value="1"<% nvram_match("pptpd_enable", "1","selected"); %>><#btn_Enable#></option>
+													<option class="content_input_fd" value="1"<% nvram_match("pptpd_enable", "1","selected"); %>><#WLANConfig11b_WirelessCtrl_button1name#></option>
 												</select-->			
 											</td>
 									  </tr>

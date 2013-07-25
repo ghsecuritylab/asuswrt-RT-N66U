@@ -155,6 +155,9 @@ void btn_check(void)
 				}
 				if (btn_pressed == 2)
 				{
+#ifdef RTCONFIG_DSL
+					system("adslate sysdefault"); /* Paul add 2012/8/7 */
+#endif
 				/* 0123456789 */
 				/* 0011100111 */
 					if ((btn_count % 10) < 2 || ((btn_count % 10) > 4 && (btn_count % 10) < 7))
@@ -548,12 +551,14 @@ void timecheck(void)
 
 	// radio on/off
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
+#if 0
 		/* TODO: when wl_radio = 0, not to do timecheck_item */
 		if (!nvram_get_int(wl_nvname("radio", unit, 0))){
 			item++;
 			unit++;
 			continue;
 		}
+#endif
 
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 		svcDate = nvram_safe_get(strcat_r(prefix, "radio_date_x", tmp));

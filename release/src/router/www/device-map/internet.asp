@@ -288,7 +288,7 @@ function goQIS(){
 
 <tr>
     <td style="padding:5px 10px 5px 15px;">
-    		<p class="formfonttitle_nwm" ><#Gateway#>:</p>
+    		<p class="formfonttitle_nwm" ><#RouterConfig_GWStaticGW_itemname#>:</p>
     		<p style="padding-left:10px; margin-top:3px; background-color:#444f53; line-height:20px;" id="gateway"></p>
       	<img style="margin-top:5px;" src="/images/New_ui/networkmap/linetwo2.png">
     </td>

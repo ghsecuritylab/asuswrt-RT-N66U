@@ -76,8 +76,13 @@ uint32_t get_phy_status(uint32_t portmask)
 		vecarg[1] = 0;
 		if ((portmask & (1U << i)) == 0)
 			continue;
+		
 		if (ioctl(fd, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0)
 			continue;
+		//Brcm bug, need repeate again to get the latest info
+                if (ioctl(fd, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0)
+                        continue;
+
 		if (vecarg[1] & (1U << 2))
 			mask |= (1U << i);
 	}
@@ -262,11 +267,11 @@ void set_radio(int on, int unit, int subunit)
 		snprintf(prefix, sizeof(prefix), "wl%d.%d_", unit, subunit);
 	else
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-
+#if 0
 	sprintf(tmpstr, "%d", on);
 	nvram_set(strcat_r(prefix, "radio", tmp),  tmpstr);
 	nvram_commit();
-
+#endif
 	if(subunit>0) {
 		sprintf(tmpstr, "%d", subunit);
 		if(on) eval("wl", "-i", nvram_safe_get(wl_nvname("ifname", unit, 0)), "bss", "-C", tmpstr, "up");

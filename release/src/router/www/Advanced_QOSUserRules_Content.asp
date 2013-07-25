@@ -33,8 +33,6 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 
 var qos_rulelist_array = "<% nvram_char_to_ascii("","qos_rulelist"); %>";
-var qos_orates = '<% nvram_get("qos_orates"); %>';
-var qos_irates = '<% nvram_get("qos_irates"); %>';
 
 var overlib_str0 = new Array();	//Viz add 2011.06 for record longer qos rule desc
 var overlib_str = new Array();	//Viz add 2011.06 for record longer portrange value
@@ -49,88 +47,24 @@ function initial(){
 	show_menu();
 	showqos_rulelist();
 
-	init_changeScale("qos_obw");
-	init_changeScale("qos_ibw");
-
-	load_QoS_rule();	
+	load_QoS_rule();
+	if('<% nvram_get("qos_enable"); %>' == "1")
+		$('is_qos_enable_desc').style.display = "none";
 }
 
-function init_changeScale(_obj_String){
-	if($(_obj_String).value > 999){
-		$(_obj_String+"_scale").value = "Mb/s";
-		$(_obj_String).value = Math.round(($(_obj_String).value/1024)*100)/100;
-	}
-
-	gen_options();
-}
-
-function changeScale(_obj_String){
-	if($(_obj_String+"_scale").value == "Mb/s")
-		$(_obj_String).value = Math.round(($(_obj_String).value/1024)*100)/100;
-	else
-		$(_obj_String).value = Math.round($(_obj_String).value*1024);
-		
-	gen_options();
-}
-
-function get_obj_id(id){
-	return document.getElementById(id);
-}
-
-function bw_crtl_display(div_ctl, div_table){
-	var obj_id = get_obj_id(div_ctl);
-	
-	if(obj_id.innerHTML == "+"){
-		obj_id.innerHTML = "-";
-		gen_options();
-		blocking(div_table, true);
-	}
-	else{
-		obj_id.innerHTML = "+";
-		blocking(div_table ,false);
-	}
-}
-
-function applyRule(){
-
-	if(document.form.qos_obw.value.length == 0 || document.form.qos_obw.value == 0){
-		alert("<#JS_fieldblank#>");
-		document.form.qos_obw.focus();
-		return;
-	}
-	if(document.form.qos_ibw.value.length == 0 || document.form.qos_ibw.value == 0){
-		alert("<#JS_fieldblank#>");
-		document.form.qos_ibw.focus();
-		return;
-  }
-	
-	if(save_options() != false){
-		if($("qos_obw_scale").value == "Mb/s")
-			document.form.qos_obw.value = Math.round(document.form.qos_obw.value*1024);
-
-		if($("qos_ibw_scale").value == "Mb/s")
-			document.form.qos_ibw.value = Math.round(document.form.qos_ibw.value*1024);
+function applyRule(){	
 
 		save_table();
-		save_checkbox();
 		
+		/* Viz banned 2012.07.30
 		if(document.form.qos_enable.value != document.form.qos_enable_orig.value)
-    	FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
+    	FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>"); */		
     	
 		if(wl6_support != -1)
 			document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
 
 		showLoading();	 	
 		document.form.submit();
-	}
-}
-
-function save_checkbox(){
-	document.form.qos_ack.value = document.form.qos_ack_checkbox.checked ? "on" : "off";
-	document.form.qos_syn.value = document.form.qos_syn_checkbox.checked ? "on" : "off";
-	document.form.qos_fin.value = document.form.qos_fin_checkbox.checked ? "on" : "off";
-	document.form.qos_rst.value = document.form.qos_rst_checkbox.checked ? "on" : "off";
-	document.form.qos_icmp.value = document.form.qos_icmp_checkbox.checked ? "on" : "off";
 }
 
 function save_table(){
@@ -159,28 +93,6 @@ function save_table(){
 	if(tmp_value == "<"+"<#IPConnection_VSList_Norule#>" || tmp_value == "<")
 		tmp_value = "";	
 	document.form.qos_rulelist.value = tmp_value;
-}
-
-function save_options(){
-	document.form.qos_orates.value = "";
-	for(var j=0; j<5; j++){
-		var upload_bw_max = eval("document.form.upload_bw_max_"+j);
-		var upload_bw_min = eval("document.form.upload_bw_min_"+j);
-
-		var download_bw_max = eval("document.form.download_bw_max_"+j);
-
-		if(parseInt(upload_bw_max.value) < parseInt(upload_bw_min.value)){
-			alert("<#QoS_invalid_period#>");
-			upload_bw_max.focus();
-			return false;
-		}
-
-		document.form.qos_orates.value += upload_bw_min.value + "-" + upload_bw_max.value + ",";
-		document.form.qos_irates.value += download_bw_max.value + ",";
-	}
-	document.form.qos_orates.value += "0-0,0-0,0-0,0-0,0-0";
-	document.form.qos_irates.value += "0,0,0,0,0";
-	return true;
 }
 
 function done_validating(action){
@@ -408,19 +320,6 @@ function showqos_rulelist(){
 	parse_port="";
 }
 
-function edit_Row(r){ 	
-	var i=r.parentNode.parentNode.rowIndex;
-	var qos_transferred_x_0_value = $('qos_rulelist_table').rows[i].cells[4].innerHTML.split('~');
-	document.form.qos_service_name_x_0.value = $('qos_rulelist_table').rows[i].cells[0].innerHTML;
-	document.form.qos_ip_x_0.value = $('qos_rulelist_table').rows[i].cells[1].innerHTML; 
-	document.form.qos_port_x_0.value = $('qos_rulelist_table').rows[i].cells[2].innerHTML; 
-	document.form.qos_proto_x_0.value = $('qos_rulelist_table').rows[i].cells[3].innerHTML;
-	document.form.qos_min_transferred_x_0.value = qos_transferred_x_0_value[0];
-	document.form.qos_max_transferred_x_0.value = qos_transferred_x_0_value[1];
-	document.form.qos_prio_x_0.value = $('qos_rulelist_table').rows[i].cells[5].innerHTML;
-  del_Row(r);	
-}
-
 function conv_to_transf(){
 	if(document.form.qos_min_transferred_x_0.value =="" &&document.form.qos_max_transferred_x_0.value =="")
 		document.form.qos_transferred_x_0.value = "";
@@ -428,54 +327,14 @@ function conv_to_transf(){
 		document.form.qos_transferred_x_0.value = document.form.qos_min_transferred_x_0.value + "~" + document.form.qos_max_transferred_x_0.value;
 }
 
-function gen_options(){
-	if($("upload_bw_min_0").innerHTML == ""){
-		var qos_orates_row = qos_orates.split(',');
-		var qos_irates_row = qos_irates.split(',');
-		for(var j=0; j<5; j++){
-			var upload_bw_max = eval("document.form.upload_bw_max_"+j);
-			var upload_bw_min = eval("document.form.upload_bw_min_"+j);
-			var download_bw_max = eval("document.form.download_bw_max_"+j);
-			//Viz 2011.06 var download_bw_min = eval("document.form.download_bw_min_"+j);
-			var qos_orates_col = qos_orates_row[j].split('-');
-			var qos_irates_col = qos_irates_row[j].split('-');
-			for(var i=0; i<101; i++){
-				add_options_value(upload_bw_min, i, qos_orates_col[0]);
-				add_options_value(upload_bw_max, i, qos_orates_col[1]);
-				add_options_value(download_bw_max, i, qos_irates_col[0]);
-			}
-			var upload_bw_desc = eval('document.getElementById("upload_bw_'+j+'_desc")');
-			var download_bw_desc = eval('document.getElementById("download_bw_'+j+'_desc")');	
-
-			//upload_bw_desc.innerHTML = Math.round(upload_bw_min.value*document.form.qos_obw.value)/100 + " ~ " + Math.round(upload_bw_max.value*document.form.qos_obw.value)/100 + " " + $("qos_obw_scale").value;
-			//download_bw_desc.innerHTML = "0 ~ " + Math.round(download_bw_max.value*document.form.qos_ibw.value)/100 + " " + $("qos_ibw_scale").value;
-		}
-	}
-	else{
-		for(var j=0; j<5; j++){
-			var upload_bw_max = eval("document.form.upload_bw_max_"+j);
-			var upload_bw_min = eval("document.form.upload_bw_min_"+j);
-			var download_bw_max = eval("document.form.download_bw_max_"+j);
-			var upload_bw_desc = eval('document.getElementById("upload_bw_'+j+'_desc")');
-			var download_bw_desc = eval('document.getElementById("download_bw_'+j+'_desc")');	
-			upload_bw_desc.innerHTML = Math.round(upload_bw_min.value*document.form.qos_obw.value)/100 + " ~ " + Math.round(upload_bw_max.value*document.form.qos_obw.value)/100 + " " + $("qos_obw_scale").value;
-			download_bw_desc.innerHTML = "0 ~ " + Math.round(download_bw_max.value*document.form.qos_ibw.value)/100 + " " + $("qos_ibw_scale").value;
-		}
-	}
-}
-
-function add_options_value(o, arr, orig){
-	if(orig == arr)
-		add_option(o, arr, arr, 1);
-	else
-		add_option(o, arr, arr, 0);
-}
-
 function switchPage(page){
-	if(page == "2")
-		return false;
-	else
+	
+	if(page == "1")
 		location.href = "/QoS_EZQoS.asp";
+	else if(page == "2")
+		location.href = "/Advanced_QOSUserPrio_Content.asp";	
+	else
+		return false;		
 }
 
 function validate_multi_port(val, min, max){
@@ -847,7 +706,7 @@ function valid_IPorMAC(obj){
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
-<input type="hidden" name="current_page" value="Advanced_QOSUserSpec_Content.asp">
+<input type="hidden" name="current_page" value="Advanced_QOSUserRules_Content.asp">
 <input type="hidden" name="next_page" value="">
 <input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
@@ -858,10 +717,8 @@ function valid_IPorMAC(obj){
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="qos_rulelist" value=''>
-<input type="hidden" name="qos_orates" value=''>
-<input type="hidden" name="qos_irates" value=''>
-<input type="hidden" name="qos_enable_orig" value="<% nvram_get("qos_enable"); %>">
-<input type="hidden" name="qos_enable" value="1">
+<!--input type="hidden" name="qos_enable_orig" value="<% nvram_get("qos_enable"); %>">
+<input type="hidden" name="qos_enable" value="1"-->
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 	<tr>
@@ -879,47 +736,19 @@ function valid_IPorMAC(obj){
 			<table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">			
 			<tbody>
 				<tr>
-		  			<td bgcolor="#4D595D">
+		  			<td bgcolor="#4D595D" valign="top">
 						<div style="margin-top:8px;" align="right">
 	   					<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 								<!--option><#switchpage#></option-->
 								<option value="1"><#qos_automatic_mode#></option>
-								<option value="2" selected><#user_def_qos#></option>
+								<option value="2"><#qos_user_prio#></option>
+								<option value="3" selected><#qos_user_rules#></option>
 							</select>	    
 						</div>
 		  			<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-		  			<div class="formfontdesc"><#UserQoS_desc#></div>
-		  
-						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-							<thead>
-							<tr>
-								<td colspan="2"><#BM_status#></td>
-							</tr>
-							</thead>
-							
-							<tr>
-								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);"><#upload_bandwidth#></a></th>
-								<td>
-									<input type="text" maxlength="10" id="qos_obw" name="qos_obw" onKeyPress="return is_number(this,event);" class="input_15_table" value="<% nvram_get("qos_obw"); %>" onblur="gen_options();">
-									<select id="qos_obw_scale" class="input_option" style="width:87px;" onChange="changeScale('qos_obw');">
-										<option value="Kb/s">Kb/s</option>
-										<option value="Mb/s">Mb/s</option>
-									</select>
-								</td>
-							</tr>
-							
-							<tr>
-								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);"><#download_bandwidth#></a></th>
-								<td>
-									<input type="text" maxlength="10" id="qos_ibw" name="qos_ibw" onKeyPress="return is_number(this,event);" class="input_15_table" value="<% nvram_get("qos_ibw"); %>" onblur="gen_options();">
-									<select id="qos_ibw_scale" class="input_option" style="width:87px;" onChange="changeScale('qos_ibw');">
-										<option value="Kb/s">Kb/s</option>
-										<option value="Mb/s">Mb/s</option>
-									</select>
-								</td>
-							</tr>
-						</table>
-						<table width="100%"  border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px">
+		  			<div class="formfontdesc" id="is_qos_enable_desc" style="color:#FFCC00;"><#UserQoSRule_desc_zero#></div>		  			
+		  	
+						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px">
 							<thead>
 							<tr>
 								<td colspan="4" id="TriggerList" style="border-right:none;"><#BM_UserList_title#></td>
@@ -980,230 +809,11 @@ function valid_IPorMAC(obj){
 							</tr>
 							</table>
 							
-							<div id="qos_rulelist_Block"></div>				  	
-					</td>
-				</tr>
-
-				<tr>
-		  			<td bgcolor="#4D595D">
-						<table width="100%"  border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
-							<thead>
-							<tr>
-								<td><#highest_prio_packet#> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-									<a id="packet_table_display_id" style="margin-left:490px;display:none;" onclick='bw_crtl_display("packet_table_display_id", "packet_table");'>-</a>
-								</td>
-							</tr>
-							</thead>							
-
-							<tr>
-								<td>
-									<div  id='packet_table' style='display:block;'>
-										<table width="100%" border="0" cellpadding="4" cellspacing="0">
-											<tr>
-												<td style="font-size:12px; border-collapse: collapse;border:0;">		
-													<input type="checkbox" name="qos_ack_checkbox" <% nvram_match("qos_ack", "on", "checked"); %>>ACK
-													<input type="hidden" name="qos_ack">
-												</td>
-												<td style="font-size:12px; border-collapse: collapse;border:0;">
-													<input type="checkbox" name="qos_syn_checkbox" <% nvram_match("qos_syn", "on", "checked"); %>>SYN
-													<input type="hidden" name="qos_syn">
-												</td>
-												<td style="font-size:12px; border-collapse: collapse;border:0;">
-													<input type="checkbox" name="qos_fin_checkbox" <% nvram_match("qos_fin", "on", "checked"); %>>FIN
-													<input type="hidden" name="qos_fin">
-												</td>
-												<td style="font-size:12px; border-collapse: collapse;border:0;">
-													<input type="checkbox" name="qos_rst_checkbox" <% nvram_match("qos_rst", "on", "checked"); %>>RST
-													<input type="hidden" name="qos_rst">
-												</td>
-												<td style="font-size:12px; border-collapse: collapse;border:0;">
-													<input type="checkbox" name="qos_icmp_checkbox" <% nvram_match("qos_icmp", "on", "checked"); %>>ICMP
-													<input type="hidden" name="qos_icmp">
-												</td>
-											</tr>
-										</table>
-									</div>
-								</td>
-							</tr>
-						</table>
-					</td>
-				</tr>
-
-				<tr>
-					<td bgcolor="#4D595D">		
-						<table width="100%"  border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
-							<thead>	
-							<tr>
-								<td colspan="2"><div><#set_rate_limit#><a id="bw_crtl_display_id" style="margin-left:490px;display:none;" onclick='bw_crtl_display("bw_crtl_display_id", "bandwidth_level");'>-</a></div></td>
-							</tr>
-							</thead>	
-
-							<tr>
-								<td>
-									<div id='bandwidth_level' style='display:block'>
-										<table  width="100%" border="0" cellpadding="4" cellspacing="0">
-										<tr>
-											<td width="58%" style="font-size:12px; border-collapse: collapse;border:0; padding-left:0;">			  
-												<table width="100%" border="0" cellpadding="4" cellspacing="0" style="font-size:12px; border-collapse: collapse;border:0;">
-												<thead>	
-												<tr>
-													<td colspan="4" ><#upload_bandwidth#></td>
-												</tr>
-												<tr style="height: 55px;">
-													<th style="width:22%;line-height:15px;color:#FFFFFF;"><#upload_prio#></th>
-													<th style="width:25%;line-height:15px;color:#FFFFFF;"><a href="javascript:void(0);" onClick="openHint(20,3);"><div class="table_text"><#min_bound#></div></a></th>
-													<th style="width:26%;line-height:15px;color:#FFFFFF;"><a href="javascript:void(0);" onClick="openHint(20,4);"><div class="table_text"><#max_bound#></div></a></th>
-													<th style="width:27%;line-height:15px;color:#FFFFFF;"><#current_settings#></th>
-												</tr>
-												</thead>												
-												<tr>
-													<th style="width:22%;line-height:15px;"><#Highest#></th>
-													<td align="center"> 
-														<select name='upload_bw_min_0' class="input_option" id="upload_bw_min_0" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>	
-													<td align="center">
-														<select name='upload_bw_max_0' class="input_option" id="upload_bw_max_0" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="upload_bw_0_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:22%;line-height:15px;"><#High#></th>
-													<td align="center">
-														<select name='upload_bw_min_1' class="input_option" id="upload_bw_min_1" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>	
-													<td  align="center">
-														<select name='upload_bw_max_1' class="input_option" id="upload_bw_max_1" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="upload_bw_1_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:22%;line-height:15px;"><#Medium#></th>
-													<td align="center">
-														<select name='upload_bw_min_2' class="input_option" id="upload_bw_min_2" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>	
-													<td align="center">
-														<select name='upload_bw_max_2' class="input_option" id="upload_bw_max_2" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="upload_bw_2_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:22%;line-height:15px;"><#Low#></th>
-													<td align="center">
-														<select name='upload_bw_min_3' class="input_option" id="upload_bw_min_3" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>	
-													<td align="center">
-														<select name='upload_bw_max_3' class="input_option" id="upload_bw_max_3" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="upload_bw_3_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:22%;line-height:15px;"><#Lowest#></th>
-													<td align="center">
-														<select name='upload_bw_min_4' class="input_option" id="upload_bw_min_4" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>	
-													<td align="center">
-														<select name='upload_bw_max_4' class="input_option" id="upload_bw_max_4" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="upload_bw_4_desc"></div>
-													</td>
-												</tr>
-												</table>
-											</td>
-
-											<td width="42%" style="font-size:12px; border-collapse: collapse;border:0;">
-												<table width="100%" border="0" cellpadding="4" cellspacing="0" style="font-size:12px; border-collapse: collapse;border:0;">
-												<thead>
-												<tr>
-													<td colspan="3"><#download_bandwidth#></td>
-												</tr>
-												<tr style="height: 55px;">
-													<th style="width:31%;line-height:15px;color:#FFFFFF;"><#download_prio#></th>
-													<th style="width:37%;line-height:15px;color:#FFFFFF;"><a href="javascript:void(0);" onClick="openHint(20,5);"><div class="table_text"><#max_bound#></div></a></th>
-													<th style="width:32%;line-height:15px;color:#FFFFFF;"><#current_settings#></th>
-												</tr>
-												</thead>
-												<tr>
-													<th style="width:31%;line-height:15px;"><#Highest#></th>
-													<td align="center"> 
-														<select name='download_bw_max_0' class="input_option" id="download_bw_max_0" onchange="gen_options();"></select>
-														<span style="color:white">%</span>														
-													</td>
-													<td align="center">
-														<div id="download_bw_0_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:31%;line-height:15px;"><#High#></th>
-													<td align="center">
-														<select name='download_bw_max_1' class="input_option" id="download_bw_max_1" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="download_bw_1_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:31%;line-height:15px;"><#Medium#></th>
-													<td align="center">			  
-														<select name='download_bw_max_2' class="input_option" id="download_bw_max_2" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="download_bw_2_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:31%;line-height:15px;"><#Low#></th>
-													<td align="center">
-														<select name='download_bw_max_3' class="input_option" id="download_bw_max_3" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="download_bw_3_desc"></div>
-													</td>
-												</tr>
-												<tr>
-													<th style="width:31%;line-height:15px;"><#Lowest#></th>
-													<td align="center">
-														<select name='download_bw_max_4' class="input_option" id="download_bw_max_4" onchange="gen_options();"></select>
-														<span style="color:white">%</span>
-													</td>
-													<td align="center">
-														<div id="download_bw_4_desc"></div>
-													</td>
-												</tr>
-												</table>
-											</td>
-										</tr>
-										</table>
-									</div>
-								</td>
-							</tr>		  
-							</table>
-					<div class="apply_gen">
-						<input name="button" type="button" class="button_gen" onClick="applyRule()" value="<#CTL_apply#>"/>
-					</div>
-						
-						
+							<div id="qos_rulelist_Block"></div>
+							
+							<div class="apply_gen">
+								<input name="button" type="button" class="button_gen" onClick="applyRule()" value="<#CTL_apply#>"/>
+							</div>							
 					</td>
 				</tr>
 			</tbody>	

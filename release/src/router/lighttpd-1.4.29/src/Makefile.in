@@ -198,6 +198,14 @@ mod_compress_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) $(mod_compress_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
+mod_create_captcha_image_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_mod_create_captcha_image_la_OBJECTS = mod_create_captcha_image.lo
+mod_create_captcha_image_la_OBJECTS =  \
+	$(am_mod_create_captcha_image_la_OBJECTS)
+mod_create_captcha_image_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(mod_create_captcha_image_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 mod_dirlisting_la_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(am__DEPENDENCIES_1)
 am_mod_dirlisting_la_OBJECTS = mod_dirlisting.lo
@@ -486,27 +494,30 @@ SOURCES = $(liblightcomp_la_SOURCES) $(mod_access_la_SOURCES) \
 	$(mod_accesslog_la_SOURCES) $(mod_aidisk_access_la_SOURCES) \
 	$(mod_alias_la_SOURCES) $(mod_auth_la_SOURCES) \
 	$(mod_cgi_la_SOURCES) $(mod_cml_la_SOURCES) \
-	$(mod_compress_la_SOURCES) $(mod_dirlisting_la_SOURCES) \
-	$(mod_evasive_la_SOURCES) $(mod_evhost_la_SOURCES) \
-	$(mod_expire_la_SOURCES) $(mod_extforward_la_SOURCES) \
-	$(mod_fastcgi_la_SOURCES) $(mod_flv_streaming_la_SOURCES) \
-	$(mod_indexfile_la_SOURCES) $(mod_magnet_la_SOURCES) \
-	$(mod_mysql_vhost_la_SOURCES) $(mod_proxy_la_SOURCES) \
-	$(mod_redirect_la_SOURCES) $(mod_rewrite_la_SOURCES) \
-	$(mod_rrdtool_la_SOURCES) $(mod_scgi_la_SOURCES) \
-	$(mod_secdownload_la_SOURCES) $(mod_setenv_la_SOURCES) \
-	$(mod_simple_vhost_la_SOURCES) $(mod_smbdav_la_SOURCES) \
-	$(mod_ssi_la_SOURCES) $(mod_staticfile_la_SOURCES) \
-	$(mod_status_la_SOURCES) $(mod_trigger_b4_dl_la_SOURCES) \
-	$(mod_userdir_la_SOURCES) $(mod_usertrack_la_SOURCES) \
-	$(mod_webdav_la_SOURCES) $(lemon_SOURCES) $(lighttpd_SOURCES) \
-	$(lighttpd_angel_SOURCES) $(lighttpd_arpping_SOURCES) \
-	$(lighttpd_monitor_SOURCES) $(proc_open_SOURCES)
+	$(mod_compress_la_SOURCES) \
+	$(mod_create_captcha_image_la_SOURCES) \
+	$(mod_dirlisting_la_SOURCES) $(mod_evasive_la_SOURCES) \
+	$(mod_evhost_la_SOURCES) $(mod_expire_la_SOURCES) \
+	$(mod_extforward_la_SOURCES) $(mod_fastcgi_la_SOURCES) \
+	$(mod_flv_streaming_la_SOURCES) $(mod_indexfile_la_SOURCES) \
+	$(mod_magnet_la_SOURCES) $(mod_mysql_vhost_la_SOURCES) \
+	$(mod_proxy_la_SOURCES) $(mod_redirect_la_SOURCES) \
+	$(mod_rewrite_la_SOURCES) $(mod_rrdtool_la_SOURCES) \
+	$(mod_scgi_la_SOURCES) $(mod_secdownload_la_SOURCES) \
+	$(mod_setenv_la_SOURCES) $(mod_simple_vhost_la_SOURCES) \
+	$(mod_smbdav_la_SOURCES) $(mod_ssi_la_SOURCES) \
+	$(mod_staticfile_la_SOURCES) $(mod_status_la_SOURCES) \
+	$(mod_trigger_b4_dl_la_SOURCES) $(mod_userdir_la_SOURCES) \
+	$(mod_usertrack_la_SOURCES) $(mod_webdav_la_SOURCES) \
+	$(lemon_SOURCES) $(lighttpd_SOURCES) $(lighttpd_angel_SOURCES) \
+	$(lighttpd_arpping_SOURCES) $(lighttpd_monitor_SOURCES) \
+	$(proc_open_SOURCES)
 DIST_SOURCES = $(am__liblightcomp_la_SOURCES_DIST) \
 	$(mod_access_la_SOURCES) $(mod_accesslog_la_SOURCES) \
 	$(mod_aidisk_access_la_SOURCES) $(mod_alias_la_SOURCES) \
 	$(mod_auth_la_SOURCES) $(mod_cgi_la_SOURCES) \
 	$(mod_cml_la_SOURCES) $(mod_compress_la_SOURCES) \
+	$(mod_create_captcha_image_la_SOURCES) \
 	$(mod_dirlisting_la_SOURCES) $(mod_evasive_la_SOURCES) \
 	$(mod_evhost_la_SOURCES) $(mod_expire_la_SOURCES) \
 	$(mod_extforward_la_SOURCES) $(mod_fastcgi_la_SOURCES) \
@@ -725,7 +736,7 @@ lib_LTLIBRARIES = $(am__append_1) mod_flv_streaming.la mod_evasive.la \
 	mod_expire.la mod_evhost.la mod_simple_vhost.la mod_fastcgi.la \
 	mod_extforward.la mod_access.la mod_compress.la mod_auth.la \
 	mod_rewrite.la mod_redirect.la mod_status.la mod_accesslog.la \
-	mod_aidisk_access.la
+	mod_aidisk_access.la mod_create_captcha_image.la
 @NO_RDYNAMIC_TRUE@liblightcomp_la_SOURCES = $(common_src)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_CFLAGS = $(AM_CFLAGS) $(LIBEV_CFLAGS)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_LDFLAGS = -avoid-version -no-undefined
@@ -839,6 +850,9 @@ mod_accesslog_la_LIBADD = $(common_libadd)
 mod_aidisk_access_la_SOURCES = mod_aidisk_access.c
 mod_aidisk_access_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
 mod_aidisk_access_la_LIBADD = $(common_libadd)
+mod_create_captcha_image_la_SOURCES = mod_create_captcha_image.c
+mod_create_captcha_image_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+mod_create_captcha_image_la_LIBADD = $(common_libadd)
 hdr = server.h buffer.h network.h log.h keyvalue.h \
       response.h request.h fastcgi.h chunk.h \
       settings.h http_chunk.h http_auth_digest.h \
@@ -959,6 +973,8 @@ mod_cml.la: $(mod_cml_la_OBJECTS) $(mod_cml_la_DEPENDENCIES)
 	$(AM_V_CCLD)$(mod_cml_la_LINK) -rpath $(libdir) $(mod_cml_la_OBJECTS) $(mod_cml_la_LIBADD) $(LIBS)
 mod_compress.la: $(mod_compress_la_OBJECTS) $(mod_compress_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_compress_la_LINK) -rpath $(libdir) $(mod_compress_la_OBJECTS) $(mod_compress_la_LIBADD) $(LIBS)
+mod_create_captcha_image.la: $(mod_create_captcha_image_la_OBJECTS) $(mod_create_captcha_image_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(mod_create_captcha_image_la_LINK) -rpath $(libdir) $(mod_create_captcha_image_la_OBJECTS) $(mod_create_captcha_image_la_LIBADD) $(LIBS)
 mod_dirlisting.la: $(mod_dirlisting_la_OBJECTS) $(mod_dirlisting_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_dirlisting_la_LINK) -rpath $(libdir) $(mod_dirlisting_la_OBJECTS) $(mod_dirlisting_la_LIBADD) $(LIBS)
 mod_evasive.la: $(mod_evasive_la_OBJECTS) $(mod_evasive_la_DEPENDENCIES) 
@@ -1182,6 +1198,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_cml_la-mod_cml_funcs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_cml_la-mod_cml_lua.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_compress.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_create_captcha_image.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_dirlisting.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_evasive.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_evhost.Plo@am__quote@

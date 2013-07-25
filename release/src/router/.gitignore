@@ -1,0 +1,22 @@
+#
+# general
+#
+
+.*.cmd
+*~
+
+#
+# asuswrt
+#
+
+.config
+.config.old
+config_
+mipsel-uclibc
+
+#
+# asuswrt test
+#
+
+libfoo_xref.txt
+target.info

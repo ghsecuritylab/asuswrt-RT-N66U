@@ -43,6 +43,10 @@
 #include "albumart.h"
 #include "log.h"
 
+#ifndef AV_LOG_PANIC
+#define AV_LOG_PANIC AV_LOG_FATAL
+#endif
+
 int valid_cache = 0;
 
 struct virtual_item
@@ -762,6 +766,10 @@ ScanDirectory(const char * dir, const char * parent, enum media_types dir_type)
 		type = TYPE_UNKNOWN;
 		sprintf(full_path, "%s/%s", dir, namelist[i]->d_name);
 		name = escape_tag(namelist[i]->d_name, 1);
+		if(strstr(full_path,"/Download2/InComplete") || strstr(full_path,"/Download2/Seeds") || strstr(full_path,"/Download2/config") || strstr(full_path,"/Download2/action"))
+			 continue;
+		if((strncmp(name,"asusware",8) == 0))//eric added for have no need to scan asusware folder
+			continue;
 		if( namelist[i]->d_type == DT_DIR )
 		{
 			type = TYPE_DIR;

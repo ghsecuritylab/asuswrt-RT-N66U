@@ -215,7 +215,7 @@ function showdhcp_staticlist(){
 				for(var j = 0; j < dhcp_staticlist_col.length; j++){
 					code +='<td width="40%">'+ dhcp_staticlist_col[j] +'</td>';		//IP  width="98"
 				}
-				code +='<td width="20%"><!--input class="edit_btn" onclick="edit_Row(this);" value=""/-->';
+				code +='<td width="20%">';<!--input class="edit_btn" onclick="edit_Row(this);" value=""/-->
 				code +='<input class="remove_btn" onclick="del_Row(this);" value=""/></td></tr>';
 		}
 	}
@@ -316,9 +316,6 @@ function validForm(){
 	
 	
 	if(!validate_range(document.form.dhcp_lease, 120, 604800))
-		return false;
-	
-	if(!validate_ipaddr(document.form.dhcp_wins_x, 'dhcp_wins_x'))
 		return false;
 	
 	return true;

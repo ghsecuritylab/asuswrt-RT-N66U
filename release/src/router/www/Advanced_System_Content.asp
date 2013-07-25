@@ -106,10 +106,14 @@ function initial(){
 			document.form.btn_ez_radiotoggle[1].disabled = true;
 			document.getElementById('btn_ez_radiotoggle_tr').style.display = "none";
 	}else{
-			//document.getElementById('btn_ez_radiotoggle_tr').style.display = "";
-			document.form.btn_ez_radiotoggle[0].disabled = true;
-			document.form.btn_ez_radiotoggle[1].disabled = true;
-			document.getElementById('btn_ez_radiotoggle_tr').style.display = "none";			
+			document.getElementById('btn_ez_radiotoggle_tr').style.display = "";
+			//document.form.btn_ez_radiotoggle[0].disabled = true;
+			//document.form.btn_ez_radiotoggle[1].disabled = true;
+			//document.getElementById('btn_ez_radiotoggle_tr').style.display = "none";			
+	}
+	
+	if(sw_mode == 2){  // hide WPS button behavior under repeater mode
+		$('btn_ez_radiotoggle_tr').style.display = "none";	
 	}
 	
 	if(sw_mode != 1){
@@ -282,7 +286,7 @@ function validForm(){
 		return false;
 	}
 
-	if(!validate_ipaddr(document.form.log_ipaddr, 'log_ipaddr')
+	if(!validate_ipaddr_final(document.form.log_ipaddr, 'log_ipaddr')
 			|| !validate_string(document.form.ntp_server0)
 			)
 		return false;

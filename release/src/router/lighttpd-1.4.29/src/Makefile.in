@@ -325,6 +325,13 @@ mod_setenv_la_OBJECTS = $(am_mod_setenv_la_OBJECTS)
 mod_setenv_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(mod_setenv_la_LDFLAGS) $(LDFLAGS) -o $@
+mod_sharelink_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_mod_sharelink_la_OBJECTS = mod_sharelink.lo
+mod_sharelink_la_OBJECTS = $(am_mod_sharelink_la_OBJECTS)
+mod_sharelink_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(mod_sharelink_la_LDFLAGS) $(LDFLAGS) \
+	-o $@
 mod_simple_vhost_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_mod_simple_vhost_la_OBJECTS = mod_simple_vhost.lo
 mod_simple_vhost_la_OBJECTS = $(am_mod_simple_vhost_la_OBJECTS)
@@ -504,14 +511,14 @@ SOURCES = $(liblightcomp_la_SOURCES) $(mod_access_la_SOURCES) \
 	$(mod_proxy_la_SOURCES) $(mod_redirect_la_SOURCES) \
 	$(mod_rewrite_la_SOURCES) $(mod_rrdtool_la_SOURCES) \
 	$(mod_scgi_la_SOURCES) $(mod_secdownload_la_SOURCES) \
-	$(mod_setenv_la_SOURCES) $(mod_simple_vhost_la_SOURCES) \
-	$(mod_smbdav_la_SOURCES) $(mod_ssi_la_SOURCES) \
-	$(mod_staticfile_la_SOURCES) $(mod_status_la_SOURCES) \
-	$(mod_trigger_b4_dl_la_SOURCES) $(mod_userdir_la_SOURCES) \
-	$(mod_usertrack_la_SOURCES) $(mod_webdav_la_SOURCES) \
-	$(lemon_SOURCES) $(lighttpd_SOURCES) $(lighttpd_angel_SOURCES) \
-	$(lighttpd_arpping_SOURCES) $(lighttpd_monitor_SOURCES) \
-	$(proc_open_SOURCES)
+	$(mod_setenv_la_SOURCES) $(mod_sharelink_la_SOURCES) \
+	$(mod_simple_vhost_la_SOURCES) $(mod_smbdav_la_SOURCES) \
+	$(mod_ssi_la_SOURCES) $(mod_staticfile_la_SOURCES) \
+	$(mod_status_la_SOURCES) $(mod_trigger_b4_dl_la_SOURCES) \
+	$(mod_userdir_la_SOURCES) $(mod_usertrack_la_SOURCES) \
+	$(mod_webdav_la_SOURCES) $(lemon_SOURCES) $(lighttpd_SOURCES) \
+	$(lighttpd_angel_SOURCES) $(lighttpd_arpping_SOURCES) \
+	$(lighttpd_monitor_SOURCES) $(proc_open_SOURCES)
 DIST_SOURCES = $(am__liblightcomp_la_SOURCES_DIST) \
 	$(mod_access_la_SOURCES) $(mod_accesslog_la_SOURCES) \
 	$(mod_aidisk_access_la_SOURCES) $(mod_alias_la_SOURCES) \
@@ -526,14 +533,15 @@ DIST_SOURCES = $(am__liblightcomp_la_SOURCES_DIST) \
 	$(mod_proxy_la_SOURCES) $(mod_redirect_la_SOURCES) \
 	$(mod_rewrite_la_SOURCES) $(mod_rrdtool_la_SOURCES) \
 	$(mod_scgi_la_SOURCES) $(mod_secdownload_la_SOURCES) \
-	$(mod_setenv_la_SOURCES) $(mod_simple_vhost_la_SOURCES) \
-	$(mod_smbdav_la_SOURCES) $(mod_ssi_la_SOURCES) \
-	$(mod_staticfile_la_SOURCES) $(mod_status_la_SOURCES) \
-	$(mod_trigger_b4_dl_la_SOURCES) $(mod_userdir_la_SOURCES) \
-	$(mod_usertrack_la_SOURCES) $(mod_webdav_la_SOURCES) \
-	$(lemon_SOURCES) $(am__lighttpd_SOURCES_DIST) \
-	$(lighttpd_angel_SOURCES) $(lighttpd_arpping_SOURCES) \
-	$(lighttpd_monitor_SOURCES) $(proc_open_SOURCES)
+	$(mod_setenv_la_SOURCES) $(mod_sharelink_la_SOURCES) \
+	$(mod_simple_vhost_la_SOURCES) $(mod_smbdav_la_SOURCES) \
+	$(mod_ssi_la_SOURCES) $(mod_staticfile_la_SOURCES) \
+	$(mod_status_la_SOURCES) $(mod_trigger_b4_dl_la_SOURCES) \
+	$(mod_userdir_la_SOURCES) $(mod_usertrack_la_SOURCES) \
+	$(mod_webdav_la_SOURCES) $(lemon_SOURCES) \
+	$(am__lighttpd_SOURCES_DIST) $(lighttpd_angel_SOURCES) \
+	$(lighttpd_arpping_SOURCES) $(lighttpd_monitor_SOURCES) \
+	$(proc_open_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -736,7 +744,8 @@ lib_LTLIBRARIES = $(am__append_1) mod_flv_streaming.la mod_evasive.la \
 	mod_expire.la mod_evhost.la mod_simple_vhost.la mod_fastcgi.la \
 	mod_extforward.la mod_access.la mod_compress.la mod_auth.la \
 	mod_rewrite.la mod_redirect.la mod_status.la mod_accesslog.la \
-	mod_aidisk_access.la mod_create_captcha_image.la
+	mod_aidisk_access.la mod_create_captcha_image.la \
+	mod_sharelink.la
 @NO_RDYNAMIC_TRUE@liblightcomp_la_SOURCES = $(common_src)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_CFLAGS = $(AM_CFLAGS) $(LIBEV_CFLAGS)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_LDFLAGS = -avoid-version -no-undefined
@@ -853,6 +862,9 @@ mod_aidisk_access_la_LIBADD = $(common_libadd)
 mod_create_captcha_image_la_SOURCES = mod_create_captcha_image.c
 mod_create_captcha_image_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
 mod_create_captcha_image_la_LIBADD = $(common_libadd)
+mod_sharelink_la_SOURCES = mod_sharelink.c
+mod_sharelink_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+mod_sharelink_la_LIBADD = $(common_libadd)
 hdr = server.h buffer.h network.h log.h keyvalue.h \
       response.h request.h fastcgi.h chunk.h \
       settings.h http_chunk.h http_auth_digest.h \
@@ -1009,6 +1021,8 @@ mod_secdownload.la: $(mod_secdownload_la_OBJECTS) $(mod_secdownload_la_DEPENDENC
 	$(AM_V_CCLD)$(mod_secdownload_la_LINK) -rpath $(libdir) $(mod_secdownload_la_OBJECTS) $(mod_secdownload_la_LIBADD) $(LIBS)
 mod_setenv.la: $(mod_setenv_la_OBJECTS) $(mod_setenv_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_setenv_la_LINK) -rpath $(libdir) $(mod_setenv_la_OBJECTS) $(mod_setenv_la_LIBADD) $(LIBS)
+mod_sharelink.la: $(mod_sharelink_la_OBJECTS) $(mod_sharelink_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(mod_sharelink_la_LINK) -rpath $(libdir) $(mod_sharelink_la_OBJECTS) $(mod_sharelink_la_LIBADD) $(LIBS)
 mod_simple_vhost.la: $(mod_simple_vhost_la_OBJECTS) $(mod_simple_vhost_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_simple_vhost_la_LINK) -rpath $(libdir) $(mod_simple_vhost_la_OBJECTS) $(mod_simple_vhost_la_LIBADD) $(LIBS)
 mod_smbdav.la: $(mod_smbdav_la_OBJECTS) $(mod_smbdav_la_DEPENDENCIES) 
@@ -1217,6 +1231,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_scgi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_secure_download.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_setenv.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_sharelink.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_simple_vhost.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_smbdav_basic.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_smbdav_la-mod_smbdav.Plo@am__quote@

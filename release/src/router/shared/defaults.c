@@ -108,6 +108,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_chanspec", "0"},			/* Channel specification */
 #endif
 #ifndef RTCONFIG_RALINK
+	{ "wl_noisereduction", "1"},
 	{ "wl_reg_mode", "off"},		/* Regulatory: 802.11H(h)/802.11D(d)/off(off) */
 #if 0
 	{ "wl_dfs_preism", "60"},		/* 802.11H pre network CAC time */
@@ -210,9 +211,6 @@ struct nvram_tuple router_defaults[] = {
 	/* WSC parameters */
 	{ "wps_version2", "enabled"},		/* Must specified before other wps variables */
 	{ "wl_wps_mode", "enabled"},		/* enabled wps */
-#ifndef RTCONFIG_RALINK
-	{ "wps_mode", "enabled"},		/* enabled wps */
-#endif
 	{ "wl_wps_config_state", "0"},		/* config state unconfiged */
 #if 0
 	{ "wps_modelname", RT_BUILD_NAME},
@@ -222,14 +220,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "wps_mfstring", "ASUSTeK Computer Inc."},
 //	{ "wps_device_name", RT_BUILD_NAME},
 	{ "wl_wps_reg", "enabled"},
-	//{ "wps_device_pin", "12345670"}, it is mapped to secret_code
+//	{ "wps_device_pin", "12345670"}, it is mapped to secret_code
 	{ "wps_sta_pin", "00000000"},
-#if 0
-	{ "wps_modelnum", "123456"},
-#else
 //	{ "wps_modelnum", RT_BUILD_NAME},
-#endif
-	{ "wps_timeout_enable", "0"},
 	/* Allow or Deny Wireless External Registrar get or configure AP security settings */
 	{ "wps_wer_mode", "allow"},
 
@@ -389,7 +382,6 @@ struct nvram_tuple router_defaults[] = {
 //	{ "wps_enable", "0"},					// win7 logo
 //	#endif
 #ifdef RTCONFIG_RALINK
-	{ "wps_mode", "1"},					/* AP WSC PIN method */
 	{ "wl_wsc_config_state", "0"},				/* config state unconfiged */
 #endif
 	{ "wps_band", "0"},					/* "0": 2.4G, "1": 5G */
@@ -477,6 +469,7 @@ struct nvram_tuple router_defaults[] = {
 #ifdef CONFIG_BCMWL5
 	{ "ctf_disable",		"0"		},
 	{ "ctf_disable_force", 		"0"		},
+	{ "gro_disable_force", 		"0"		},
 #endif
 #ifdef RTCONFIG_BCMWL6
 	{ "pktc_disable", 		"0"		},
@@ -666,7 +659,8 @@ struct nvram_tuple router_defaults[] = {
 
 #ifdef RTCONFIG_DSL
 	{ "dslx_modulation", "5" }, // multiple mode
-
+	{ "dslx_snrm_offset", "0" }, /* Paul add start 2012/9/24, for SNR Margin tweaking. */
+	{ "dslx_sra", "0" }, /* Paul add 2012/10/15, for setting SRA. */
 #ifdef RTCONFIG_DSL_ANNEX_B //Paul add 2012/8/21
 	{ "dslx_annex", "0" }, // Annex B
 #else
@@ -864,18 +858,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "fw_dos_x", "0" },
 	{ "fw_log_x", "none" },
 	{ "fw_pt_pptp", "1" },
-#ifndef RTCONFIG_RALINK
 	{ "fw_pt_l2tp", "1" },
 	{ "fw_pt_ipsec", "1" },
-#else
-#ifdef RTCONFIG_DSL /* Paul add 2012/7/20, enable L2TP and IPSec Passthrough by default for DSL model. */
-	{ "fw_pt_l2tp", "1" },
-	{ "fw_pt_ipsec", "1" },
-#else
-	{ "fw_pt_l2tp", "0" },
-	{ "fw_pt_ipsec", "0" },
-#endif
-#endif
 	{ "fw_pt_rtsp", "1" },
 	{ "fw_pt_pppoerelay", "0"},
 	{ "misc_http_x", "0" },
@@ -1016,6 +1000,13 @@ struct nvram_tuple router_defaults[] = {
 	{ "enable_cloudsync", "0" },
 	{ "cloud_sync", ""},
 #endif
+
+	{ "diskmon_freq", "0"}, // 0: disable, 1: Month, 2: Week, 3: Hour
+	{ "diskmon_freq_time", ""}, // DAY>WEEK>HOUR
+	{ "diskmon_policy", "all"}, // all, disk, part
+	{ "diskmon_usbport", ""}, // 1, 2
+	{ "diskmon_part", ""}, // sda1, sdb1
+	{ "diskmon_force_stop", "0"}, // 0: disable, 1: stop if possible
 #endif
 
 #ifdef RTCONFIG_HTTPS
@@ -1395,6 +1386,8 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "apps_state_upgrade", "" },
 	{ "apps_state_error", "" },
 	{ "apps_state_autofix", "1" },
+
+	{ "diskmon_status", "" },
 
 	{ "webs_state_update", "" },
 	{ "webs_state_upgrade", "" },

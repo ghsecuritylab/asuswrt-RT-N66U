@@ -1805,8 +1805,6 @@ static int wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
 	/* current unit */
 	unit = wan_primary_ifunit();
 
-printf("httpd: unit: %d\n", unit);
-
 	wan_prefix(unit, prefix);
 
 	wan_state = nvram_get_int(strcat_r(prefix, "state_t", tmp));
@@ -2544,11 +2542,61 @@ ej_lan_leases(int eid, webs_t wp, int argc, char_t **argv)
 
 	return ret;
 }
+
+int
+ej_IP_dhcpLeaseInfo(int eid, webs_t wp, int argc, char_t **argv)
+{
+        FILE *fp;
+        struct in_addr addr4;
+        struct in6_addr addr6;
+        char line[256];
+        char *hwaddr, *ipaddr, *name, *next;
+        unsigned int expires;
+        int ret = 0;
+
+        if (!nvram_get_int("dhcp_enable_x") || !nvram_match("sw_mode", "1"))
+                return ret;
+
+        /* Read leases file */
+        if (!(fp = fopen("/var/lib/misc/dnsmasq.leases", "r")))
+                return ret;
+
+	ret += websWrite(wp, "[");
+        while ((next = fgets(line, sizeof(line), fp)) != NULL) {
+                /* line should start from numeric value */
+                if (sscanf(next, "%u ", &expires) != 1)
+                        continue;
+
+                strsep(&next, " ");
+                hwaddr = strsep(&next, " ") ? : "";
+                ipaddr = strsep(&next, " ") ? : "";
+                name = strsep(&next, " ") ? : "";
+
+                if (inet_pton(AF_INET6, ipaddr, &addr6) != 0) {
+                        /* skip ipv6 leases, thay have no hwaddr, but client id */
+                        // hwaddr = next ? : "";
+                        continue;
+                } else if (inet_pton(AF_INET, ipaddr, &addr4) == 0)
+                        continue;
+
+                ret += websWrite(wp,"['%s', '%s'],", ipaddr, name);
+        }
+	ret += websWrite(wp, "['', '']];");
+        fclose(fp);
+
+        return ret;
+}
 #else
 int
 ej_dhcpLeaseInfo(int eid, webs_t wp, int argc, char_t **argv)
 {
 	return "";
+}
+
+int
+ej_IP_dhcpLeaseInfo(int eid, webs_t wp, int argc, char_t **argv)
+{
+        return "[['', '']]";
 }
 
 /* Dump leases in <tr><td>hostname</td><td>MAC</td><td>IP</td><td>expires</td></tr> format */
@@ -4203,7 +4251,7 @@ err:
 static void
 do_upgrade_cgi(char *url, FILE *stream)
 {	
-	printf("## [httpd] do upgrade cgi\n");	// tmp test
+	_dprintf("## [httpd] do upgrade cgi\n");	// tmp test
 	/* Reboot if successful */
 	
 	if (upgrade_err == 0)
@@ -4555,6 +4603,7 @@ struct except_mime_handler except_mime_handlers[] = {
 	{ "QIS_*", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},	
 	{ "qis/*", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},	
 	{ "*.css", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},
+	{ "ajax.js", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},
 	{ "state.js", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},
 	{ "detect.js", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},
 	{ "popup.js", MIME_EXCEPTION_NOAUTH_FIRST|MIME_EXCEPTION_NORESETTIME},
@@ -6321,6 +6370,90 @@ int ej_set_account_permission(int eid, webs_t wp, int argc, char **argv){
 	return 0;
 }
 
+#ifdef RTCONFIG_DISK_MONITOR
+int ej_apps_fsck_ret(int eid, webs_t wp, int argc, char **argv){
+	disk_info_t *disk_list, *disk_info;
+	partition_info_t *partition_info;
+	FILE *fp;
+	char file_name0[32], file_name1[32];
+
+	disk_list = read_disk_data();
+	if(disk_list == NULL){
+		websWrite(wp, "[]");
+		return -1;
+	}
+
+	websWrite(wp, "[");
+	for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next){
+		for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
+			websWrite(wp, "[\"%s\", ", partition_info->device);
+
+			memset(file_name0, 0, 32);
+			sprintf(file_name0, "/tmp/fsck_ret/%s.0", partition_info->device);
+
+			memset(file_name1, 0, 32);
+			sprintf(file_name1, "/tmp/fsck_ret/%s.1", partition_info->device);
+
+			if((fp = fopen(file_name0, "r")) != NULL){
+				fclose(fp);
+
+				websWrite(wp, "\"0\"");
+			}
+			else if((fp = fopen(file_name1, "r")) != NULL){
+				fclose(fp);
+
+				websWrite(wp, "\"1\"");
+			}
+			else
+				websWrite(wp, "\"\"");
+
+			websWrite(wp, "]%s", (partition_info->next)?", ":"");
+		}
+
+		websWrite(wp, "%s", (disk_info->next)?", ":"");
+	}
+	websWrite(wp, "]");
+
+	free_disk_data(&disk_list);
+
+	return 0;
+}
+
+int ej_apps_fsck_log(int eid, webs_t wp, int argc, char **argv){
+	disk_info_t *disk_list, *disk_info;
+	partition_info_t *partition_info;
+	char file_name[32];
+	char *usb_port;
+	int ret;
+
+	if(ejArgs(argc, argv, "%s", &usb_port) < 1)
+		usb_port = "all";
+
+	disk_list = read_disk_data();
+	if(disk_list == NULL){
+		return -1;
+	}
+
+	for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next){
+		if(strcmp(usb_port, "all") && strcmp(usb_port, disk_info->port))
+			continue;
+
+		for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
+			memset(file_name, 0, 32);
+			sprintf(file_name, "/tmp/fsck_ret/%s.log", partition_info->device);
+			ret = dump_file(wp, file_name);
+
+			if(ret)
+				websWrite(wp, "\n\n");
+		}
+	}
+
+	free_disk_data(&disk_list);
+
+	return 0;
+}
+#endif
+
 // argv[0] = "all" or NULL: show all lists, "asus": only show the list of ASUS, "others": show other lists.
 // apps_info: ["Name", "Version", "New Version", "Installed", "Enabled", "Source", "URL", "Description", "Depends", "Optional Utility", "New Optional Utility", "Help Path", "New File name"].
 int ej_apps_info(int eid, webs_t wp, int argc, char **argv)
@@ -7186,6 +7319,7 @@ struct ej_handler ej_handlers[] = {
 	{ "load_script", ej_load},
 	{ "select_list", ej_select_list},
 	{ "dhcpLeaseInfo", ej_dhcpLeaseInfo},
+	{ "IP_dhcpLeaseInfo", ej_IP_dhcpLeaseInfo},
 //tomato qosvvvvvvvvvvv 2010.08 Viz
 	{ "qrate", ej_qos_packet},
 	{ "ctdump", ej_ctdump},
@@ -7264,6 +7398,10 @@ struct ej_handler ej_handlers[] = {
 	{ "modify_sharedfolder", ej_modify_sharedfolder},	/* no ccc*/
 	{ "set_share_mode", ej_set_share_mode},
 	{ "initial_folder_var_file", ej_initial_folder_var_file},	/* J++ */
+#ifdef RTCONFIG_DISK_MONITOR
+	{ "apps_fsck_ret", ej_apps_fsck_ret},
+	{ "apps_fsck_log", ej_apps_fsck_log},
+#endif
 	{ "apps_info", ej_apps_info},
 	{ "apps_action", ej_apps_action},
 #ifdef RTCONFIG_MEDIA_SERVER

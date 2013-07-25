@@ -550,6 +550,7 @@ void timecheck(void)
 	}
 
 	// radio on/off
+	if (nvram_match("svc_ready", "1"))
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 
@@ -935,6 +936,10 @@ watchdog_main(int argc, char *argv[])
 		fprintf(fp, "%d", getpid());
 		fclose(fp);
 	}
+
+#ifdef RTCONFIG_SWMODE_SWITCH
+	pre_sw_mode=nvram_get_int("sw_mode");
+#endif
 
 #ifdef RTCONFIG_RALINK
 	doSystem("iwpriv %s set WatchdogPid=%d", WIF_2G, getpid());

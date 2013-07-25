@@ -1503,7 +1503,7 @@ start_default_filter(int lanunit)
 	fclose(fp);
 
 	//system("iptables -F"); 
-	xstart("iptables-restore", "/tmp/filter.default");
+	eval("iptables-restore", "/tmp/filter.default");
 }
 
 #ifdef WEBSTRFILTER
@@ -2643,14 +2643,14 @@ TRACE_PT("filterstr %s %s\n", timef, filterstr);
 	fclose(fp);
 
 	//system("iptables -F");
-	xstart("iptables-restore","/tmp/filter_rules");
+	eval("iptables-restore", "/tmp/filter_rules");
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled())
 	{
 		fprintf(fp_ipv6, "COMMIT\n\n");
 		fclose(fp_ipv6);
-		xstart("ip6tables-restore","/tmp/filter_rules_ipv6");
+		eval("ip6tables-restore", "/tmp/filter_rules_ipv6");
 	}
 #endif
 }
@@ -3649,14 +3649,14 @@ TRACE_PT("filterstr %s %s\n", timef, filterstr);
 	fclose(fp);
 
 	//system("iptables -F");
-	xstart("iptables-restore","/tmp/filter_rules");
+	eval("iptables-restore", "/tmp/filter_rules");
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled())
 	{
 		fprintf(fp_ipv6, "COMMIT\n\n");
 		fclose(fp_ipv6);
-		xstart("ip6tables-restore","/tmp/filter_rules_ipv6");
+		eval("ip6tables-restore", "/tmp/filter_rules_ipv6");
 	}
 #endif
 }

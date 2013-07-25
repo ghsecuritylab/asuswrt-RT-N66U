@@ -678,7 +678,7 @@ void start_radvd(void)
 	FILE *f;
 	char *prefix, *ip, *mtu;
 	int do_dns, do_6to4, do_6rd;
-	char *argv[] = { "radvd", NULL, NULL, NULL };
+	char *argv[] = { "radvd", NULL, NULL, NULL, NULL, NULL, NULL };
 	int pid, argc, service, cnt;
 	char *p = NULL;
 
@@ -783,7 +783,7 @@ void start_radvd(void)
 			else
 				p = ipv6_dns_str;
 
-			cnt = write_ipv6_dns_servers(f, (cnt) ? " RDNSS " : "", (p && *p) ? p : ip, " ", 1);
+			cnt = write_ipv6_dns_servers(f, " RDNSS ", (char*) ((p && *p) ? p : ip), " ", 1);
 			if (cnt) fprintf(f, "{};\n");
 		}
 
@@ -798,7 +798,7 @@ void start_radvd(void)
 		// Start radvd
 		argc = 1;
 		argv[argc++] = "-u";
-		argv[argc++] = "admin";
+		argv[argc++] = nvram_safe_get("http_username");
 		if (nvram_get_int("ipv6_debug")) {
 			argv[argc++] = "-d";
 			argv[argc++] = "5";
@@ -2325,8 +2325,6 @@ stop_ntpc(void)
 		return;
 	}
 
-	if (pids("ntp"))
-		killall_tk("ntp");
 	if (pids("ntpclient"))
 		killall_tk("ntpclient");
 }
@@ -2344,7 +2342,8 @@ void refresh_ntpc(void)
 		stop_ntpc();
 		start_ntpc();
 	}
-	else killall("ntp", SIGTSTP);
+	else
+		kill_pidfile_s("/var/run/ntp.pid", SIGALRM);
 }
 
 int start_lltd(void)
@@ -2467,7 +2466,9 @@ start_services(void)
 #ifdef RTCONFIG_USB
 //	_dprintf("restart_nas_services(%d): test 8.\n", getpid());
 	restart_nas_services(0, 1);
+#ifdef RTCONFIG_DISK_MONITOR
 	start_diskmon();
+#endif
 #endif
 	//start_dnsmasq();
 
@@ -2498,7 +2499,9 @@ stop_services(void)
 #ifdef RTCONFIG_USB
 //_dprintf("restart_nas_services(%d): test 9.\n", getpid());
 	restart_nas_services(1, 0);
+#ifdef RTCONFIG_DISK_MONITOR
 	stop_diskmon();
+#endif
 #endif
 	stop_upnp();
 	stop_lltd();
@@ -2859,6 +2862,7 @@ again:
 	}
 	else if(strcmp(script, "mfgmode") == 0) {
 		//stop_infosvr(); //ATE need ifosvr
+		killall_tk("ntp");
 		stop_ntpc();
 		stop_wps();
 #ifdef RTCONFIG_BCMWL6
@@ -3309,11 +3313,18 @@ again:
 		if(action&RC_SERVICE_START) start_mt_daapd();
 	}
 #endif
+#ifdef RTCONFIG_DISK_MONITOR
 	else if (strcmp(script, "diskmon")==0)
 	{
 		if(action&RC_SERVICE_STOP) stop_diskmon();
 		if(action&RC_SERVICE_START) start_diskmon();
 	}
+	else if (strcmp(script, "diskscan")==0)
+	{
+		if(action&RC_SERVICE_START)
+			kill_pidfile_s("/var/run/disk_monitor.pid", SIGUSR2);
+	}
+#endif
 	else if(!strncmp(script, "apps_", 5)) 
 	{
 		if(action&RC_SERVICE_START) {
@@ -3601,7 +3612,7 @@ again:
 		if(action&RC_SERVICE_STOP) stop_wlcconnect();
 
 #ifdef WEB_REDIRECT
-		_dprintf("%s: notify wanduck: wlcstate=%d.\n", __FUNCTION__, nvram_get_int("wlc_state"));
+		_dprintf("%s: notify wanduck: wlc_state=%d.\n", __FUNCTION__, nvram_get_int("wlc_state"));
 		// notify the change to wanduck.
 		kill_pidfile_s("/var/run/wanduck.pid", SIGUSR1);
 #endif
@@ -3684,6 +3695,7 @@ again:
 		if(action&RC_SERVICE_STOP) stop_pptpd();
 		if(action&RC_SERVICE_START) {
 			start_pptpd();
+			restart_dnsmasq();
 			start_firewall(wan_primary_ifunit(), 0);
 		}
 	}
@@ -3878,7 +3890,7 @@ void start_nat_rules() {
 	setup_ct_timeout(TRUE);
 	setup_udp_timeout(TRUE);
 
-	eval("iptables-restore", "/tmp/nat_rules");
+	eval("iptables-restore", NAT_RULES);
 
 	return;
 }

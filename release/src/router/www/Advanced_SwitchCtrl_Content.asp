@@ -115,7 +115,7 @@ function valid_form(){
           </td>
       </tr>     
 
-	    <tr>
+	    <tr style="display:none">
 	      <th>Disable GRO(Generic Receive Offload)</th>
 	          <td>
 	              <input type="radio" name="gro_disable_force" value="1" <% nvram_match("gro_disable_force", "1", "checked"); %>><#checkbox_Yes#>

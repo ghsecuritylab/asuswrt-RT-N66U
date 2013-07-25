@@ -557,7 +557,7 @@ start_ecmh(char *wan_ifname)
 	case IPV6_NATIVE:
 	case IPV6_NATIVE_DHCP:
 	case IPV6_MANUAL:
-		eval("/bin/ecmh", "-u", "admin", "-i", wan_ifname);
+		eval("/bin/ecmh", "-u", nvram_safe_get("http_username"), "-i", (char*)wan_ifname);
 		break;
 	}
 }
@@ -1025,7 +1025,13 @@ start_wan_if(int unit)
 	int s;
 	struct ifreq ifr;
 	pid_t pid;
-	FILE *fp;
+	int port_num, got_modem;
+	char nvram_name[32];
+	char word[PATH_MAX], *next;
+#ifdef RTCONFIG_USB_BECEEM
+	int i;
+	char uvid[8], upid[8];
+#endif
 
 	_dprintf("%s(%d)\n", __FUNCTION__, unit);
 	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
@@ -1090,6 +1096,7 @@ TRACE_PT("kill 3g's pppd.\n");
 			free(value);
 
 		char dhcp_pid_file[1024];
+		FILE *fp;
 
 		memset(dhcp_pid_file, 0, 1024);
 		sprintf(dhcp_pid_file, "/var/run/udhcpc%d.pid", unit);
@@ -1125,8 +1132,71 @@ TRACE_PT("kill 3g's pppd.\n");
 		// RNDIS interface: usbX, Beceem interface: usbbcm -> ethX.
 		else{
 			wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
-			if(strlen(wan_ifname) <= 0)
+			if(strlen(wan_ifname) <= 0){
+#ifdef RTCONFIG_USB_BECEEM
+				port_num = 1;
+				foreach(word, nvram_safe_get("ehci_ports"), next){
+					memset(nvram_name, 0, 32);
+					sprintf(nvram_name, "usb_path%d", port_num);
+
+					if(!strcmp(nvram_safe_get(nvram_name), "modem")){
+						memset(nvram_name, 0, 32);
+						sprintf(nvram_name, "usb_path%d_vid", port_num);
+						memset(uvid, 0, 8);
+						strncpy(uvid, nvram_safe_get(nvram_name), 8);
+						memset(nvram_name, 0, 32);
+						sprintf(nvram_name, "usb_path%d_pid", port_num);
+						memset(upid, 0, 8);
+						strncpy(upid, nvram_safe_get(nvram_name), 8);
+
+						if(is_samsung_dongle(1, uvid, upid)){
+							modprobe("tun");
+							sleep(1);
+
+							i = 0;
+							while(i < 3){
+								if(pids("madwimax")){
+									killall_tk("madwimax");
+									sleep(1);
+
+									++i;
+								}
+								else
+									break;
+							}
+
+							xstart("madwimax");
+						}
+						else if(is_gct_dongle(1, uvid, upid)){
+							modprobe("tun");
+							sleep(1);
+
+							i = 0;
+							while(i < 3){
+								if(pids("gctwimax")){
+									killall_tk("gctwimax");
+									sleep(1);
+
+									++i;
+								}
+								else
+									break;
+							}
+
+							write_gct_conf();
+
+							xstart("gctwimax", "-C", WIMAX_CONF);
+						}
+
+						break;
+					}
+
+					++port_num;
+				}
+#endif
+
 				return;
+			}
 
 			int i = 0;
 
@@ -1177,27 +1247,59 @@ TRACE_PT("kill 3g's pppd.\n");
 				else
 					TRACE_PT("stop_conn_3g was set.\n");
 			}
+			// Beceem dongle, ASIX USB to RJ45 converter.
+			else if(!strncmp(wan_ifname, "eth", 3)){
 #ifdef RTCONFIG_USB_BECEEM
-			else if(!strncmp(wan_ifname, "eth", 3)){ // Beceem interface.
 				write_beceem_conf(wan_ifname);
+#endif
 
 				if(!nvram_match("stop_conn_3g", "1")){
-					char buf[128];
+					got_modem = 0;
+					port_num = 1;
+					foreach(word, nvram_safe_get("ehci_ports"), next){
+						memset(nvram_name, 0, 32);
+						sprintf(nvram_name, "usb_path%d_act", port_num);
 
-					memset(buf, 0, 128);
-					sprintf(buf, "wimaxd -c %s", BECEEM_CONF);
-					_dprintf("%s: cmd=%s.\n", __FUNCTION__, buf);
-					system(buf);
-					sleep(3);
+						if(!strcmp(nvram_safe_get(nvram_name), wan_ifname)){
+							got_modem = 1;
 
-					_dprintf("%s: cmd=wimaxc search.\n", __FUNCTION__);
-					system("wimaxc search");
-					_dprintf("%s: sleep 10 seconds.\n", __FUNCTION__);
-					sleep(10);
+							start_udhcpc(wan_ifname, unit, &pid);
 
-					_dprintf("%s: cmd=wimaxc connect.\n", __FUNCTION__);
-					system("wimaxc connect");
+							break;
+						}
 
+						++port_num;
+					}
+
+#ifdef RTCONFIG_USB_BECEEM
+					if(!got_modem){
+						char buf[128];
+
+						memset(buf, 0, 128);
+						sprintf(buf, "wimaxd -c %s", WIMAX_CONF);
+						_dprintf("%s: cmd=%s.\n", __FUNCTION__, buf);
+						system(buf);
+						sleep(3);
+
+						_dprintf("%s: cmd=wimaxc search.\n", __FUNCTION__);
+						system("wimaxc search");
+						_dprintf("%s: sleep 10 seconds.\n", __FUNCTION__);
+						sleep(10);
+
+						_dprintf("%s: cmd=wimaxc connect.\n", __FUNCTION__);
+						system("wimaxc connect");
+					}
+#endif
+
+					update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
+				}
+				else
+					TRACE_PT("stop_conn_3g was set.\n");
+			}
+#ifdef RTCONFIG_USB_BECEEM
+			else if(!strncmp(wan_ifname, "wimax", 5)){
+				if(!nvram_match("stop_conn_3g", "1")){
+					start_udhcpc(wan_ifname, unit, &pid);
 					update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 				}
 				else
@@ -1634,8 +1736,12 @@ _dprintf("%s: kill pppd(%d).\n", __FUNCTION__, pid);
 	if(unit == WAN_UNIT_SECOND)
 #endif
 	{
-		if(is_usb_modem_ready())
+		if(is_usb_modem_ready()){
 			system("wimaxc disconnect");
+
+			killall_tk("madwimax");
+			killall_tk("gctwimax");
+		}
 		system("killall wimaxd");
 		system("killall -SIGUSR1 wimaxd");
 	}

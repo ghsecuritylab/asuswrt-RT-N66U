@@ -28,6 +28,8 @@
 #include "disk_initial.h"
 #include "disk_share.h"
 
+#include <linux/version.h>
+
 #define SAMBA_CONF "/etc/smb.conf"
 
 int
@@ -198,8 +200,11 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "bind interfaces only = yes\n");	// ASUS add
 	fprintf(fp, "interfaces = lo br0 %s\n", (!nvram_match("sw_mode", "3") ? nvram_safe_get("wan0_ifname") : ""));
 	//	fprintf(fp, "dns proxy = no\n");				// J--
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0)
+	fprintf(fp, "use sendfile = no\n");
+#else
 	fprintf(fp, "use sendfile = yes\n");
-
+#endif
 //	fprintf(fp, "domain master = no\n");				// J++
 //	fprintf(fp, "wins support = no\n");				// J++
 //	fprintf(fp, "printable = no\n");				// J++

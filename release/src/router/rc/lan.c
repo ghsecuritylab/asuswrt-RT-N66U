@@ -215,7 +215,7 @@ static int wlconf(char *ifname, int unit, int subunit)
 				case MODEL_RTN66U:
 				case MODEL_RTN16:
 					if ((unit == 0) &&
-						nvram_match(strcat_r(prefix, "noisereduction", tmp), "1"))
+						nvram_match(strcat_r(prefix, "noisemitigation", tmp), "1"))
 					{
 						eval("wl", "-i", ifname, "interference_override", "4");
 						eval("wl", "-i", ifname, "phyreg", "0x547", "0x4444");
@@ -922,10 +922,10 @@ void start_lan(void)
 
 	if ((sfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) return;
 
-#ifdef RTCONFIG_WIRELESSREPEATER
+/*#ifdef RTCONFIG_WIRELESSREPEATER
 	if(nvram_get_int("sw_mode") == SW_MODE_REPEATER && nvram_match("lan_proto", "dhcp"))
 		nvram_set("lan_ipaddr", nvram_default_get("lan_ipaddr"));
-#endif
+#endif//*/
 
 	lan_ifname = strdup(nvram_safe_get("lan_ifname"));
 	if (strncmp(lan_ifname, "br", 2) == 0) {
@@ -933,7 +933,10 @@ void start_lan(void)
 
 		eval("brctl", "addbr", lan_ifname);
 		eval("brctl", "setfd", lan_ifname, "0");
-		eval("brctl", "stp", lan_ifname, nvram_safe_get("lan_stp"));
+		if (is_routing_enabled())
+			eval("brctl", "stp", lan_ifname, nvram_safe_get("lan_stp"));
+		else
+			eval("brctl", "stp", lan_ifname, "0");
 #ifdef RTCONFIG_IPV6
 		if ((get_ipv6_service() != IPV6_DISABLED) &&
 			(!((nvram_get_int("ipv6_accept_ra") & 2) != 0 && !nvram_get_int("ipv6_radvd"))))
@@ -1130,12 +1133,16 @@ void start_lan(void)
 	close(sfd);
 
 	// bring up and configure LAN interface
-#ifdef RTCONFIG_WIRELESSREPEATER
+/*#ifdef RTCONFIG_WIRELESSREPEATER
 	if(nvram_get_int("sw_mode") == SW_MODE_REPEATER && nvram_get_int("wlc_state") != WLC_STATE_CONNECTED)
 		ifconfig(lan_ifname, IFUP, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 	else
 #endif
+		ifconfig(lan_ifname, IFUP, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));//*/
+	if(nvram_match("lan_proto", "static"))
 		ifconfig(lan_ifname, IFUP, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
+	else
+		ifconfig(lan_ifname, IFUP, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 
 	config_loopback();
 
@@ -1416,6 +1423,15 @@ void hotplug_net(void)
 	char *lan_ifname = nvram_safe_get("lan_ifname");
 	char *interface, *action;
 	bool psta_if, dyn_if, add_event, remove_event;
+	int unit;
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+#ifdef RTCONFIG_USB_MODEM
+	char device_path[128], usb_path[PATH_MAX], usb_port[8];
+	int port_num;
+	char nvram_name[32];
+	char word[PATH_MAX], *next;
+	int got_modem;
+#endif
 
 	if (!(interface = getenv("INTERFACE")) ||
 	    !(action = getenv("ACTION")))
@@ -1509,8 +1525,7 @@ void hotplug_net(void)
 NEITHER_WDS_OR_PSTA:
 	if (!strncmp(interface, "ppp", 3)){
 		char pid_file[256], *value;
-		int unit, ppp_pid, unit_pid, retry;
-		char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+		int ppp_pid, unit_pid, retry;
 
 		if(!strcmp(action, "add")){
 			memset(pid_file, 0, 256);
@@ -1570,9 +1585,6 @@ NEITHER_WDS_OR_PSTA:
 #ifdef RTCONFIG_USB_MODEM
 	// RNDIS interface.
 	else if(!strncmp(interface, "usb", 3)){
-		int unit;
-		char tmp[100], prefix[] = "wanXXXXXXXXXX_";
-
 		if(nvram_get_int("sw_mode") != SW_MODE_ROUTER)
 			return;
 
@@ -1589,10 +1601,6 @@ NEITHER_WDS_OR_PSTA:
 		snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 
 		if(!strcmp(action, "add")){
-			char device_path[128], usb_path[PATH_MAX], usb_port[8];
-			int port_num;
-			char nvram_name[32];
-
 			memset(device_path, 0, 128);
 			sprintf(device_path, "%s/%s/device", SYS_NET, interface);
 
@@ -1649,12 +1657,7 @@ NEITHER_WDS_OR_PSTA:
 		// Notify wanduck to switch the wan line to WAN port.
 		kill_pidfile_s("/var/run/wanduck.pid", SIGUSR2);
 	}
-#ifdef RTCONFIG_USB_BECEEM
 	else if(!strncmp(interface, "eth", 3)){
-		int unit;
-		char tmp[100], prefix[] = "wanXXXXXXXXXX_";
-		char word[256], *next;
-
 		if(nvram_get_int("sw_mode") != SW_MODE_ROUTER)
 			return;
 
@@ -1698,10 +1701,7 @@ NEITHER_WDS_OR_PSTA:
 			_dprintf("hotplug net INTERFACE=%s ACTION=%s: wait 2 seconds...\n", interface, action);
 			sleep(2);
 
-#ifdef RTCONFIG_DUALWAN
-			if(!strcmp(nvram_safe_get("success_start_service"), "1"))
-#endif
-			{
+			if(!strcmp(nvram_safe_get("success_start_service"), "1")){
 				_dprintf("%s: start_wan_if(%d)!\n", __FUNCTION__, unit);
 				start_wan_if(unit);
 			}
@@ -1712,6 +1712,84 @@ NEITHER_WDS_OR_PSTA:
 			stop_wan_if(unit);
 
 			system("asus_usbbcm usbbcm remove");
+		}
+
+		// Notify wanduck to switch the wan line to WAN port.
+		kill_pidfile_s("/var/run/wanduck.pid", SIGUSR2);
+	}
+#ifdef RTCONFIG_USB_BECEEM
+	else if(!strncmp(interface, "wimax", 5)){
+		if(nvram_get_int("sw_mode") != SW_MODE_ROUTER)
+			return;
+
+#ifdef RTCONFIG_DUALWAN
+		for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit)
+			if(get_dualwan_by_unit(unit) == WANS_DUALWAN_IF_USB)
+				break;
+		if(unit == WAN_UNIT_MAX)
+			return;
+#else
+		unit = WAN_UNIT_SECOND;
+#endif
+
+		snprintf(prefix, sizeof(prefix), "wan%d_", unit);
+
+		if(!strcmp(action, "add")){
+			nvram_set(strcat_r(prefix, "ifname", tmp), interface);
+
+			_dprintf("hotplug net INTERFACE=%s ACTION=%s: wait 2 seconds...\n", interface, action);
+			sleep(2);
+
+			got_modem = 0;
+			port_num = 1;
+			foreach(word, nvram_safe_get("ehci_ports"), next){
+				memset(nvram_name, 0, 32);
+				sprintf(nvram_name, "usb_path%d", port_num);
+
+				if(!strcmp(nvram_safe_get(nvram_name), "modem")){
+					got_modem = 1;
+					memset(nvram_name, 0, 32);
+					sprintf(nvram_name, "usb_path%d_act", port_num);
+					nvram_set(nvram_name, interface);
+					break;
+				}
+
+				++port_num;
+			}
+
+			if(!strcmp(nvram_safe_get("success_start_service"), "1")){
+				_dprintf("%s: start_wan_if(%d)!\n", __FUNCTION__, unit);
+				start_wan_if(unit);
+			}
+		}
+		else{
+			nvram_set(strcat_r(prefix, "ifname", tmp), "");
+
+			int i = 0;
+			while(i < 3){
+				if(pids("madwimax")){
+					killall_tk("madwimax");
+					sleep(1);
+
+					++i;
+				}
+				else
+					break;
+			}
+
+			i = 0;
+			while(i < 3){
+				if(pids("gctwimax")){
+					killall_tk("gctwimax");
+					sleep(1);
+
+					++i;
+				}
+				else
+					break;
+			}
+
+			modprobe_r("tun");
 		}
 
 		// Notify wanduck to switch the wan line to WAN port.
@@ -2111,6 +2189,22 @@ lan_up(char *lan_ifname)
 	stop_networkmap();
 	start_networkmap(); 
 	update_lan_state(LAN_STATE_CONNECTED, 0);
+
+#ifdef RTCONFIG_WIRELESSREPEATER
+	// when wlc_mode = 0 & wlc_state = WLC_STATE_CONNECTED, don't notify wanduck yet.
+	// when wlc_mode = 1 & wlc_state = WLC_STATE_CONNECTED, need to notify wanduck.
+	// When wlc_mode = 1 & lan_up, need to set wlc_state be WLC_STATE_CONNECTED always.
+	// wlcconnect often set the wlc_state too late.
+	if(nvram_get_int("sw_mode") == SW_MODE_REPEATER && nvram_get_int("wlc_mode") == 1){
+		repeater_nat_setting();
+		nvram_set_int("wlc_state", WLC_STATE_CONNECTED);
+
+		logmessage("notify wanduck", "wlc_state change!");
+		_dprintf("%s: notify wanduck: wlc_state=%d.\n", __FUNCTION__, nvram_get_int("wlc_state"));
+		// notify the change to wanduck.
+		kill_pidfile_s("/var/run/wanduck.pid", SIGUSR1);
+	}
+#endif
 
 #ifdef RTCONFIG_USB
 #ifdef RTCONFIG_MEDIA_SERVER
@@ -2736,10 +2830,14 @@ void start_lan_wlc(void)
 	update_lan_state(LAN_STATE_INITIALIZING, 0);
 
 	// bring up and configure LAN interface
-	if(nvram_get_int("wlc_state") != WLC_STATE_CONNECTED)
+	/*if(nvram_get_int("wlc_state") != WLC_STATE_CONNECTED)
 		ifconfig(lan_ifname, IFUP, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 	else
+		ifconfig(lan_ifname, IFUP, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));//*/
+	if(nvram_match("lan_proto", "static"))
 		ifconfig(lan_ifname, IFUP, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
+	else
+		ifconfig(lan_ifname, IFUP, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 
 	if(nvram_match("lan_proto", "dhcp"))
 	{

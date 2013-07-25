@@ -134,7 +134,7 @@ function initial(){
 
 var isMD5DDNSName = function(){
 	var macAddr = '<% nvram_get("et0macaddr"); %>'.toUpperCase().replace(/:/g, "");
-	return "A"+hex_md5(macAddr).toUpperCase()+".asuscomm.com";
+	return "A"+hexMD5(macAddr).toUpperCase()+".asuscomm.com";
 }
 
 function detectUSBStatusIndex(){
@@ -145,11 +145,12 @@ function detectUSBStatusIndex(){
     			detectUSBStatusIndex();
     		},
     		success: function(){
-					clickEvent($("iconRouter"));
-					$("statusframe").src = "/device-map/router.asp";
-					show_device();
-  			}
-  });
+			return 0;
+			clickEvent($("iconRouter"));
+			$("statusframe").src = "/device-map/router.asp";
+			show_device();
+  		}
+	});
 }
 
 function customize_NM_table(img){

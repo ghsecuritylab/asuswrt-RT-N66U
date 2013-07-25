@@ -619,6 +619,7 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit, const char *ifn
 		return ret;
 
 	RT_802_11_MAC_TABLE* mp=(RT_802_11_MAC_TABLE*)wrq3.u.data.pointer;
+	RT_802_11_MAC_TABLE_2G *mp_2g=(RT_802_11_MAC_TABLE_2G*)wrq3.u.data.pointer;
 	int i;
 
 	ret+=websWrite(wp, "\nStations List			   \n");

@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - Quickly Internet Setup</title>
+<title><#Web_Title#> - Quickly Internet Setup</title>
 <link rel="stylesheet" type="text/css" href="/other.css">
 <link rel="stylesheet" type="text/css" href="/qis/qis_style.css">
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
@@ -19,7 +19,14 @@
 	height:54px;
 	background:url(images/New_ui/title_bg.png) 0 0 no-repeat;
 	margin:0px auto;
-}	
+}
+.qismenu{
+	width:120px;
+	font-size: 12px;
+	font-weight: bold;
+	text-shadow: 1px 1px 0px black;
+	filter: progid:DXImageTransform.Microsoft.DropShadow(OffX=1, OffY=1, Color=#000000);
+}
 </style>
 <script type="text/JavaScript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
@@ -38,6 +45,9 @@ var firmver = '<% nvram_get("firmver"); %>';
 var w_Setting_tmp = '<% nvram_get("w_Setting"); %>';
 var return_btn = 0;
 var flag_manual = 0;
+var issubmit = 0;
+var isrescan = 0;
+var getBand = '<% get_parameter("band"); %>';
 
 function set_step(focus_id){
 	/*if(focus_id == "t0")
@@ -66,6 +76,12 @@ function QIS_load_body(){
 	showCase = $("flag").value;
 	get_args();
 	winW_H();
+
+	if(psta_support != -1){
+		if(document.QKform.sw_mode.value == 3 && '<% nvram_get("wlc_psta"); %>' == 1)
+			document.QKform.sw_mode.value = 2;
+	}
+
 	if(navigator.appName.indexOf("Microsoft") >= 0){
 			$("contentM").width = "105%";
 			$("contentM").style.marginLeft = "-45px";			
@@ -251,7 +267,7 @@ function set_detectWAN(result){
 
 function gotoIndex(){
 	if(w_Setting_tmp == '0'){
-		alert("We strongly recommend that you set the encryption type first.");
+		alert("<#QIS_recommand_encryption#>");
 		location.href = '/QIS_wizard.htm?flag=wireless';
 	}
 	else
@@ -275,7 +291,7 @@ function gotoIndex(){
 			<span id="proceeding_img_text"></span>
 			<div id="proceeding_img"></div>
 		</div>
-		<div style="margin:5px auto; width:85%;"><#APSurvey_msg_waiting_to_connect#> <span style="font-weight:bolder;" id="stassid"></span></div>
+		<div id="connHint" style="margin:5px auto; width:85%;"><#APSurvey_msg_waiting_to_connect#> <span style="font-weight:bolder;" id="stassid"></span></div>
 		</td>
 	</tr>
 </table>
@@ -309,11 +325,21 @@ function gotoIndex(){
 
 <!--For content in ifame-->	
 <!--[if !lte IE 6]>-->
-<div class="banner1" align="center"><img src="images/New_ui/asustitle.png" width="218" height="54" align="left"></div>
+<div class="banner1" align="center">
+	<img src="images/New_ui/asustitle.png" width="218" height="54" align="left">
+	<span class="modelName_top" style="margin-top:20px;"><#Web_Title2#></span>
+</div>
 <!--<![endif]-->
 <!--[if lte IE 6]>
-<div class="banner1" align="center"><img src="images/New_ui/asustitle_ie6.png" width="218" height="54" align="left"></div>
+<div class="banner1" align="center">
+	<img src="images/New_ui/asustitle_ie6.png" width="218" height="54" align="left">
+	<span class="modelName_top" style="margin-top:20px;"><#Web_Title2#></span>
+</div>
 <![endif]-->
+
+<!--div style="margin-top:0px;margin-left:0px;">
+	<span class="modelName_top" style="	margin-top:-34px;margin-left:260px;"><#Web_Title2#></span>
+</div-->
 
 <table width="998px" border="0" align="center" cellpadding="0" cellspacing="0">
 	<tr>
@@ -325,9 +351,9 @@ function gotoIndex(){
   <tr>
 		<td style="width:218px;*width:263px;" valign="top">
 			<div class="lefttabhead" style="margin-left:15px;margin-top:-130px;" id="option0"><table width="192px" height="37px"><tbody><tr><td><#QIS_title#></td></tr></tbody></table></div>
-			<div class="lefttabmid" id="t1" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep1.png"></td><td><div style="width:120px;"><#QIS_step2#></div></td></tr></tbody></table></div>
-			<div class="lefttabmid" id="t2" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep2.png"></td><td><div style="width:120px;"><#QIS_step3#></div></td></tr></tbody></table></div>
-			<div class="lefttabmid" id="t3" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep3.png"></td><td><div style="width:120px;"><#QIS_step4#></div></td></tr></tbody></table></div>
+			<div class="lefttabmid" id="t1" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep1.png"></td><td><div class="qismenu"><#QIS_step2#></div></td></tr></tbody></table></div>
+			<div class="lefttabmid" id="t2" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep2.png"></td><td><div class="qismenu"><#QIS_step3#></div></td></tr></tbody></table></div>
+			<div class="lefttabmid" id="t3" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep3.png"></td><td><div class="qismenu"><#QIS_step4#></div></td></tr></tbody></table></div>
 		</td>
 
 		<td>
@@ -398,6 +424,16 @@ function gotoIndex(){
 	<input type="hidden" name="switch_wan2tagid" value="<% nvram_get("switch_wan2tagid"); %>">
 	<input type="hidden" name="switch_wan2prio" value="<% nvram_get("switch_wan2prio"); %>">
 	<input type="hidden" name="switch_stb_x" value="<% nvram_get("switch_stb_x"); %>">
+	<!-- wireless client -->
+	<input type="hidden" name="wlc_band" value="<% nvram_get("wlc_band"); %>">
+	<input type="hidden" name="wlc_ssid" value="<% nvram_char_to_ascii("", "wlc_ssid"); %>">
+	<input type="hidden" name="wlc_wep" value="<% nvram_get("wlc_wep"); %>">
+	<input type="hidden" name="wlc_key" value="<% nvram_get("wlc_key"); %>">
+	<input type="hidden" name="wlc_wep_key" value="<% nvram_get("wlc_wep_key"); %>">
+	<input type="hidden" name="wlc_auth_mode" value="<% nvram_get("wlc_auth_mode"); %>">
+	<input type="hidden" name="wlc_crypto" value="<% nvram_get("wlc_crypto"); %>">
+	<input type="hidden" name="wlc_wpa_psk" value="<% nvram_get("wlc_wpa_psk"); %>">
+	<input type="hidden" name="wlc_nbw_cap" value="<% nvram_get("wlc_nbw_cap"); %>">
 </form>
 
 <form method="post" name="redirectForm" action="" target="contentM">

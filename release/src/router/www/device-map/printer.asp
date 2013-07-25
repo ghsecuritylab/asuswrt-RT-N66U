@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
@@ -36,7 +36,7 @@ function initial(){
 	else
 		showtext($("printerStatus"), '<% translate_x("System_Internet_Details_Item5_desc2"); %>');
 
-	if('<% nvram_get("mfp_ip_monopoly"); %>' != "" || '<% nvram_get("mfp_ip_monopoly"); %>' != parent.login_ip_str()){
+	if('<% nvram_get("mfp_ip_monopoly"); %>' != "" && '<% nvram_get("mfp_ip_monopoly"); %>' != parent.login_ip_str()){
 		$("monoBtn").style.display = "none";
 		$("monoDesc").style.display = "";
  		$("monoP").style.width = "";
@@ -46,6 +46,8 @@ function initial(){
 		$("monoBtn").style.display = "";
 		$("monoDesc").style.display = "none";
 	}
+
+	addOnlineHelp($("faq"), ["monopoly", "mode"]);
 }
 
 function cleanTask(){
@@ -98,6 +100,9 @@ function cleanTask(){
 <div id="button_descrition" style="display:none;padding:5px 0px 5px 25px;">
 <ul style="font-size:11px; font-family:Arial; color:#FFF; padding:0px; margin:0px; list-style:outside; line-height:150%;">
 	<li><#PrinterStatus_x_Monopoly_itemdesc#></li>
+	<li>
+		<a id="faq" href="" target="_blank" style="text-decoration:underline;"><#Printing_button_item#> FAQ</a>
+	</li>
 </ul>
 </div>
 </form>

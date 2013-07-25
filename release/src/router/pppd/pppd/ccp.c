@@ -169,7 +169,7 @@ static option_t ccp_option_list[] = {
     { "+mppe-128", o_bool, &ccp_wantoptions[0].mppe_128,
       "require MPPE 128-bit encryption", 1, &ccp_allowoptions[0].mppe_128,
       OPT_ALIAS | OPT_PRIO },
-    { "nomppe-128", o_bool, &ccp_wantoptions[0].mppe_40,
+    { "nomppe-128", o_bool, &ccp_wantoptions[0].mppe_128,
       "don't allow MPPE 128-bit encryption", OPT_PRIOSUB | OPT_A2CLR,
       &ccp_allowoptions[0].mppe_128 },
     { "-mppe-128", o_bool, &ccp_wantoptions[0].mppe_128,
@@ -378,6 +378,8 @@ ccp_init(unit)
     int unit;
 {
     fsm *f = &ccp_fsm[unit];
+    ccp_options *wo = &ccp_wantoptions[unit];
+    ccp_options *ao = &ccp_allowoptions[unit];
 
     f->unit = unit;
     f->protocol = PPP_CCP;
@@ -389,44 +391,44 @@ ccp_init(unit)
     memset(&ccp_allowoptions[unit], 0, sizeof(ccp_options));
     memset(&ccp_hisoptions[unit],   0, sizeof(ccp_options));
 
-    ccp_wantoptions[0].deflate = 1;
-    ccp_wantoptions[0].deflate_size = DEFLATE_MAX_SIZE;
-    ccp_wantoptions[0].deflate_correct = 1;
-    ccp_wantoptions[0].deflate_draft = 1;
-    ccp_allowoptions[0].deflate = 1;
-    ccp_allowoptions[0].deflate_size = DEFLATE_MAX_SIZE;
-    ccp_allowoptions[0].deflate_correct = 1;
-    ccp_allowoptions[0].deflate_draft = 1;
+    wo->deflate = 1;
+    wo->deflate_size = DEFLATE_MAX_SIZE;
+    wo->deflate_correct = 1;
+    wo->deflate_draft = 1;
+    ao->deflate = 1;
+    ao->deflate_size = DEFLATE_MAX_SIZE;
+    ao->deflate_correct = 1;
+    ao->deflate_draft = 1;
 
-    ccp_wantoptions[0].bsd_compress = 1;
-    ccp_wantoptions[0].bsd_bits = BSD_MAX_BITS;
-    ccp_allowoptions[0].bsd_compress = 1;
-    ccp_allowoptions[0].bsd_bits = BSD_MAX_BITS;
+    wo->bsd_compress = 1;
+    wo->bsd_bits = BSD_MAX_BITS;
+    ao->bsd_compress = 1;
+    ao->bsd_bits = BSD_MAX_BITS;
 
-    ccp_allowoptions[0].predictor_1 = 1;
+    ao->predictor_1 = 1;
 
-    ccp_wantoptions[0].lzs = 0; /* Stac LZS  - will be enabled in the future */
-    ccp_wantoptions[0].lzs_mode = LZS_MODE_SEQ;
-    ccp_wantoptions[0].lzs_hists = 1;
-    ccp_allowoptions[0].lzs = 0; /* Stac LZS  - will be enabled in the future */
-    ccp_allowoptions[0].lzs_mode = LZS_MODE_SEQ;
-    ccp_allowoptions[0].lzs_hists = 1;
+    wo->lzs = 0; /* Stac LZS  - will be enabled in the future */
+    wo->lzs_mode = LZS_MODE_SEQ;
+    wo->lzs_hists = 1;
+    ao->lzs = 0; /* Stac LZS  - will be enabled in the future */
+    ao->lzs_mode = LZS_MODE_SEQ;
+    ao->lzs_hists = 1;
 
 #ifdef MPPE
     /* by default allow and request MPPC... */
-    ccp_wantoptions[0].mppc = ccp_allowoptions[0].mppc = 1;
+    wo->mppc = ao->mppc = 1;
 
     /* ... and allow but don't request MPPE */
-    ccp_allowoptions[0].mppe = 1;
-    ccp_allowoptions[0].mppe_40 = 1;
-    ccp_allowoptions[0].mppe_56 = 1;
-    ccp_allowoptions[0].mppe_128 = 1;
-    ccp_allowoptions[0].mppe_stateless = 1;
-    ccp_wantoptions[0].mppe = 0;
-    ccp_wantoptions[0].mppe_40 = 0;
-    ccp_wantoptions[0].mppe_56 = 0;
-    ccp_wantoptions[0].mppe_128 = 0;
-    ccp_wantoptions[0].mppe_stateless = 0;
+    ao->mppe = 1;
+    ao->mppe_40 = 1;
+    ao->mppe_56 = 1;
+    ao->mppe_128 = 1;
+    ao->mppe_stateless = 1;
+    wo->mppe = 0;
+    wo->mppe_40 = 0;
+    wo->mppe_56 = 0;
+    wo->mppe_128 = 0;
+    wo->mppe_stateless = 0;
 #endif /* MPPE */
 }
 
@@ -1092,8 +1094,9 @@ ccp_nakci(f, p, len, treat_as_reject)
 	    if (wo->mppe) {
 		/* we require encryption, but peer doesn't support it
 		   so we close connection */
-		wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
-		    wo->mppe_56 = wo->mppe_128 = 0;
+		//wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
+		//    wo->mppe_56 = wo->mppe_128 = 0;
+		error("MPPE required but cannot negotiate MPPE key length");
 		lcp_close(f->unit, "MPPE required but cannot negotiate MPPE "
 			  "key length");
 	    }
@@ -1101,8 +1104,9 @@ ccp_nakci(f, p, len, treat_as_reject)
 	if (wo->mppe && (wo->mppe_40 != try.mppe_40) &&
 	    (wo->mppe_56 != try.mppe_56) && (wo->mppe_128 != try.mppe_128)) {
 	    /* cannot negotiate key length */
-	    wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
-		wo->mppe_56 = wo->mppe_128 = 0;
+	    //wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
+	    //	wo->mppe_56 = wo->mppe_128 = 0;
+	    error("Cannot negotiate MPPE key length");
 	    lcp_close(f->unit, "Cannot negotiate MPPE key length");
 	}
 	if (try.mppe_40 && try.mppe_56 && try.mppe_128)
@@ -1233,8 +1237,9 @@ ccp_rejci(f, p, len)
 	    if (!try.mppe_56 && !try.mppe_40 && !try.mppe_128)
 		try.mppe = try.mppe_stateless = 0;
 	    if (wo->mppe) { /* we want MPPE but cannot negotiate key length */
-		wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
-		    wo->mppe_56 = wo->mppe_128 = 0;
+		//wo->mppc = wo->mppe = wo->mppe_stateless = wo->mppe_40 =
+		//    wo->mppe_56 = wo->mppe_128 = 0;
+		error("MPPE required but cannot negotiate MPPE key length");
 		lcp_close(f->unit, "MPPE required but cannot negotiate MPPE "
 			  "key length");
 	    }
@@ -1398,7 +1403,7 @@ ccp_reqci(f, p, lenp, dont_nak)
 		    }
 		} else {
 		    if (wo->mppe_stateless && !dont_nak) {
-			wo->mppe_stateless = 0;
+			//wo->mppe_stateless = 0;
 			newret = CONFNAK;
 			p[2] |= MPPE_STATELESS;
 		    }

@@ -1,7 +1,7 @@
 include ../common.mak
 
 #APPS_TEST_SERVER=y
-DM_VERSION=2.1.0.39
+DM_VERSION=3.1.0.59
 
 all:
 	@echo "" >rom/etc/motd
@@ -17,6 +17,7 @@ install:
 
 ifeq ($(RTCONFIG_APP_PREINSTALLED),y)
 	install -m 0644 optware.asus $(INSTALLDIR)/rom
+	install -m 0644 optware.oleg $(INSTALLDIR)/rom
 
 	install -m 0644 packages/asus_base_apps.tgz $(INSTALLDIR)/rom # Don't need if installing from Internet.
 	install -m 0644 packages/downloadmaster_$(DM_VERSION)_mipsel.ipk $(INSTALLDIR)/rom
@@ -57,3 +58,8 @@ ifeq ($(RTCONFIG_HTTPS),y)
 else
 	rm -f $(INSTALLDIR)/rom/etc/openssl.cnf
 endif
+
+ifeq ($(RTCONFIG_DUALWAN),y)
+	cp -rf rom/etc/static_routes $(INSTALLDIR)/rom/etc/
+endif
+

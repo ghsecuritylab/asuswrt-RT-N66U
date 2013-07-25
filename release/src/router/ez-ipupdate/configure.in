@@ -100,7 +100,7 @@ AC_MSG_CHECKING(for user supplied default service)
 AC_ARG_ENABLE(default-service,
               [  --enable-default-service=SERVICE
                           the default service type to use
-                          possibilities are: ezip, pgpow, justlinux, dhs,
+                          possibilities are: ezip, pgpow, justlinux, dhs, dnsomatic,
                           dyndns, dyndns-static, ods, tzo, gnudip, easydns, easydns-partner, dyns, hn, zoneedit, heipv6tb],
 	      [ use_SERVICE=$enableval;
 		AC_MSG_RESULT(yes) ],
@@ -114,6 +114,7 @@ case "$use_SERVICE" in
   penguinpowered ) AC_DEFINE(DEF_SERVICE, "pgpow");;
   justlinux ) AC_DEFINE(DEF_SERVICE, "justlinux");;
   dhs ) AC_DEFINE(DEF_SERVICE, "dhs");;
+  dnsomatic ) AC_DEFINE(DEF_SERVICE, "dnsomatic");;
   dyndns ) AC_DEFINE(DEF_SERVICE, "dyndns");;
   dyndns-stat ) AC_DEFINE(DEF_SERVICE, "dyndns-stat");;
   dyndns-static ) AC_DEFINE(DEF_SERVICE, "dyndns-static");;

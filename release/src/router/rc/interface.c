@@ -51,6 +51,10 @@ static struct switch_config {
 	SWCFG_INIT(SWCFG_STB12,   SW_CPU|            SW_L3|SW_L4,        SW_CPU|SW_WAN|SW_L1|SW_L2),
 	SWCFG_INIT(SWCFG_STB34,   SW_CPU|SW_L1|SW_L2,                    SW_CPU|SW_WAN|SW_L3|SW_L4),
 	SWCFG_INIT(SWCFG_BRIDGE,  SW_CPU|SW_L1|SW_L2|SW_L3|SW_L4|SW_WAN, SW_CPU),
+	SWCFG_INIT(WAN1PORT1, SW_CPU|SW_L2|SW_L3|SW_L4, SW_CPU|SW_L1),
+	SWCFG_INIT(WAN1PORT2, SW_CPU|SW_L1|SW_L3|SW_L4, SW_CPU|SW_L2),
+	SWCFG_INIT(WAN1PORT3, SW_CPU|SW_L1|SW_L2|SW_L4, SW_CPU|SW_L3),
+	SWCFG_INIT(WAN1PORT4, SW_CPU|SW_L1|SW_L2|SW_L3, SW_CPU|SW_L4)
 };
 
 /* Generates switch ports config string
@@ -104,6 +108,38 @@ void switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int index, int 
 
 	mask = wan ? sw_config[index].wanmask : sw_config[index].lanmask;
 	_switch_gen_config(buf, ports, mask, cputag);
+}
+
+void gen_lan_ports(char *buf, const int sample[SWPORT_COUNT], int index, int index1, char *cputag){
+	struct {
+		int port;
+		char *tag;
+	} res[SWPORT_COUNT];
+	int i, n, count;
+	int mask, mask1;
+	char *ptr;
+
+	mask = sw_config[index].lanmask;
+	if(index1 >= SWCFG_DEFAULT){
+		mask1 = sw_config[index1].lanmask;
+		mask &= mask1;
+	}
+
+	if (!cputag)
+		mask &= ~SW_CPU;
+
+	for (i = count = 0; i < SWPORT_COUNT && mask; mask >>= 1, i++) {
+		if ((mask & 1U) == 0)
+			continue;
+		for (n = count; n > 0 && sample[i] < res[n - 1].port; n--)
+			res[n] = res[n - 1];
+		res[n].port = sample[i];
+		res[n].tag = (i == SWPORT_CPU) ? cputag : "";
+		count++;
+	}
+
+	for (i = 0, ptr = buf; ptr && i < count; i++)
+		ptr += sprintf(ptr, i ? " %d%s" : "%d%s", res[i].port, res[i].tag);
 }
 
 #define sin_addr(s) (((struct sockaddr_in *)(s))->sin_addr)
@@ -226,6 +262,18 @@ int route_del(char *name, int metric, char *dst, char *gateway, char *genmask)
 /* configure loopback interface */
 void config_loopback(void)
 {
+	struct ifreq ifr;
+	int sfd;
+
+	if (!((sfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0))
+	{
+		strcpy(ifr.ifr_name, "lo");
+		if (!ioctl(sfd, SIOCGIFFLAGS, &ifr) && (ifr.ifr_flags & IFF_UP))
+			ifconfig(ifr.ifr_name, 0, NULL, NULL);
+
+		close(sfd);
+	}
+
 	/* Bring up loopback interface */
 	ifconfig("lo", IFUP, "127.0.0.1", "255.0.0.0");
 
@@ -324,67 +372,9 @@ int start_vlan(void)
 	close(s);
 
 #ifdef CONFIG_BCMWL5
-	if(nvram_invmatch("switch_wantag", "none"))
+	if(!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", ""))
 		set_wan_tag(&ifr.ifr_name);
 #endif
-#if 0
-		eval("vconfig", "rem", "vlan2");
-		//config wan port to vlan500(port id=500)
-		eval("et", "robowr", "0x34", "0x10", "0x01f4");
-		eval("vconfig", "add", ifr.ifr_name, "500");
-		//Set vlan table entry:500
-		eval("et", "robowr", "0x05", "0x83", "0x0101");
-		eval("et", "robowr", "0x05", "0x81", "0x01f4");
-		eval("et", "robowr", "0x05", "0x80", "0x0000");
-		eval("et", "robowr", "0x05", "0x80", "0x0080");
-		if(nvram_match("switch_stb_x", "1")) {
-			//config LAN port 1 to vlan600(port id=600)
-			eval("et", "robowr", "0x34", "0x12", "0x0258");
-			//Set vlan table entry:600
-	                eval("et", "robowr", "0x05", "0x83", "0x0403");
-       		        eval("et", "robowr", "0x05", "0x81", "0x0258");
-       	         	eval("et", "robowr", "0x05", "0x80", "0x0000");
-                	eval("et", "robowr", "0x05", "0x80", "0x0080");
-		}
-                else if(nvram_match("switch_stb_x", "2")) {
-                        //config LAN port 2 to vlan600(port id=600)
-                        eval("et", "robowr", "0x34", "0x14", "0x0258");
-                        //Set vlan table entry:600
-                        eval("et", "robowr", "0x05", "0x83", "0x0805");
-                        eval("et", "robowr", "0x05", "0x81", "0x0258");
-                        eval("et", "robowr", "0x05", "0x80", "0x0000");
-                        eval("et", "robowr", "0x05", "0x80", "0x0080");
-                }
-                else if(nvram_match("switch_stb_x", "3")) {
-                        //config LAN port  to vlan600(port id=600)
-                        eval("et", "robowr", "0x34", "0x16", "0x0258");
-                        //Set vlan table entry:600
-                        eval("et", "robowr", "0x05", "0x83", "0x1009");
-                        eval("et", "robowr", "0x05", "0x81", "0x0258");
-                        eval("et", "robowr", "0x05", "0x80", "0x0000");
-                        eval("et", "robowr", "0x05", "0x80", "0x0080");
-                }
-                else if(nvram_match("switch_stb_x", "4")) {
-                        //config LAN port  to vlan600(port id=600)
-                        eval("et", "robowr", "0x34", "0x18", "0x0258");
-                        //Set vlan table entry:600
-                        eval("et", "robowr", "0x05", "0x83", "0x2011");
-                        eval("et", "robowr", "0x05", "0x81", "0x0258");
-                        eval("et", "robowr", "0x05", "0x80", "0x0000");
-                        eval("et", "robowr", "0x05", "0x80", "0x0080");
-                }
-                else if(nvram_match("switch_stb_x", "5")) {
-                        //config LAN port  to vlan600(port id=600)
-                        eval("et", "robowr", "0x34", "0x16", "0x0258");
-			eval("et", "robowr", "0x34", "0x18", "0x0258");
-                        //Set vlan table entry:600
-                        eval("et", "robowr", "0x05", "0x83", "0x3019");
-                        eval("et", "robowr", "0x05", "0x81", "0x0258");
-                        eval("et", "robowr", "0x05", "0x80", "0x0000");
-                        eval("et", "robowr", "0x05", "0x80", "0x0080");
-                }
-#endif
-
 	return 0;
 }
 

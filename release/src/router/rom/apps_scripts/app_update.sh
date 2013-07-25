@@ -58,9 +58,11 @@ while [ $i -lt $row_num ]; do
 		continue
 	fi
 
-	echo "wget $wget_options -O $TEMP_LIST_FILE $server_name/$SERVER_LIST_FILE"
-	wget $wget_options -O $TEMP_LIST_FILE $server_name/$SERVER_LIST_FILE
+	echo "wget -c $wget_options -O $TEMP_LIST_FILE $server_name/$SERVER_LIST_FILE"
+	wget -c $wget_options -O $TEMP_LIST_FILE $server_name/$SERVER_LIST_FILE
 	if [ "$?" != "0" ]; then
+		rm -f $TEMP_LIST_FILE
+
 		continue
 	fi
 

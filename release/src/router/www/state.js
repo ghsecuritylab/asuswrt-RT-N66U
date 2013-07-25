@@ -1,7 +1,8 @@
 ﻿//For operation mode;
 sw_mode = '<% nvram_get("sw_mode"); %>';
+if(sw_mode == 3 && '<% nvram_get("wlc_psta"); %>' == 1)
+	sw_mode = 2;
 productid = '<% nvram_get("productid"); %>';
-
 var uptimeStr = "<% uptime(); %>";
 var timezone = uptimeStr.substring(26,31);
 var boottime = parseInt(uptimeStr.substring(32,42));
@@ -23,55 +24,13 @@ var stopFlag = 0;
 
 var gn_array_2g = <% wl_get_guestnetwork("0"); %>;
 var gn_array_5g = <% wl_get_guestnetwork("1"); %>;
+
 <% available_disk_names_and_sizes(); %>
 <% disk_pool_mapping_info(); %>
 
-// hide navibar on iOS
-/*window.addEventListener("load", function(){ 
-	setTimeout(scrollTo, 0, 0, 1);
-}, false);*/
-
-function unload_body(){
-}
-
-function enableCheckChangedStatus(){
-}
-
-function disableCheckChangedStatus(){
-	stopFlag = 1;
-}
-
-function check_if_support_dr_surf(){
-}
-
-function check_changed_status(){
-}
-
-function get_changed_status(){
-}
-
-function set_changed_status(){
-}
-
-function set_Dr_work(){
-}
-
-function showHelpofDrSurf(){
-}
-
-function showDrSurf(){
-}
-
-function slowHide(){
-}
-
-function hideHint(){
-}
-
-function drdiagnose(){
-}
-
 function change_wl_unit_status(_unit){
+	if(sw_mode == 2) return false;
+	
 	document.titleForm.wl_unit.disabled = false;
 	document.titleForm.wl_unit.value = _unit;
 	document.titleForm.current_page.value = "Advanced_Wireless_Content.asp";
@@ -93,7 +52,8 @@ function show_banner(L3){// L3 = The third Level of Menu
 	banner_code +='<input type="hidden" name="action_script" value="">\n';
 	banner_code +='<input type="hidden" name="action_wait" value="5">\n';
 	banner_code +='<input type="hidden" name="wl_unit" value="" disabled>\n';
-	banner_code +='<input type="hidden" name="preferred_lang" value="">\n';
+	banner_code +='<input type="hidden" name="wl_subunit" value="-1" disabled>\n';
+	banner_code +='<input type="hidden" name="preferred_lang" value="<% nvram_get("preferred_lang"); %>">\n';
 	banner_code +='<input type="hidden" name="flag" value="">\n';
 	banner_code +='</form>\n';
 
@@ -112,25 +72,36 @@ function show_banner(L3){// L3 = The third Level of Menu
 	banner_code +='</form>\n';
 
 	banner_code +='<div class="banner1" align="center"><img src="images/New_ui/asustitle.png" width="218" height="54" align="left">\n';
-	banner_code +='<a href="javascript:logout();"><div style="margin-top:13px;margin-left:100px;" class="titlebtn" align="center"><span><#t1Logout#></span></div></a>\n';
-	banner_code +='<a href="javascript:reboot();"><div style="margin-top:13px;margin-left:20px;" class="titlebtn" align="center"><span><#BTN_REBOOT#></span></div></a>\n';
-	//banner_code +='<span style="color:white"><#PASS_LANG#></span>\n';
-	banner_code +='<select name="select_lang" id="select_lang" class="input_option_lang" onchange="submit_language();">\n';
-	banner_code +='<% shown_language_option(); %>';
-	banner_code +='</select>\n';
+	banner_code +='<div style="margin-top:13px;margin-left:-90px;*margin-top:0px;*margin-left:0px;" align="center"><span id="modelName_top" onclick="this.focus();" class="modelName_top"><#Web_Title2#></span></div>';
+
+	// logout, reboot
+	banner_code +='<a href="javascript:logout();"><div style="margin-top:13px;margin-left:25px; *width:136px;" class="titlebtn" align="center"><span><#t1Logout#></span></div></a>\n';
+	banner_code +='<a href="javascript:reboot();"><div style="margin-top:13px;margin-left:0px;*width:136px;" class="titlebtn" align="center"><span><#BTN_REBOOT#></span></div></a>\n';
+
+	// language
+	banner_code +='<ul class="navigation"><a href="#">';
+	banner_code +='<% shown_language_css(); %>';
+	banner_code +='</a></ul>';
 
 	banner_code +='</div>\n';
-	banner_code +='<table width="998" border="0" align="center" cellpadding="0" cellspacing="0" class="statusBar" style="margin-top:-3px;">\n';
+	banner_code +='<table width="998" border="0" align="center" cellpadding="0" cellspacing="0" class="statusBar">\n';
 	banner_code +='<tr>\n';
   banner_code +='<td background="images/New_ui/midup_bg.png" height="179" valign="top"><table width="764" border="0" cellpadding="0" cellspacing="0" height="12px" style="margin-left:230px;">\n';
   banner_code +='<tbody><tr>\n';
  	banner_code +='<td valign="center" class="titledown" width="auto">';
+
+	// dsl does not support operation mode
+	if (dsl_support	== -1) {
   banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#menu5_6_1_title#>:</sapn><a href="/Advanced_OperationMode_Content.asp" style="color:white"><span id="sw_mode_span" class="title_link"></span></a>\n';
+	}
   banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#General_x_FirmwareVersion_itemname#></sapn><a href="/Advanced_FirmwareUpgrade_Content.asp" style="color:white;"><span id="firmver" class="title_link"></span></a>\n';
-	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;">SSID:</sapn>';
+	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;" id="ssidTitle">SSID:</sapn>';
 	banner_code +='<span onclick="change_wl_unit_status(0)" id="elliptic_ssid_2g" class="title_link"></span>';
 	banner_code +='<span onclick="change_wl_unit_status(1)" id="elliptic_ssid_5g" style="margin-left:-5px;" class="title_link"></span>\n';
   banner_code +='</td>\n';
+
+	if(wifi_hw_sw_support != -1)
+	banner_code +='<td width="30"><div id="wifi_hw_sw_status"></div></td>\n';
 
 	if(cooler_support != -1)
   	banner_code +='<td width="30"><div id="cooler_status"" style="display:none;"></div></td>\n';
@@ -151,55 +122,48 @@ function show_banner(L3){// L3 = The third Level of Menu
   banner_code +='</tr></tbody></table></td></tr></table>\n';
 
 	$("TopBanner").innerHTML = banner_code;
-	show_loading_obj();
-	
-	if(location.pathname == "/" || location.pathname == "/index.asp"){
-		if(wan_route_x != "IP_Bridged")
-			id_of_check_changed_status = setTimeout('hideLoading();', 3000);
-	}
-	else
-		id_of_check_changed_status = setTimeout('hideLoading();', 1);
-	
+
+	show_loading_obj();	
 	show_top_status();
 	set_Dr_work();
 	updateStatus_AJAX();
 }
 
 //Level 3 Tab
-var tabtitle = new Array(8);
+var tabtitle = new Array();
 tabtitle[0] = new Array("", "<#menu5_1_1#>", "<#menu5_1_2#>", "<#menu5_1_3#>", "<#menu5_1_4#>", "<#menu5_1_5#>", "<#menu5_1_6#>");
 tabtitle[1] = new Array("", "<#menu5_2_1#>", "<#menu5_2_2#>", "<#menu5_2_3#>", "IPTV", "Switch Control");
 tabtitle[2] = new Array("", "<#menu5_3_1#>", "Dual WAN", "<#menu5_3_3#>", "<#menu5_3_4#>", "<#menu5_3_5#>", "<#menu5_3_6#>", "<#NAT_passthrough_itemname#>", "<#menu5_4_4#>");
 tabtitle[3] = new Array("", "<#UPnPMediaServer#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_3#>");
 tabtitle[4] = new Array("", "IPv6");
-tabtitle[5] = new Array("", "VPN Server");
-tabtitle[6] = new Array("", "<#menu5_5_1#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
-tabtitle[7] = new Array("", "<#menu5_6_1#>", "<#menu5_6_2#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "Performance tuning");
-tabtitle[8] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_4#>", "<#menu5_7_5#>", "<#menu5_7_6#>");
+tabtitle[5] = new Array("", "<#BOP_isp_heart_item#>", "<#vpn_Adv#>");
+tabtitle[6] = new Array("", "<#menu5_1_1#>", "<#menu5_5_2#>", "<#menu5_5_5#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
+tabtitle[7] = new Array("", "<#menu5_6_1#>", "<#menu5_6_2#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "Performance tuning", "<#menu_dsl_setting#>");
+tabtitle[8] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_4#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu_dsl_log#>");
 tabtitle[9] = new Array("", "QoS", "<#traffic_monitor#>");
 
-var tablink = new Array(8);
+var tablink = new Array();
 tablink[0] = new Array("", "Advanced_Wireless_Content.asp", "Advanced_WWPS_Content.asp", "Advanced_WMode_Content.asp", "Advanced_ACL_Content.asp", "Advanced_WSecurity_Content.asp", "Advanced_WAdvanced_Content.asp");
 tablink[1] = new Array("", "Advanced_LAN_Content.asp", "Advanced_DHCP_Content.asp", "Advanced_GWStaticRoute_Content.asp", "Advanced_IPTV_Content.asp", "Advanced_SwitchCtrl_Content.asp");
 tablink[2] = new Array("", "Advanced_WAN_Content.asp", "Advanced_WANPort_Content.asp", "Advanced_PortTrigger_Content.asp", "Advanced_VirtualServer_Content.asp", "Advanced_Exposed_Content.asp", "Advanced_ASUSDDNS_Content.asp", "Advanced_NATPassThrough_Content.asp", "Advanced_Modem_Content.asp");
 tablink[3] = new Array("", "mediaserver.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_AiDisk_others.asp");
 tablink[4] = new Array("", "Advanced_IPv6_Content.asp");
-tablink[5] = new Array("", "Advanced_PPTP_Content.asp");
-tablink[6] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
-tablink[7] = new Array("", "Advanced_OperationMode_Content.asp", "Advanced_System_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_PerformanceTuning_Content.asp");
-tablink[8] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_WStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp");
+tablink[5] = new Array("", "Advanced_PPTP_Content.asp", "Advanced_PPTPAdvanced_Content.asp");
+tablink[6] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_KeywordFilter_Content.asp","Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
+tablink[7] = new Array("", "Advanced_OperationMode_Content.asp", "Advanced_System_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_PerformanceTuning_Content.asp", "Advanced_ADSL_Content.asp");
+tablink[8] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_WStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_AdslStatus_Content.asp");
 tablink[9] = new Array("", "QoS_EZQoS.asp", "Main_TrafficMonitor_realtime.asp", "Main_TrafficMonitor_last24.asp", "Main_TrafficMonitor_daily.asp", "Advanced_QOSUserSpec_Content.asp");
 
 //Level 2 Menu
-menuL2_title = new Array("", "<#menu5_1#>", "<#menu5_2#>", "<#menu5_3#>", "<#menu5_4#>", "IPv6", "VPN server", "<#menu5_5#>", "<#menu5_6#>", "<#menu5_7#>");
+menuL2_title = new Array("", "<#menu5_1#>", "<#menu5_2#>", "<#menu5_3#>", "<#menu5_4#>", "IPv6", "<#BOP_isp_heart_item#>", "<#menu5_5#>", "<#menu5_6#>", "<#System_Log#>");
 menuL2_link  = new Array("", tablink[0][1], tablink[1][1], tablink[2][1], tablink[3][1], tablink[4][1], tablink[5][1], tablink[6][1], tablink[7][1], tablink[8][1]);
 
 //Level 1 Menu
-menuL1_title = new Array("", "<#menu1#>", "<#Guest_Network#>", "<#Menu_TrafficManager#>", "<#Parental_Control#>", "<#Menu_usb_application#>", "<#menu5#>");
-menuL1_link = new Array("", "index.asp", "Guest_network.asp", "QoS_EZQoS.asp", "ParentalControl.asp", "APP_Installation.asp", "");
+menuL1_title = new Array("", "<#menu1#>", "<#Guest_Network#>", "<#Menu_TrafficManager#>", "<#Parental_Control#>", "<#Menu_usb_application#>", "AiCloud", "<#menu5#>");
+menuL1_link = new Array("", "index.asp", "Guest_network.asp", "QoS_EZQoS.asp", "ParentalControl.asp", "APP_Installation.asp", "cloud__main.asp", "");
 
 var rc_support = "<% nvram_get("rc_support"); %>"; 
-var wl_vifnames = "<% nvram_get("wl0_vifnames"); %>";
+var wl_vifnames = "<% nvram_get("wl_vifnames"); %>";
 var traffic_L1_dx = 3;
 var traffic_L2_dx = 10;
 
@@ -210,44 +174,107 @@ var cooler_support = rc_support.search("fanctrl");
 var power_support = rc_support.search("pwrctrl"); 
 var dbwww_support = rc_support.search("dbwww"); 
 var repeater_support = rc_support.search("repeater"); 
+
+var psta_support = rc_support.search("psta"); // AC66U proxy sta support
+if(psta_support != -1) repeater_support = 1;
+var wl6_support = rc_support.search("wl6"); // BRCM wl6 support
+
 var Rawifi_support = rc_support.search("rawifi");
 var SwitchCtrl_support = rc_support.search("switchctrl");
+var dsl_support = rc_support.search("dsl");
+var dualWAN_support = rc_support.search("dualwan");
+var ruisp_support = rc_support.search("ruisp");
 
-var multissid_support = rc_support.search("mssid"); 
+var multissid_support = rc_support.search("mssid");
 if(sw_mode == 2)
 	multissid_support = -1;
 if(multissid_support != -1)
 	multissid_support = wl_vifnames.split(" ").length;
+var no5gmssid_support = rc_support.search("no5gmssid");
 
-var nat_support = <% nvram_get("wan_nat_x"); %>;
+var wifi_hw_sw_support = rc_support.search("wifi_hw_sw");
 var usb_support = rc_support.search("usb"); 
 var printer_support = rc_support.search("printer"); 
 var appbase_support = rc_support.search("appbase");
 var appnet_support = rc_support.search("appnet");
 var media_support = rc_support.search("media");
+var cloudsync_support = rc_support.search("cloudsync");
 var modem_support = rc_support.search("modem"); 
 var IPv6_support = rc_support.search("ipv6"); 
 var ParentalCtrl_support = rc_support.search("PARENTAL"); 
 var pptpd_support = rc_support.search("pptpd"); 
 var openvpnd_support = rc_support.search("openvpnd"); 
 var dualWAN_support = rc_support.search("dualwan"); 
+var WebDav_support = rc_support.search("webdav"); 
+var HTTPS_support = rc_support.search("HTTPS"); 
+var nodm_support = rc_support.search("nodm"); 
+var no_wimax_support = rc_support.search("nowimax");
+
+var downsize_support = -1;
+if(productid == "RT-N10D")
+	downsize_support = 1;
+
 var calculate_height = menuL1_link.length+tablink.length-3;
 
 function remove_url(){
 	remove_menu_item(2, "Advanced_Modem_Content.asp");
 
+	if(downsize_support != -1) {
+		remove_menu_item(9, "Main_TrafficMonitor_realtime.asp");
+	}
+
+	if(dsl_support == -1) {
+		remove_menu_item(7, "Advanced_ADSL_Content.asp");
+		remove_menu_item(8, "Main_AdslStatus_Content.asp");
+	}
+	else {
+		menuL2_link[3] = "Advanced_DSL_Content.asp";
+		remove_menu_item(0, "Advanced_WMode_Content.asp");
+
+		//no_op_mode
+		var tmp_link = tablink[7][1];
+		tablink[7][1]=tablink[7][2];
+		tablink[7][2]=tablink[7][3];
+		tablink[7][3]=tablink[7][4];
+		tablink[7][4]=tablink[7][5];
+		tablink[7][5]=tablink[7][6];
+		tablink[7][6]=tmp_link;
+		var tmp_title = tabtitle[7][1];
+		tabtitle[7][1]=tabtitle[7][2];
+		tabtitle[7][2]=tabtitle[7][3];
+		tabtitle[7][3]=tabtitle[7][4];
+		tabtitle[7][4]=tabtitle[7][5];
+		tabtitle[7][5]=tabtitle[7][6];		
+		tabtitle[7][6]=tmp_title;
+		remove_menu_item(7, "Advanced_OperationMode_Content.asp");		
+		menuL2_link[8] = tablink[7][1];
+	}
+
+	if(WebDav_support != -1) {
+		tabtitle[3][2] = "<#menu5_4_1#> / Cloud Disk";
+	}
+
+	if(cloudsync_support == -1) {
+		menuL1_title[6]="";
+		menuL1_link[6]="";
+	}
+		
 	if(sw_mode == 2){
-		// Parental Ctrl
-		menuL1_title[4] ="";
-		menuL1_link[4] ="";
 		// Guest Network
-		menuL1_title[3] ="";
-		menuL1_link[3] ="";
-		// Traffic Manager
 		menuL1_title[2] ="";
 		menuL1_link[2] ="";
+		// Traffic Manager
+		menuL1_title[3] ="";
+		menuL1_link[3] ="";
+		// Parental Ctrl
+		menuL1_title[4] ="";
+		menuL1_link[4] ="";				
+		// AiCloud
+		menuL1_title[6] ="";
+		menuL1_link[6] ="";				
 		// Wireless
-		remove_menu_item(0, "Advanced_WWPS_Content.asp");
+		menuL2_title[1]="";
+		menuL2_link[1]="";
 		// WAN
 		menuL2_title[3]="";
 		menuL2_link[3]="";	
@@ -271,13 +298,18 @@ function remove_url(){
 		remove_menu_item(8, "Main_RouteStatus_Content.asp");								
 	}
 	else if(sw_mode == 3){
+		// Traffic Manager
+		menuL1_title[3] ="";
+		menuL1_link[3] ="";		
 		// Parental Ctrl
 		menuL1_title[4] ="";
 		menuL1_link[4] ="";
-		// Traffic Manager
-		menuL1_title[3] ="";
-		menuL1_link[3] ="";
+		// AiCloud
+		menuL1_title[6] ="";
+		menuL1_link[6] ="";
+
 		// Wireless
+		remove_menu_item(0, "Advanced_WMode_Content.asp");
 		remove_menu_item(0, "Advanced_WWPS_Content.asp");
 		// WAN
 		menuL2_title[3]="";
@@ -304,6 +336,16 @@ function remove_url(){
 	
 	if(dualWAN_support == -1){
 		remove_menu_item(2, "Advanced_WANPort_Content.asp");
+		if (dsl_support != -1) {
+			tablink[2][1] = "Advanced_DSL_Content.asp";
+		}
+	}
+	else{
+		var dualwan_pri_if = '<% nvram_get("wans_dualwan"); %>'.split(" ");
+		if(dualwan_pri_if == 'lan') tablink[2][1] = "Advanced_WAN_Content.asp";
+		else if(dualwan_pri_if == 'wan') tablink[2][1] = "Advanced_WAN_Content.asp";
+		else if(dualwan_pri_if == 'usb') tablink[2][1] = "Advanced_Modem_Content.asp";
+		else if(dualwan_pri_if == 'dsl') tablink[2][1] = "Advanced_DSL_Content.asp";
 	}
 
 	if(media_support == -1){
@@ -315,25 +357,18 @@ function remove_url(){
 		remove_menu_item(7, "Advanced_PerformanceTuning_Content.asp");
 	}
 
-	if(ParentalCtrl_support != -1){
+	if(ParentalCtrl_support == -1){
+		if(sw_mode == 3){
+			menuL1_title[4]="";
+			menuL1_link[4]="";
+		}
+	}
+	else
 		remove_menu_item(6, "Advanced_MACFilter_Content.asp");
-	}
-
-	if(nat_support == -1){ // ifdef nat_support
-		remove_menu_item(2, "Advanced_PortTrigger_Content.asp");
-		remove_menu_item(2, "Advanced_VirtualServer_Content.asp");
-		remove_menu_item(2, "Advanced_Exposed_Content.asp");
-		remove_menu_item(8, "Main_IPTStatus_Content.asp");
-	}
 
 	if(IPv6_support == -1){
 		menuL2_title[5] = "";
 		menuL2_link[5] = "";
-	}
-
-	if(ParentalCtrl_support == -1 || sw_mode == 3){
-		menuL1_title[4]="";
-		menuL1_link[4]="";
 	}
 	
 	if(multissid_support == -1){
@@ -363,21 +398,21 @@ function remove_menu_item(L2, remove_url){
 	var dx;
 	for(var i = 0; i < tablink[L2].length; i++){
 		dx = tablink[L2].getIndexByValue(remove_url);
-		if(dx == -1)				//If not match, pass it
-				return false;
-		else if(dx == 1)		//If removed url is the 1st tablink then replace by next tablink 
-				menuL2_link.splice(L2+1, 1, tablink[L2][2]);
+		if(dx == -1)	//If not match, pass it
+			return false;
+		else if(dx == 1) //If removed url is the 1st tablink then replace by next tablink 
+			menuL2_link.splice(L2+1, 1, tablink[L2][2]);
 		else{
-				tabtitle[L2].splice(dx, 1);
-				tablink[L2].splice(dx, 1);
-				break;
+			tabtitle[L2].splice(dx, 1);
+			tablink[L2].splice(dx, 1);
+			break;
 		}
 	}
 }
 
-Array.prototype.getIndexByValue= function(value){
+Array.prototype.getIndexByValue = function(value){
 	var index = -1;
-	for (var i = 0; i < this.length; i++){
+	for(var i=0; i<this.length; i++){
 		if (this[i] == value){
 			index = i;
 			break;
@@ -386,12 +421,27 @@ Array.prototype.getIndexByValue= function(value){
 	return index;
 }
 
+Array.prototype.getIndexByValue2D = function(value){
+	for(var i=0; i<this.length; i++){
+		if(this[i].getIndexByValue(value) != -1){
+			return [i, this[i].getIndexByValue(value)]; // return [1-D_index, 2-D_index];
+		}
+	}
+	return -1;
+}
+
 var current_url = location.pathname.substring(location.pathname.lastIndexOf('/') + 1);
 function show_menu(){
 	var L1 = 0, L2 = 0, L3 = 0;
 	if(current_url == "") current_url = "index.asp";
+	if (dualWAN_support != -1) {
+		// fix dualwan showmenu
+		if(current_url == "Advanced_DSL_Content.asp") current_url = "Advanced_WAN_Content.asp";
+		if(current_url == "Advanced_Modem_Content.asp") current_url = "Advanced_WAN_Content.asp";
+	}
 
 	remove_url();
+	// calculate L1, L2, L3.
 	for(var i = 1; i < menuL1_link.length; i++){
 		if(current_url == menuL1_link[i]){
 			L1 = i;
@@ -424,6 +474,11 @@ function show_menu(){
 			L2 = traffic_L2_dx; 
 			L3 = 3;
 		}
+		else if(current_url.indexOf("cloud") == 0){
+			L1 = traffic_L1_dx; 
+			L2 = traffic_L2_dx; 
+			L3 = 1;
+		}
 		else{
 			L1 = traffic_L1_dx; 
 			L2 = traffic_L2_dx; 
@@ -432,32 +487,43 @@ function show_menu(){
 	}
 	//end
 
+	// cloud
+	if(current_url.indexOf("cloud") == 0)
+		L1 = 6;
+
 	show_banner(L3);
 	show_footer();
 	browser_compatibility();	
-	
-	if(sw_mode == 2)
-		menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'QIS_wizard.htm?flag=sitesurvey\');"><table><tr><td><img width="50px" height="50px" style="margin-left:10px;" border="0" src="images/New_ui/setupwizard_icon.png"/></td><td><div><#QIS#></div></td></tr></table></div>\n'; 	
-	else if(sw_mode == 3)
-		menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'QIS_wizard.htm?flag=lanip\');"><table><tr><td><img width="50px" height="50px" style="margin-left:10px;" border="0" src="images/New_ui/setupwizard_icon.png"/></td><td><div><#QIS#></div></td></tr></table></div>\n'; 	
-	else 
-		menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'QIS_wizard.htm\');"><table><tr><td><img width="50px" height="50px" style="margin-left:10px;" border="0" src="images/New_ui/setupwizard_icon.png"/></td><td><div><#QIS#></div></td></tr></table></div>\n'; 	
-	// General
-	menu1_code += '<div class="m0_r" style="margin-top:10px;" id="option0"><table width="192px" height="37px"><tr><td><#menu5_5_1#></td></tr></table></div>\n';
+	show_selected_language();
+
+	// QIS wizard
+	if(sw_mode == 2){
+		if(psta_support == -1)
+			menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'http://www.asusnetwork.net/QIS_wizard.htm?flag=sitesurvey\');"><table><tr><td><div id="index_img0"></div></td><td><div><#QIS#></div></td></tr></table></div>\n';
+		else
+			menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'/QIS_wizard.htm?flag=sitesurvey\');"><table><tr><td><div id="index_img0"></div></td><td><div><#QIS#></div></td></tr></table></div>\n';
+	}else if(sw_mode == 3){
+		menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'QIS_wizard.htm?flag=lanip\');"><table><tr><td><div id="index_img0"></div></td><td><div><#QIS#></div></td></tr></table></div>\n'; 	
+	}else{
+		menu1_code += '<div class="m_qis_r" style="margin-top:-170px;cursor:pointer;" onclick="go_setting(\'QIS_wizard.htm\');"><table><tr><td><div id="index_img0"></div></td><td><div><#QIS#></div></td></tr></table></div>\n';
+	}	
+
+	// Feature
+	menu1_code += '<div class="m0_r" style="margin-top:10px;" id="option0"><table width="192px" height="37px"><tr><td><#menu5_1_1#></td></tr></table></div>\n';
 	for(i = 1; i <= menuL1_title.length-2; i++){
 		if(menuL1_title[i] == ""){
 			calculate_height--;
 			continue;
 		}
 		else if(L1 == i && (L2 <= 0 || L2 == traffic_L2_dx)){
-		  menu1_code += '<div class="m'+i+'_r" id="option'+i+'">'+'<table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_index_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></div>\n';
+		  //menu1_code += '<div class="m'+i+'_r" id="option'+i+'">'+'<table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_index_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></div>\n';
+		  menu1_code += '<div class="m'+i+'_r" id="option'+i+'">'+'<table><tr><td><div id="index_img'+i+'"></div></td><td><div id="menu_string'+i+'" style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></div>\n';
 		}
 		else{
-		  //menu1_code += '<div class="menu" id="option'+i+'"><a href="'+menuL1_link[i]+'">'+'<table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_index_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></a></div>\n';	
-		  menu1_code += '<div class="menu" id="option'+i+'" onclick="location.href=\''+menuL1_link[i]+'\'" style="cursor:pointer;"><table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_index_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></div>\n';
+		  menu1_code += '<div class="menu" id="option'+i+'" onclick="location.href=\''+menuL1_link[i]+'\'" style="cursor:pointer;"><table><tr><td><div id="index_img'+i+'"></div></td><td><div id="menu_string" style="width:120px;">'+menuL1_title[i]+'</div></td></tr></table></div>\n';
 		}
 	}
-	menu1_code += '<div class="m0_r" style="margin-top:10px;" id="option0">'+'<table width="192px" height="37px"><tr><td><#menu5_title#></td></tr></table></div>\n'; 	
+	menu1_code += '<div class="m0_r" style="margin-top:10px;" id="option0">'+'<table width="192px" height="37px"><tr><td><#menu5#></td></tr></table></div>\n'; 	
 	$("mainMenu").innerHTML = menu1_code;
 
 	// Advanced
@@ -469,10 +535,12 @@ function show_menu(){
 				calculate_height--;
 				continue;
 			}
-			else if(L2 == i)
-				menu2_code += '<div class="m1_r" id="option1">'+'<table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_menu_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL2_title[i]+'</div></td></tr></table></div>\n';
-			else
-				menu2_code += '<div class="menu" id="option1" onclick="location.href=\''+menuL2_link[i]+'\'" style="cursor:pointer;"><table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_menu_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL2_title[i]+'</div></td></tr></table></div>\n';
+			else if(L2 == i){
+				//menu2_code += '<div class="m'+i+'_r" id="option'+i+'">'+'<table><tr><td><img border="0" width="50px" height="50px" src="images/New_ui/icon_menu_'+i+'.png" style="margin-top:-3px;"/></td><td><div style="width:120px;">'+menuL2_title[i]+'</div></td></tr></table></div>\n';
+				menu2_code += '<div class="m'+i+'_r" id="option'+i+'">'+'<table><tr><td><div id="menu_img'+i+'"></div></td><td><div id="option_str1" style="width:120px;">'+menuL2_title[i]+'</div></td></tr></table></div>\n';
+			}else{				
+				menu2_code += '<div class="menu" id="option'+i+'" onclick="location.href=\''+menuL2_link[i]+'\'" style="cursor:pointer;"><table><tr><td><div id="menu_img'+i+'"></div></td><td><div id="option_str1" style="width:120px;">'+menuL2_title[i]+'</div></td></tr></table></div>\n';
+			}	
 		}
 	}
 	$("subMenu").innerHTML = menu2_code;
@@ -497,9 +565,9 @@ function show_menu(){
 				if(tabtitle[L2-1][i] == "")
 					continue;
 				else if(L3 == i)
-					tab_code += '<td><div class="tabclick"><span>'+tabtitle[L2-1][i]+'</span></div></td>';
+					tab_code += '<td><div class="tabclick"><span><table><tbody><tr><td>'+tabtitle[L2-1][i]+'</td></tr></tbody></table></span></div></td>';
 				else
-					tab_code += '<td><a href="'+tablink[L2-1][i]+'"><div class="tab"><span>'+tabtitle[L2-1][i]+'</span></div></a></td>';
+					tab_code += '<td><div class="tab"onclick="location.href=\''+tablink[L2-1][i]+'\'" style="cursor:pointer;"><span><table><tbody><tr><td>'+tabtitle[L2-1][i]+'</td></tr></tbody></table></span></div></td>';
 			}
 			tab_code += '</tr></table>\n';		
 		}
@@ -507,6 +575,150 @@ function show_menu(){
 		$("tabMenu").innerHTML = tab_code;
 	}
 	cal_height();
+}
+
+function addOnlineHelp(obj, keywordArray){
+	var faqLang = {
+		EN : "en",
+		TW : "en",
+		CN : "en",
+		CZ : "en",
+		PL : "en",
+		RU : "en",
+		DE : "en",
+		FR : "en",
+		TR : "en",
+		TH : "en",
+		MS : "en",
+		NO : "en",
+		FI : "en",
+		DA : "en",
+		SV : "en",
+		BR : "en",
+		JP : "en",
+		ES : "en"
+	}
+
+	// exception start
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "download" 
+			&& (keywordArray[2] == "master" || keywordArray[2] == "tool")){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}		
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "ez" && keywordArray[2] == "printer"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}		
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "lpr"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}
+	if(keywordArray[0] == "mac" && keywordArray[1] == "lpr"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}
+	if(keywordArray[0] == "monopoly" && keywordArray[1] == "mode"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}			
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "VPN"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "DMZ"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";
+	}	
+	if(keywordArray[0] == "set" && keywordArray[1] == "up" && keywordArray[2] == "specific" && keywordArray[3] == "IP" && keywordArray[4] == "addresses"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";		
+	}
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "port" && keywordArray[2] == "forwarding"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.FR = "fr-fr";
+		faqLang.ES = "es-es";		
+	}
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "port" && keywordArray[2] == "trigger"){
+		faqLang.TW = "zh-tw";
+		faqLang.CN = "zh-cn";
+		faqLang.ES = "es-es";		
+	}
+	//keyword=UPnP
+	if(keywordArray[0] == "UPnP"){
+
+	}	
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "hard" && keywordArray[2] == "disk" 
+		&& keywordArray[3] == "USB"){
+
+	}	
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "Traffic" && keywordArray[2] == "Monitor"){
+
+	}	
+	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "samba" && keywordArray[2] == "Windows"
+			&& keywordArray[3] == "network" && keywordArray[4] == "place"){
+
+	}
+	if(keywordArray[0] == "WOL" && keywordArray[1] == "wake" && keywordArray[2] == "on"
+			&& keywordArray[3] == "lan"){
+
+	}		
+	// exception end	
+	
+
+	if(obj){
+		obj.href = "http://support.asus.com/search.aspx?SLanguage=";
+		obj.href += faqLang.<% nvram_get("preferred_lang"); %>;
+		obj.href += "&keyword=";
+		for(var i=0; i<keywordArray.length; i++){
+			obj.href += keywordArray[i];
+			obj.href += "%20";
+		}
+	}
+}
+
+function Block_chars(obj, keywordArray){
+	// bolck ascii code 32~126 first
+	var invalid_char = "";		
+	for(var i = 0; i < obj.value.length; ++i){
+		if(obj.value.charCodeAt(i) < '32' || obj.value.charCodeAt(i) > '126'){
+			invalid_char += obj.value.charAt(i);
+		}
+	}
+	if(invalid_char != ""){
+		alert('<#JS_validstr2#>" '+ invalid_char +'" !');
+		obj.focus();
+		return false;
+	}
+
+	// check if char in the specified array
+	if(obj.value){
+		for(var i=0; i<keywordArray.length; i++){
+				if( obj.value.indexOf(keywordArray[i]) >= 0){						
+					alert(keywordArray+ " are invalid characters.");
+					obj.focus();
+					return false;
+				}	
+		}
+	}
+	
+	return true;
 }
 
 function cal_height(){
@@ -526,19 +738,23 @@ function cal_height(){
 		$("qos_table").style.height = table_height_table + "px";
 	}
 
+	if($("printerServer_table")){
+		$("printerServer_table").style.height = table_height + "px";
+	}
+
 	if($("table_height"))
 		$("table_height").style.height = table_height + 20 + "px";
+	
+	if(table_height < 720)
+		table_height = 720;
 
 	if($("sub_frame"))
 		$("sub_frame").style.height = table_height + 30 + "px";
 
-	if(table_height < 670)
-		table_height = 670;
-
 	if($("NM_table"))
 		$("NM_table").style.height = table_height + "px";
 
-	if($("_NM_table"))
+	if($("_NM_table") && sw_mode == '1')
 		$("_NM_table").style.marginTop = Math.round((table_height-675)/3) + "px";
 }
 
@@ -562,10 +778,13 @@ function browser_compatibility(){
 	if((isFirefox || isOpera) && document.getElementById("FormTitle")){
 		document.getElementById("FormTitle").className = "FormTitle_firefox";
 		if(current_url.indexOf("ParentalControl") == 0 || current_url.indexOf("Guest_network") == 0)
-			document.getElementById("FormTitle").style.marginTop = "-140px";
+			document.getElementById("FormTitle").style.marginTop = "-140px";	
 	}
 
 	if(isiOS){
+		/* language options */
+		document.body.addEventListener("touchstart", mouseClick, false);
+
 		obj_inputBtn = document.getElementsByClassName("button_gen");
 		for(var i=0; i<obj_inputBtn.length; i++){
 			obj_inputBtn[i].addEventListener('touchstart', function(){this.className = 'button_gen_touch';}, false);
@@ -579,14 +798,25 @@ function browser_compatibility(){
 	}
 }	
 
+var mouseClick = function(){
+	var e = document.createEvent('MouseEvent');
+	e.initEvent('click', false, false);
+	document.getElementById("modelName_top").dispatchEvent(e);
+}
+
 function show_top_status(){
 	var ssid_status_2g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wl0_ssid"); %>');
 	var ssid_status_5g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wl1_ssid"); %>');
-	
-	if(sw_mode == 2 && '<% nvram_get("wlc_band"); %>' == 0)
-		ssid_status_2g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wlc_ure_ssid"); %>');
-	else if(sw_mode == 2 && '<% nvram_get("wlc_band"); %>' == 1)
-		ssid_status_5g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wlc_ure_ssid"); %>');
+	if(sw_mode == 2){
+		if(psta_support == -1){
+			if('<% nvram_get("wlc_band"); %>' == '0')
+				ssid_status_2g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wl0.1_ssid"); %>');
+			else
+				ssid_status_5g =  decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wl1.1_ssid"); %>');
+		}
+		else
+			$("ssidTitle").style.display = "none";
+	}
 	
 	if(band5g_support == -1){
 		ssid_status_5g = "";
@@ -602,7 +832,6 @@ function show_top_status(){
 				nd();
 			};
 		}
-
 	}
 	else{
 		if(ssid_status_2g.length > 12){
@@ -631,19 +860,27 @@ function show_top_status(){
 			};
 		}
 	}
+
 	$("elliptic_ssid_2g").innerHTML = ssid_status_2g;
 	$("elliptic_ssid_5g").innerHTML = ssid_status_5g;	
 
 	showtext($("firmver"), document.form.firmver.value + "." + <% nvram_get("buildno"); %>);
 	
-	if(sw_mode == "1")  // Show operation mode in banner, Viz 2011.11
-		$("sw_mode_span").innerHTML = "<#wireless_router#>";
-	else if(sw_mode == "2")
-		$("sw_mode_span").innerHTML = "Repeater";
-	else if(sw_mode == "3")
-		$("sw_mode_span").innerHTML = "<#OP_AP_item#>";
-	else
-		$("sw_mode_span").innerHTML = "Unknown";	
+	// no_op_mode
+	if (dsl_support	== -1) {
+		if(sw_mode == "1")  // Show operation mode in banner, Viz 2011.11
+			$("sw_mode_span").innerHTML = "<#wireless_router#>";
+		else if(sw_mode == "2"){
+			if(psta_support == -1)
+				$("sw_mode_span").innerHTML = "<#OP_RE_item#>";
+			else
+				$("sw_mode_span").innerHTML = "Media bridge";
+		}
+		else if(sw_mode == "3")
+			$("sw_mode_span").innerHTML = "<#OP_AP_item#>";
+		else
+			$("sw_mode_span").innerHTML = "Unknown";	
+	}
 }
 
 function go_setting(page){
@@ -701,8 +938,87 @@ function MicrosoftEventHandler_KeyDown(){
 	return true;
 }
 
-function submit_language(){
-	if($("select_lang").value != $("preferred_lang").value){
+// display selected language in language bar, Jieming added at 2012/06/19
+function show_selected_language(){
+	switch($("preferred_lang").value){
+		case 'EN':{
+			$('selected_lang').innerHTML = "English";
+			break;
+		}
+		case 'CN':{
+			$('selected_lang').innerHTML = "简体中文";
+			break;
+		}	
+		case 'TW':{
+			$('selected_lang').innerHTML = "繁體中文";
+			break;
+		}
+		case 'CZ':{
+			$('selected_lang').innerHTML = "Česky";
+			break;
+		}
+		case 'PL':{
+			$('selected_lang').innerHTML = "Polski";
+			break;
+		}
+		case 'RU':{
+			$('selected_lang').innerHTML = "Pусский";
+			break;
+		}	
+		case 'DE':{
+			$('selected_lang').innerHTML = "Deutsch";
+			break;
+		}
+		case 'FR':{
+			$('selected_lang').innerHTML = "Français";
+			break;
+		}
+		case 'TR':{
+			$('selected_lang').innerHTML = "Türkçe";
+			break;
+		}
+		case 'TH':{
+			$('selected_lang').innerHTML = "ไทย";
+			break;
+		}	
+		case 'MS':{
+			$('selected_lang').innerHTML = "Malay";
+			break;
+		}
+		case 'NO':{
+			$('selected_lang').innerHTML = "Norsk";
+			break;
+		}
+		case 'FI':{
+			$('selected_lang').innerHTML = "Finsk";
+			break;
+		}
+		case 'DA':{
+			$('selected_lang').innerHTML = "Dansk";
+			break;
+		}	
+		case 'SV':{
+			$('selected_lang').innerHTML = "Svensk";
+			break;
+		}
+		case 'BR':{
+			$('selected_lang').innerHTML = "Brazil";
+			break;
+		}
+		case 'JP':{
+			$('selected_lang').innerHTML = "日本語";
+			break;
+		}
+		case 'ES':{
+			$('selected_lang').innerHTML = "Español";
+			break;
+		}
+	}
+}
+
+function submit_language(obj){
+	//if($("select_lang").value != $("preferred_lang").value){
+	if(obj.id != $("preferred_lang").value){
 		showLoading();
 		
 		with(document.titleForm){
@@ -712,8 +1028,9 @@ function submit_language(){
 				current_page.value = "/index.asp";
 			else
 				current_page.value = location.pathname;
-			
-			preferred_lang.value = $("select_lang").value;
+				
+			preferred_lang.value = obj.id;
+			//preferred_lang.value = $("select_lang").value;
 			flag.value = "set_language";
 			
 			submit();
@@ -743,7 +1060,7 @@ function reboot(){
 		  	 || document.form.current_page.value.indexOf("Advanced_SettingBackup_Content")>=0)
 					document.form.enctype = "";
 		}		
-		FormActions("apply.cgi", "reboot", "", "30");
+		FormActions("apply.cgi", "reboot", "", "<% get_default_reboot_time(); %>");
 		document.form.submit();
 	}
 }
@@ -890,22 +1207,18 @@ function IEKey(){
 }
 
 function NSKey(){
-	return 0;
+	return event.which;
 }
 
-function is_string(o){
-	if(!nav)
-		keyPressed = IEKey();
-	else
-		keyPressed = NSKey();
-	
-	if(keyPressed == 0)
+function is_string(o, event){
+	keyPressed = event.keyCode ? event.keyCode : event.which;
+
+	if(keyPressed >= 0 && keyPressed <= 126)
 		return true;
-	else if(keyPressed >= 0 && keyPressed <= 126)
-		return true;
-	
-	alert('<#JS_validchar#>');
-	return false;
+	else{
+		alert('<#JS_validchar#>');
+		return false;
+	}	
 }
 
 function validate_string(string_obj, flag){
@@ -964,7 +1277,6 @@ function validate_psk(psk_obj){
 	
 	if(psk_length > 64){
 		alert("<#JS_passzero#>");
-		psk_obj.value = "00000000";
 		psk_obj.focus();
 		psk_obj.select();
 		
@@ -991,7 +1303,6 @@ function validate_psk(psk_obj){
 }
 
 function validate_wlkey(key_obj){
-
 	var wep_type = document.form.wl_wep_x.value;
 	var iscurrect = true;
 	var str = "<#JS_wepkey#>";
@@ -1202,7 +1513,9 @@ function inputCtrl(obj, flag){
 	|| current_url.indexOf("Advanced_Modem_Content") == 0
 	|| current_url.indexOf("Advanced_IPv6_Content") == 0
 	|| current_url.indexOf("Advanced_WAdvanced_Content") == 0
-	|| current_url.indexOf("Advanced_IPTV_Content") == 0)
+	|| current_url.indexOf("Advanced_IPTV_Content") == 0
+	|| current_url.indexOf("Advanced_WANPort_Content.asp") == 0
+	|| current_url.indexOf("Advanced_ASUSDDNS_Content.asp") == 0)
 	{
 		if(obj.type == "checkbox")
 			return true;
@@ -1226,6 +1539,18 @@ function inputHideCtrl(obj, flag){
 
 //Update current status via AJAX
 var http_request_status = false;
+
+function updateStatus_AJAX(){
+	if(stopFlag == 1)
+		return false;
+
+	var ie = window.ActiveXObject;
+
+	if(ie)
+		makeRequest_status_ie('/ajax_status.asp');
+	else
+		makeRequest_status('/ajax_status.asp');
+}
 
 function makeRequest_status(url) {
 	http_request_status = new XMLHttpRequest();
@@ -1264,17 +1589,6 @@ function alertContents_status()
 	}
 }
 
-function updateStatus_AJAX()
-{
-	//alert("AJAX XMLHttp Request sent!");
-	var ie = window.ActiveXObject;
-
-	if(ie)
-		makeRequest_status_ie('/ajax_status.asp');
-	else
-		makeRequest_status('/ajax_status.asp');
-}
-
 function updateUSBStatus(){
 	if(current_url == "index.asp" || current_url == "")
 		detectUSBStatusIndex();
@@ -1284,7 +1598,7 @@ function updateUSBStatus(){
 
 function detectUSBStatus(){
 	$j.ajax({
-    		url: '/detect_firmware.asp',
+    		url: '/update_diskinfo.asp',
     		dataType: 'script',
     		error: function(xhr){
     			detectUSBStatus();
@@ -1307,7 +1621,6 @@ function refresh_info_status(xmldoc)
 {
 	var devicemapXML = xmldoc.getElementsByTagName("devicemap");
 	var wanStatus = devicemapXML[0].getElementsByTagName("wan");
-
 	link_status = wanStatus[0].firstChild.nodeValue;
 	link_sbstatus = wanStatus[1].firstChild.nodeValue;
 	link_auxstatus = wanStatus[2].firstChild.nodeValue;
@@ -1317,10 +1630,11 @@ function refresh_info_status(xmldoc)
 	cooler = wanStatus[6].firstChild.nodeValue;	
 	_wlc_state = wanStatus[7].firstChild.nodeValue;	
 	_wlc_sbstate = wanStatus[8].firstChild.nodeValue;	
+	wifi_hw_switch = wanStatus[9].firstChild.nodeValue;
 
 	if(location.pathname == "/QIS_wizard.htm")
 		return false;	
-	
+
 	// internet
 	if(sw_mode == 1){
 		if((link_status == "2" && link_auxstatus == "0") || (link_status == "2" && link_auxstatus == "2")){
@@ -1342,6 +1656,13 @@ function refresh_info_status(xmldoc)
 		$("connect_status").onmouseout = function(){nd();}
 	}
 	else if(sw_mode == 2){
+		if(psta_support != -1){
+			if(wanStatus[10].firstChild.nodeValue == 'psta:wlc_state=1')
+				_wlc_state = "wlc_state=2";
+			else
+				_wlc_state = "wlc_state=0";
+		}
+
 		if(_wlc_state == "wlc_state=2"){
 			$("connect_status").className = "connectstatuson";
 			$("connect_status").onclick = function(){openHint(24,3);}
@@ -1357,6 +1678,20 @@ function refresh_info_status(xmldoc)
 		$("connect_status").onmouseout = function(){nd();}
 	}
 
+	// wifi hw sw status
+	if(wifi_hw_sw_support != -1){
+		if(wifi_hw_switch == "wifi_hw_switch=0"){
+			$("wifi_hw_sw_status").className = "wifihwswstatusoff";
+			$("wifi_hw_sw_status").onclick = function(){}
+			}
+			else{
+			$("wifi_hw_sw_status").className = "wifihwswstatuson";
+			$("wifi_hw_sw_status").onclick = function(){}
+				}
+		$("wifi_hw_sw_status").onmouseover = function(){overHint(8);}
+		$("wifi_hw_sw_status").onmouseout = function(){nd();}
+	}	
+
 	// usb
 	if(usb_support != -1){
 		if((current_url=="index.asp"||current_url=="")&&
@@ -1364,7 +1699,7 @@ function refresh_info_status(xmldoc)
 		    (usb_path2!=usb_path2_tmp&&usb_path2_tmp!="init")))
 			updateUSBStatus();
 
-		if(usb_path1 == "usb=" && usb_path2 == "usb="){
+		if(usb_path1 == "usb=" && usb_path2 == "usb=" && foreign_disk_total_mounted_number()[0] == null){
 			$("usb_status").className = "usbstatusoff";
 			$("usb_status").onclick = function(){overHint(2);}
 			if(printer_support != -1){
@@ -1374,7 +1709,7 @@ function refresh_info_status(xmldoc)
 				$("printer_status").onmouseout = function(){nd();}
 			}
 		}
-		else{		
+		else{ // !storage
 			if(usb_path1 == "usb=printer" || usb_path2 == "usb=printer"){
 				if((current_url == "index.asp" || current_url == "") && $("printerName0") == null && $("printerName1") == null)
 					updateUSBStatus();
@@ -1408,7 +1743,7 @@ function refresh_info_status(xmldoc)
 	}
 
 	// guest network
-	if(multissid_support != -1 && band5g_support != -1){
+	if(multissid_support != -1 && gn_array_5g.length > 0){
 		for(var i=0; i<gn_array_2g.length; i++){
 			if(gn_array_2g[i][0] == 1 || gn_array_5g[i][0] == 1){
 				$("guestnetwork_status").className = "guestnetworkstatuson";
@@ -1423,7 +1758,7 @@ function refresh_info_status(xmldoc)
 		$("guestnetwork_status").onmouseover = function(){overHint(4);}
 		$("guestnetwork_status").onmouseout = function(){nd();}
 	}
-	else if(multissid_support != -1 && band5g_support == -1){
+	else if(multissid_support != -1 && gn_array_5g.length == 0){
 		for(var i=0; i<gn_array_2g.length; i++){
 			if(gn_array_2g[i][0] == 1){
 				$("guestnetwork_status").className = "guestnetworkstatuson";
@@ -1451,7 +1786,10 @@ function refresh_info_status(xmldoc)
 		$("cooler_status").onmouseout = function(){nd();}
 	}
 
-	if(window.frames["statusframe"] && window.frames["statusframe"].stopFlag == 1 || stopFlag == 1) return;
+	if(window.frames["statusframe"] && window.frames["statusframe"].stopFlag == 1 || stopFlag == 1){
+		return 0;
+	}
+
 	setTimeout("updateStatus_AJAX();", 3000);
 }
 
@@ -1514,4 +1852,71 @@ function getCookie_help(c_name){
 		} 
 	}
 	return null;
+}
+
+function unload_body(){
+}
+
+function enableCheckChangedStatus(){
+}
+
+function disableCheckChangedStatus(){
+	stopFlag = 1;
+}
+
+function check_if_support_dr_surf(){
+}
+
+function check_changed_status(){
+}
+
+function get_changed_status(){
+}
+
+function set_changed_status(){
+}
+
+function set_Dr_work(){
+}
+
+function showHelpofDrSurf(){
+}
+
+function showDrSurf(){
+}
+
+function slowHide(){
+}
+
+function hideHint(){
+}
+
+function drdiagnose(){
+}
+
+function isMobile(){
+	return false;
+
+	var mobiles = new Array(
+								"midp", "j2me", "avant", "docomo", "novarra", "palmos", "palmsource",
+								"240x320", "opwv", "chtml", "pda", "windows ce", "mmp/",
+								"blackberry", "mib/", "symbian", "wireless", "nokia", "hand", "mobi",
+								"phone", "cdm", "up.b", "audio", "sie-", "sec-", "samsung", "htc",
+								"mot-", "mitsu", "sagem", "sony", "alcatel", "lg", "eric", "vx",
+								"NEC", "philips", "mmm", "xx", "panasonic", "sharp", "wap", "sch",
+								"rover", "pocket", "benq", "java", "pt", "pg", "vox", "amoi",
+								"bird", "compal", "kg", "voda", "sany", "kdd", "dbt", "sendo",
+								"sgh", "gradi", "jb", "dddi", "moto", "iphone", "android",
+								"iPod", "incognito", "webmate", "dream", "cupcake", "webos",
+								"s8000", "bada", "googlebot-mobile");
+ 	var ua = navigator.userAgent.toLowerCase();
+	var _isMobile = false;
+	for(var i = 0; i < mobiles.length; i++){
+		if(ua.indexOf(mobiles[i]) > 0){
+			_isMobile = true;
+			break;
+		}
+	}
+
+	return _isMobile;
 }

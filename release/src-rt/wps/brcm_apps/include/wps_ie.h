@@ -1,7 +1,7 @@
 /*
  * WPS IE
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_ie.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_ie.h 268017 2011-06-21 09:48:46Z $
  */
 
 #ifndef __WPS_IE_H__
@@ -17,7 +17,7 @@
 
 int wps_ie_default_ssr_info(CTlvSsrIE *ssrmsg, unsigned char *authorizedMacs,
 	int authorizedMacs_len, BufferObj *authorizedMacs_Obj, unsigned char *wps_uuid,
-	BufferObj *uuid_R_Obj);
+	BufferObj *uuid_R_Obj, uint8 scState);
 void wps_ie_set(char *wps_ifname, CTlvSsrIE *ssrmsg);
 void wps_ie_clear();
 

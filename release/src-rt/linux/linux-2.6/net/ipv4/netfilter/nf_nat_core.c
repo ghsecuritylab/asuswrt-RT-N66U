@@ -672,19 +672,6 @@ manip_pkt(u_int16_t proto,
 	return 1;
 }
 
-//Yau add
-#ifdef CONFIG_BCM_NAT 
-int
-bcm_manip_pkt(u_int16_t proto,
-          struct sk_buff **pskb,
-          unsigned int iphdroff,
-          const struct nf_conntrack_tuple *target,
-          enum nf_nat_manip_type maniptype)
-{
-        return manip_pkt(proto, pskb, iphdroff, target, maniptype);
-}
-#endif
-
 /* Do packet manipulations according to nf_nat_setup_info. */
 unsigned int nf_nat_packet(struct nf_conn *ct,
 			   enum ip_conntrack_info ctinfo,

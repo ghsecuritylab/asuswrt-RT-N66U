@@ -1,5 +1,5 @@
 /*
- * $Id: mtd.h,v 1.61 2005/11/07 11:14:54 gleixner Exp $
+ * $Id: mtd.h,v 1.1.1.1 2007-08-03 18:53:44 $
  *
  * Copyright (C) 1999-2003 David Woodhouse <dwmw2@infradead.org> et al.
  *
@@ -124,6 +124,9 @@ struct mtd_info {
 	char *name;
 	int index;
 
+#ifdef CONFIG_BCM47XX
+	struct mutex *mutex;
+#endif
 	/* ecc layout structure pointer - read only ! */
 	struct nand_ecclayout *ecclayout;
 

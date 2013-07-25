@@ -5,14 +5,16 @@ include $(SRCBASE)/router/.config
 INCLUDE += -I. -I.. -I$(SRCBASE)/include -I$(SRCBASE)/shared -I$(SRCBASE)/router/shared -I$(SRCBASE)/router/nas
 
 CFLAGS += $(INCLUDE)
-CFLAGS += -DBCMWPA2 -DEAPD_WKSP_AUTO_CONFIG
+CFLAGS += $(WLAN_ComponentIncPath)
+CFLAGS += -DEAPD_WKSP_AUTO_CONFIG
+#CFLAGS += -DNAS_GTK_PER_STA
 CFLAGS += -Wall -DEAPDDUMP
 
 CFLAGS  += -s
-ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
-CFLAGS  += -Os
-else
-CFLAGS  += -O2
+
+
+ifneq ($(LINUXDIR),)
+CFLAGS += -Dlinux
 endif
 
 LDFLAGS += -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
@@ -25,13 +27,13 @@ OBJS += nas_eap.o wps_eap.o ses_eap.o
 
 
 #ifdef BCM_DCS
-ifeq ($(CONFIG_BCMDCS),y)
+#ifeq ($(CONFIG_BCMDCS),y)
 OBJS += dcs_eap.o
 CFLAGS += -DBCM_DCS
-endif
+#endif
 #endif
 
-ifneq ($(wildcard ./prebuilt),)
+ifeq ($(wildcard $(SRCBASE)/router/eapd/*.c),)
 all:
 	-cp prebuilt/eapd eapd
 else

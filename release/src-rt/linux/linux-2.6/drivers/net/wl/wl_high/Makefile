@@ -1,7 +1,7 @@
 #
 # Makefile for the Broadcom wl driver
 #
-# Copyright (C) 2010, Broadcom Corporation. All Rights Reserved.
+# Copyright (C) 2011, Broadcom Corporation. All Rights Reserved.
 # 
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,7 +15,7 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-# $Id: Makefile,v 1.4 2010-10-07 09:29:27 Exp $
+# $Id: Makefile,v 1.4 2010-10-07 09:29:27 $
 #
 
 SRCBASE := ../../../../../../../$(SRCBASEDIR)
@@ -44,6 +44,6 @@ clean:
 include ../wl_generic.mk
 endif
 
-ifneq ($(wildcard $(SRCBASE)/shared/zlib),)
+ifneq ($(wildcard $(src)/$(SRCBASE)/shared/zlib),)
 EXTRA_CFLAGS += -I$(src)/$(SRCBASE)/shared/zlib
 endif

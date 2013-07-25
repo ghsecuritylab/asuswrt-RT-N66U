@@ -30,11 +30,6 @@
 #define DEBUGP(format, args...)
 #endif
 
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-int ipv4_conntrack_fastnat = 1;
-EXPORT_SYMBOL_GPL(ipv4_conntrack_fastnat);
-#endif
-
 static int ipv4_pkt_to_tuple(const struct sk_buff *skb, unsigned int nhoff,
 			     struct nf_conntrack_tuple *tuple)
 {
@@ -68,10 +63,7 @@ static int ipv4_print_tuple(struct seq_file *s,
 }
 
 /* Returns new sk_buff, or NULL */
-#if !defined(CONFIG_BCM_NAT) && !defined(CONFIG_BCM_NAT_MODULE)
-static
-#endif
- struct sk_buff *
+static struct sk_buff *
 nf_ct_ipv4_gather_frags(struct sk_buff *skb, u_int32_t user)
 {
 	skb_orphan(skb);
@@ -310,16 +302,6 @@ static ctl_table ip_ct_sysctl_table[] = {
 		.extra1		= &log_invalid_proto_min,
 		.extra2		= &log_invalid_proto_max,
 	},
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-	{
-		.ctl_name	= NET_IPV4_CONNTRACK_FASTNAT,
-		.procname	= "ip_conntrack_fastnat",
-		.data		= &ipv4_conntrack_fastnat,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= &proc_dointvec,
-	},
-#endif
 	{
 		.ctl_name	= 0
 	}

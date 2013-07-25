@@ -5,10 +5,13 @@
 #include <linux/if_ether.h>
 #include <net/if.h>
 */
+#include <syslog.h>
+#include "../shared/version.h"
+
 #define FALSE   0
 #define TRUE    1
 #define INTERFACE 	"br0"
-#define MODEL_NAME 	"RT-N16"
+#define MODEL_NAME 	RT_BUILD_NAME
 
 // Hardware type field in ARP message
 #define DIX_ETHERNET            1
@@ -40,7 +43,7 @@
 #define SET_UINT16( num, buff) num = htons(*(uint16*)buff); buff += 2
 
 //for UPNP
-#define LINE_SIZE               50
+#define LINE_SIZE               200
 #define SERVICE_NUM             10
 #define UPNP_BUFSIZE            1500
 #define MIN_SEARCH_TIME         3
@@ -61,12 +64,14 @@
 
 #ifdef DEBUG
 	#define NMP_DEBUG(fmt, args...) printf(fmt, ## args)
+	//#define NMP_DEBUG(fmt, args...) syslog(LOG_NOTICE, fmt, ## args)
 #else
 	#define NMP_DEBUG(fmt, args...)
 #endif
 
 #ifdef DEBUG_MORE
         #define NMP_DEBUG_M(fmt, args...) printf(fmt, ## args)
+	//#define NMP_DEBUG_M(fmt, args...) syslog(LOG_NOTICE, fmt, ## args)
 #else
         #define NMP_DEBUG_M(fmt, args...)
 #endif

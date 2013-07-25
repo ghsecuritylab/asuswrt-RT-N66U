@@ -15,7 +15,7 @@
 ***********************************************************************/
 
 static char const RCSID[] =
-"$Id: sync-pppd.c 2941 2011-04-26 16:49:46Z themiron.ru $";
+"$Id: sync-pppd.c 3323 2011-09-21 18:45:48Z lly.dev $";
 
 #include "l2tp.h"
 #include <signal.h>

@@ -128,9 +128,9 @@ static inline int dnsmq_hit(struct udphdr *udph)
 	dns_query = (dns_query_packet *)((unsigned char *)udph + sizeof(struct udphdr)); 
 
 	j = 0;
-	printk("dns hit\n");
+	//printk("dns hit\n");
 	for(i=0;dns_query->queries.name[i]!=0;i++) {
-		printk("%x %x %x\n", i, dns_query->queries.name[i], dnsmq_name[i]);
+		//printk("%x %x %x\n", i, dns_query->queries.name[i], dnsmq_name[i]);
 		if(dnschar_cmp(dns_query->queries.name[i],dnsmq_name[j])) return 0;
 		j++;
 	}
@@ -172,7 +172,7 @@ static inline int dnsmq_func(struct sk_buff *skb)
 		if(ntohs(udph->dest)==53) {
 			if(dnsmq_hit(udph)) {
 				memcpy(ethh->h_dest, dnsmq_mac, ETH_ALEN);
-				dump_packet(skb, "dnshit");
+				//dump_packet(skb, "dnshit");
 				return 1;
 			}
 		}
@@ -182,7 +182,7 @@ static inline int dnsmq_func(struct sk_buff *skb)
 		tcph = (struct tcphdr *)(skb->data+hlen+(iph->ihl<<2));
 		if(iph->daddr==dnsmq_ip && ntohs(tcph->dest)==80) {
 			memcpy(ethh->h_dest, dnsmq_mac, ETH_ALEN);
-			dump_packet(skb, "httphit");
+			//dump_packet(skb, "httphit");
 			return 1;
 		}
 	}

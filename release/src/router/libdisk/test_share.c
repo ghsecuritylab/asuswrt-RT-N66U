@@ -23,9 +23,55 @@
 #include <limits.h>
 
 #include "usb_info.h"
+#include "disk_initial.h"
 #include "disk_share.h"
 
+#include <semaphore_mfp.h>
+
 #define VERSION 1
+
+#include <bcmnvram.h>
+#include <shutils.h>
+#include <shared.h>
+#include <stdarg.h>
+
+extern char *read_whole_file2(const char *target){
+	FILE *fp;
+	char *buffer, *new_str;
+	int i;
+	unsigned int read_bytes = 0;
+	unsigned int each_size = 1024;
+
+	if((fp = fopen(target, "r")) == NULL)
+		return NULL;
+
+	buffer = (char *)malloc(sizeof(char)*each_size);
+	if(buffer == NULL){
+		usb_dbg("No memory \"buffer\".\n");
+		fclose(fp);
+		return NULL;
+	}
+	memset(buffer, 0, each_size);
+
+	while ((i = fread(buffer+read_bytes, each_size*sizeof(char), 1, fp)) == 1){
+		read_bytes += each_size;
+		new_str = (char *)malloc(sizeof(char)*(each_size+read_bytes));
+		if(new_str == NULL){
+			usb_dbg("No memory \"new_str\".\n");
+			free(buffer);
+			fclose(fp);
+			return NULL;
+		}
+		memset(new_str, 0, sizeof(char)*(each_size+read_bytes));
+		memcpy(new_str, buffer, read_bytes);
+
+		free(buffer);
+		buffer = new_str;
+	}
+
+	fclose(fp);
+	return buffer;
+}
 
 int main(int argc, char *argv[]){
 	char *command;
@@ -41,7 +87,7 @@ int main(int argc, char *argv[]){
 		command = argv[0];
 
 	if(!strcmp(command, "get_account_list")){
-		if(get_account_list(&num, &list) < 0)
+		if(get_account_list(&num, &list) <= 0)
 			usb_dbg("Can't get account list.\n");
 		else{
 			for(i = 0; i < num; ++i)
@@ -95,10 +141,22 @@ int main(int argc, char *argv[]){
 			usb_dbg("done.\n");
 	}
 	else if(!strcmp(command, "initial_var_file")){
-		if(argc != 3)
+		char *target_acc = NULL;
+
+		if(argc != 3){
 			usb_dbg("Usage: initial_var_file account mount_path\n");
-		else if(initial_var_file(argv[1], argv[2]) < 0)
-			usb_dbg("Can't initial %s's var file in %s.\n", argv[1], argv[2]);
+			return -1;
+		}
+
+		if(strcmp(argv[1], "NULL"))
+			target_acc = argv[1];
+
+		if(initial_var_file(target_acc, argv[2]) < 0){
+			if(target_acc == NULL)
+				usb_dbg("Can't initial share's var file in %s.\n", argv[2]);
+			else
+				usb_dbg("Can't initial %s's var file in %s.\n", target_acc, argv[2]);
+		}
 		else
 			usb_dbg("done.\n");
 	}
@@ -228,6 +286,10 @@ int main(int argc, char *argv[]){
 			usb_dbg("Can't count the layer with %s.\n", argv[1]);
 		else
 			usb_dbg("done: %d layers, share=%s, mount_path=%s.\n", layer, share, mount_path);
+	}
+	else if(!strcmp(command, "test_size")){
+		unsigned long file_size = f_size(argv[1]);
+		_dprintf("size: %lu.\n", file_size);
 	}
 	else
 		usb_dbg("test_share(ver. %d): Need to link the command name from test_share first.\n", VERSION);

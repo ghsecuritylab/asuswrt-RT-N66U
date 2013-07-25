@@ -14,7 +14,7 @@
 ***********************************************************************/
 
 static char const RCSID[] =
-"$Id: session.c 2930 2011-04-26 15:24:06Z themiron.ru $";
+"$Id: session.c 3323 2011-09-21 18:45:48Z lly.dev $";
 
 #include "l2tp.h"
 #include <stddef.h>
@@ -563,7 +563,7 @@ l2tp_session_handle_ICRP(l2tp_session *ses,
     /* TODO: Speed, etc. are faked for now. */
 
     /* Connect speed */
-    u32 = htonl(57600);
+    u32 = htonl(100000000);
     l2tp_dgram_add_avp(dgram, tunnel, MANDATORY,
 		  sizeof(u32), VENDOR_IETF, AVP_TX_CONNECT_SPEED, &u32);
 

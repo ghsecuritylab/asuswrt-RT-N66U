@@ -266,54 +266,6 @@ function IP_Validate(o){
 	}
 }
 
-function wan_netmask_check_NUI(o) {
-	var wip =intoa(document.form.wan_ipaddr_x.value);
-	var gw =intoa(document.form.wan_gateway_x.value);
-	var nm =intoa(document.form.wan_netmask_x.value);
-	var lip=intoa(document.form.lan_ipaddr.value);
-	var lnm=intoa(document.form.lan_netmask.value);
-	var rem=1;
-	//<---Wrote by Jiahao and add by Lock at 2008.09.19
-	var nm_valid;
-	var nm_valid_flag=false;
-	
-	for(nm_valid=0xffffffff; nm_valid!=0; nm_valid-=rem,rem*=2) 
-	{
-		if (nm==nm_valid)
-		{
-			nm_valid_flag=true;
-			break;
-		}
-	}
-	
-	if (!nm_valid_flag)
-	{
-		alert(o.value + "<#JS_validip#>");
-		return false;
-	}
-	
-	// 2008.03 James. patch for Oleg's patch. {
-	//if (ip==0x0 || (ip&lnm)==(lip&lnm))
-	if (document.form.wan_ipaddr_x.value != '0.0.0.0' && (wip&lnm)==(lip&lnm))
-	// 2008.03 James. patch for Oleg's patch. }
-	{
-		alert(o.value + " <#JS_validip#>");
-		document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-		return false;
-	}
-	
-	if(gw==0 || gw==0xffffffff || (wip&nm)==(gw&nm))
-	{
-		return true;
-	}
-	else
-	{
-		alert(o.value + " <#JS_validip#>");
-		document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-		return false;
-	}
-}
-
 function validate_ipaddr_final(o,v){
 	if(v == 'wan_ipaddr_x'){
 		if(o.value.length == 0){    /*Blank.*/
@@ -324,13 +276,13 @@ function validate_ipaddr_final(o,v){
 		}
 		else if(o.value.indexOf("0") == 0){ /*首字不能為0*/
 			document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-			alert(document.form.wan_ipaddr_x.value + "<#JS_validip#>");
+			alert(document.form.wan_ipaddr_x.value + " <#JS_validip#>");
 			document.form.wan_ipaddr_x1.focus();
 			return false;
 		}		
 		else if(!(IP_Validate(o))){ /*IP格式錯誤*/
 			document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-			alert(document.form.wan_ipaddr_x.value + "<#JS_validip#>");
+			alert(document.form.wan_ipaddr_x.value + " <#JS_validip#>");
 			document.form.wan_ipaddr_x4.focus();
 			return false;
 		}
@@ -370,7 +322,7 @@ function validate_ipaddr_final(o,v){
 		}
 		else if(!(IP_Validate(o))){ /*IP格式錯誤*/
 			document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-			alert(o.value + "<#JS_validip#>");
+			alert(o.value + " <#JS_validip#>");
 			return false;
 		}
 		else if(IP_Validate(o)){    
@@ -390,7 +342,7 @@ function validate_ipaddr_final(o,v){
 		if(o.value.length > 0){
 			if(!(IP_Validate(o))){ /* IP格式錯誤*/
 				document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-				alert(o.value + "<#JS_validip#>");
+				alert(o.value + " <#JS_validip#>");
 				return false;
 			}
 			else if(o.value == document.form.wan_ipaddr_x.value){
@@ -408,7 +360,7 @@ function validate_ipaddr_final(o,v){
 		
 		if(!(IP_Validate(o))){ 
 			document.getElementById(o.name+"_div").style.border = "2px solid #CE1E1E";
-			alert(o.value + "<#JS_validip#>");
+			alert(o.value + " <#JS_validip#>");
 			return false;
 		}
 		return true;

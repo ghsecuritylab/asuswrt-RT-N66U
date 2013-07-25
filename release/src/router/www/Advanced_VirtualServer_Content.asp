@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_3_4#></title>
+<title><#Web_Title#> - <#menu5_3_4#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
@@ -27,7 +27,9 @@ var wItem = new Array(new Array("", "", "TCP"),
 											new Array("HTTP", "80", "TCP"),
 											new Array("POP3", "110", "TCP"),
 											new Array("SNMP", "161", "UDP"),
-											new Array("SNMP TRAP", "162", "UDP"));
+											new Array("SNMP TRAP", "162", "UDP"),
+											new Array("GRE", "47", "OTHER"),
+											new Array("IPv6 Tunnel", "41", "OTHER"));
 
 var wItem2 = new Array(new Array("", "", "TCP"),
 											 new Array("Age of Empires", "2302:2400,6073", "BOTH"),
@@ -59,7 +61,8 @@ var ipmonitor = [<% get_static_client(); %>];	// [[IP, MAC, DeviceName, Type, ht
 var networkmap_fullscan = '<% nvram_match("networkmap_fullscan", "0", "done"); %>'; //2008.07.24 Add.  1 stands for complete, 0 stands for scanning.;
 
 var clients_info = getclients();
-var vts_rulelist_array = '<% nvram_get("vts_rulelist"); %>';
+var vts_rulelist_array = "<% nvram_char_to_ascii("","vts_rulelist"); %>";
+var ctf_disable = '<% nvram_get("ctf_disable"); %>';
 
 function initial(){
 	show_menu();
@@ -67,9 +70,37 @@ function initial(){
 	loadGameOptions();
 	showLANIPList();	
 	showvts_rulelist();
+	addOnlineHelp($("faq"), ["ASUSWRT", "port", "forwarding"]);
+
+	if(parent.usb_support == -1){
+		$('FTP_desc').style.display = "none";
+		document.form.vts_ftpport.parentNode.parentNode.style.display = "none";
+	}
+}
+
+function isChange(){
+	if((document.form.vts_enable_x[0].checked == true && '<% nvram_get("vts_enable_x"); %>' == '0') || 
+				(document.form.vts_enable_x[1].checked == true && '<% nvram_get("vts_enable_x"); %>' == '1')){
+		return true;
+	}
+	else if(document.form.vts_ftpport.value != '<% nvram_get("vts_ftpport"); %>'){
+		return true;
+	}
+	else if(document.form.vts_rulelist.value != decodeURIComponent('<% nvram_char_to_ascii("","vts_rulelist"); %>')){
+		return true;
+	}
+	else
+		return false;
 }
 
 function applyRule(){
+
+	if(parent.usb_support != -1){
+		if(!validate_number_range(document.form.vts_ftpport, 1, 65535)){
+			return false;	
+		}	
+	}	
+	
 	var rule_num = $('vts_rulelist_table').rows.length;
 	var item_num = $('vts_rulelist_table').rows[0].cells.length;
 	var tmp_value = "";
@@ -81,7 +112,6 @@ function applyRule(){
 			if($('vts_rulelist_table').rows[i].cells[j].innerHTML.lastIndexOf("...")<0){
 				tmp_value += $('vts_rulelist_table').rows[i].cells[j].innerHTML;
 			}else{
-				//alert($('vts_rulelist_table').rows[i].cells[j].title);
 				tmp_value += $('vts_rulelist_table').rows[i].cells[j].title;
 			}		
 			
@@ -89,10 +119,17 @@ function applyRule(){
 				tmp_value += ">";
 		}
 	}
+
 	if(tmp_value == "<"+"<#IPConnection_VSList_Norule#>" || tmp_value == "<")
 		tmp_value = "";	
 
 	document.form.vts_rulelist.value = tmp_value;
+
+	if(ctf_disable == '0' && isChange()){
+		document.form.action_script.value = "reboot";
+		document.form.action_wait.value = "<% get_default_reboot_time(); %>";
+	}	
+
 	showLoading();
 	document.form.submit();
 }
@@ -123,8 +160,8 @@ function change_wizard(o, id){
 					document.form.vts_proto_x_0.options[1].selected = 1;
 				else if(wItem[i][2] == "BOTH")
 					document.form.vts_proto_x_0.options[2].selected = 1;
-				//else
-					//document.form.vts_proto_x_0.options[3].selected = 1;
+				else if(wItem[i][2] == "OTHER")
+					document.form.vts_proto_x_0.options[3].selected = 1;
 				
 				document.form.vts_ipaddr_x_0.value = client_ip;
 				document.form.vts_port_x_0.value = wItem[i][1];
@@ -134,14 +171,19 @@ function change_wizard(o, id){
 		}
 
 		if(document.form.KnownApps.options[1].selected == 1){
-			$('ori_ftpport').style.display = "";
-			document.form.vts_lport_x_0.value = "21";
+				if(parent.usb_support == -1){
+						document.form.vts_port_x_0.value = "21";
+				}else{
+						document.form.vts_port_x_0.value = document.form.vts_ftpport.value;						
+				}
+				
+				document.form.vts_lport_x_0.value = "21";
 		}else{
-			$('ori_ftpport').style.display = "none";
-			document.form.vts_lport_x_0.value = "";
+				document.form.vts_lport_x_0.value = "";
 		}	
 	}
 	else if(id == "KnownGames"){
+		document.form.vts_lport_x_0.value = "";
 		$("KnownApps").value = 0;
 		
 		for(var i = 0; i < wItem2.length; ++i){
@@ -152,8 +194,8 @@ function change_wizard(o, id){
 					document.form.vts_proto_x_0.options[1].selected = 1;
 				else if(wItem2[i][2] == "BOTH")
 					document.form.vts_proto_x_0.options[2].selected = 1;
-				//else
-					//document.form.vts_proto_x_0.options[3].selected = 1;
+				else if(wItem2[i][2] == "OTHER")
+					document.form.vts_proto_x_0.options[3].selected = 1;
 				
 				document.form.vts_ipaddr_x_0.value = client_ip;
 				document.form.vts_port_x_0.value = wItem2[i][1];
@@ -186,7 +228,7 @@ function showLANIPList(){
 			show_name = client_list_col[1];
 
 		if(client_list_col[2]){
-			code += '<a href="#"><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[2]+'\');"><strong>'+client_list_col[2]+'</strong> ';
+			code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[2]+'\');"><strong>'+client_list_col[2]+'</strong> ';
 			if(show_name && show_name.length > 0)
 				code += '( '+show_name+')';
 			code += ' </div></a>';
@@ -221,57 +263,69 @@ function hideClients_Block(){
 
 function addRow(obj, head){
 	if(head == 1)
-		vts_rulelist_array += "&#60"
+		vts_rulelist_array += "<"
 	else
-		vts_rulelist_array += "&#62"
+		vts_rulelist_array += ">"
 			
 	vts_rulelist_array += obj.value;
 	obj.value = "";
 }
 
-function addRow_Group(upper){
-	var rule_num = $('vts_rulelist_table').rows.length;
-	var item_num = $('vts_rulelist_table').rows[0].cells.length;	
+function validForm(){
 	
-	if(rule_num >= upper){
-		alert("<#JS_itemlimit1#> " + upper + " <#JS_itemlimit2#>");
-		return false;	
+	if(!Block_chars(document.form.vts_desc_x_0, ["<" ,">" ,"'" ,"%"])){
+				return false;		
 	}	
-		
-	if(document.form.vts_desc_x_0.value.indexOf("<")>=0
-		|| document.form.vts_desc_x_0.value.indexOf(">")>=0){
-		alert("<#IPConnection_PortRange_itemdesc#>");
-		document.form.vts_desc_x_0.focus();
-		document.form.vts_desc_x_0.select();
-		return false;
-	}else if(document.form.vts_port_x_0.value.indexOf("<")>=0 
-				|| document.form.vts_port_x_0.value.indexOf(">")>=0){
-		alert("<#JS_validchar#>");
-		document.form.vts_port_x_0.focus();
-		document.form.vts_port_x_0.select();		
-		return false;		
+	if(!Block_chars(document.form.vts_port_x_0, ["<" ,">"])){
+				return false;		
 	}	
 
-	if(!Check_multi_range(document.form.vts_port_x_0, 1, 65535)){
-		parse_port="";
-		return false;
+	if(document.form.vts_proto_x_0.value=="OTHER"){
+		document.form.vts_lport_x_0.value = "";
+		if (!check_multi_range(document.form.vts_port_x_0, 1, 255, false))
+			return false;
 	}
 
+	if(!check_multi_range(document.form.vts_port_x_0, 1, 65535, true)){
+		return false;
+	}
+	
+	if(document.form.vts_lport_x_0.value.length > 0
+			&& !validate_number_range(document.form.vts_lport_x_0, 1, 65535)){
+		return false;	
+	}
 	
 	if(document.form.vts_ipaddr_x_0.value==""){
 		alert("<#JS_fieldblank#>");
 		document.form.vts_ipaddr_x_0.focus();
 		document.form.vts_ipaddr_x_0.select();		
-	
-	}else	if(document.form.vts_port_x_0.value==""){
+		return false;
+	}
+	if(document.form.vts_port_x_0.value==""){
 		alert("<#JS_fieldblank#>");
 		document.form.vts_port_x_0.focus();
 		document.form.vts_port_x_0.select();		
+		return false;
+	}
+	if(!validate_multi_range(document.form.vts_port_x_0, 1, 65535)
+		|| !valid_IP_form(document.form.vts_ipaddr_x_0, 0)){			
+		return false;	
+	}			
 	
-	}else if(validate_multi_range(document.form.vts_port_x_0, 1, 65535)==true && valid_IP_form(document.form.vts_ipaddr_x_0, 0)==true){
+	return true;
+}
+
+function addRow_Group(upper){
+	if(validForm()){
+		if('<% nvram_get("vts_enable_x"); %>' != "1")
+			document.form.vts_enable_x[0].checked = true;
 		
-	
-	
+		var rule_num = $('vts_rulelist_table').rows.length;
+		var item_num = $('vts_rulelist_table').rows[0].cells.length;	
+		if(rule_num >= upper){
+				alert("<#JS_itemlimit1#> " + upper + " <#JS_itemlimit2#>");
+				return;
+		}	
 		
 //Viz check same rule  //match(out port+out_proto) is not accepted
 	if(item_num >=2){
@@ -283,21 +337,19 @@ function addRow_Group(upper){
 						if(overlib_str[i]){
 							if(document.form.vts_port_x_0.value == overlib_str[i]){
 									alert('<#JS_duplicate#>');
-									parse_port="";
 									document.form.vts_port_x_0.value =="";
 									document.form.vts_port_x_0.focus();
 									document.form.vts_port_x_0.select();							
-									return false;
+									return;
 							}
 						}else{
 							if(document.form.vts_port_x_0.value == $('vts_rulelist_table').rows[i].cells[1].innerHTML){
-						alert('<#JS_duplicate#>');
-									parse_port="";
+									alert('<#JS_duplicate#>');
 									document.form.vts_port_x_0.value =="";
 									document.form.vts_port_x_0.focus();
 									document.form.vts_port_x_0.select();							
-						return false;
-					}
+									return;
+							}
 						}	
 				}	
 			}				
@@ -310,8 +362,6 @@ function addRow_Group(upper){
 		addRow(document.form.vts_proto_x_0, 0);
 		document.form.vts_proto_x_0.value="TCP";
 		showvts_rulelist();
-	}else{
-		return false;
 	}
 }
 
@@ -348,13 +398,12 @@ function validate_single_range(val, min, max) {
 		return true;
 }	
 var parse_port="";
-function Check_multi_range(obj, mini, maxi){
+function check_multi_range(obj, mini, maxi, allow_range){
 	obj.value = document.form.vts_port_x_0.value.replace(/[-~]/gi,":");	// "~-" to ":"
-	var PortSplit = obj.value.split(",");			
+	var PortSplit = obj.value.split(",");
 	for(i=0;i<PortSplit.length;i++){
 		PortSplit[i] = PortSplit[i].replace(/(^\s*)|(\s*$)/g, ""); 		// "\space" to ""
 		PortSplit[i] = PortSplit[i].replace(/(^0*)/g, ""); 		// "^0" to ""	
-		
 		
 		if(PortSplit[i] == "" ||PortSplit[i] == 0){
 			alert("<#JS_ipblank1#>");
@@ -362,7 +411,10 @@ function Check_multi_range(obj, mini, maxi){
 			obj.select();			
 			return false;
 		}
-		if(!validate_multi_range(PortSplit[i], mini, maxi)){
+		if(allow_range)
+			res = validate_multi_range(PortSplit[i], mini, maxi);
+		else	res = validate_single_range(PortSplit[i], mini, maxi);
+		if(!res){
 			obj.focus();
 			obj.select();
 			return false;
@@ -375,6 +427,7 @@ function Check_multi_range(obj, mini, maxi){
 			
 	}
 	document.form.vts_port_x_0.value = parse_port;
+	parse_port ="";
 	return true;	
 }
 
@@ -399,9 +452,9 @@ function del_Row(r){
 	for(k=0; k<$('vts_rulelist_table').rows.length; k++){
 		for(j=0; j<$('vts_rulelist_table').rows[k].cells.length-1; j++){
 			if(j == 0)	
-				vts_rulelist_value += "&#60";
+				vts_rulelist_value += "<";
 			else
-				vts_rulelist_value += "&#62";
+				vts_rulelist_value += ">";
 				
 			if($('vts_rulelist_table').rows[k].cells[j].innerHTML.lastIndexOf("...")<0){
 				vts_rulelist_value += $('vts_rulelist_table').rows[k].cells[j].innerHTML;
@@ -417,7 +470,7 @@ function del_Row(r){
 }
 
 function showvts_rulelist(){
-	var vts_rulelist_row = vts_rulelist_array.split('&#60');
+	var vts_rulelist_row = decodeURIComponent(vts_rulelist_array).split('<');
 	var code = "";
 
 	code +='<table width="100%" cellspacing="0" cellpadding="4" align="center" class="list_table" id="vts_rulelist_table">';
@@ -428,7 +481,7 @@ function showvts_rulelist(){
 			overlib_str0[i] ="";
 			overlib_str[i] ="";			
 			code +='<tr id="row'+i+'">';
-			var vts_rulelist_col = vts_rulelist_row[i].split('&#62');
+			var vts_rulelist_col = vts_rulelist_row[i].split('>');
 			var wid=[27, 15, 21, 10, 13];
 				for(var j = 0; j < vts_rulelist_col.length; j++){
 						if(j != 0 && j !=1){
@@ -456,9 +509,7 @@ function showvts_rulelist(){
 		}
 	}
   code +='</table>';
-	$("vts_rulelist_Block").innerHTML = code;
-	
-     parse_port="";	
+	$("vts_rulelist_Block").innerHTML = code;	     
 }
 
 function changeBgColor(obj, num){
@@ -480,7 +531,7 @@ function changeBgColor(obj, num){
 <form method="post" name="form" action="/start_apply.htm" target="hidden_frame" >
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="Advanced_VirtualServer_Content.asp">
-<input type="hidden" name="next_page" value="">
+<input type="hidden" name="next_page" value="Advanced_VirtualServer_Content.asp">
 <input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_wait" value="5">
@@ -513,7 +564,17 @@ function changeBgColor(obj, num){
 		<div>&nbsp;</div>
 		<div class="formfonttitle"><#menu5_3#> - <#menu5_3_4#></div>
 		<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-		<div class="formfontdesc"><#IPConnection_VServerEnable_sectiondesc#></div>
+		<div>
+			<div class="formfontdesc"><#IPConnection_VServerEnable_sectiondesc#></div>
+			<ul style="margin-left:-25px; *margin-left:10px;">
+				<div class="formfontdesc"><li><#FirewallConfig_Port80_itemdesc#></div>
+				<div class="formfontdesc" id="FTP_desc"><li><#FirewallConfig_FTPPrompt_itemdesc#></div>
+			</ul>	
+		</div>		
+			
+		<div class="formfontdesc" style="margin-top:-10px;">
+			<a id="faq" href="" target="_blank" style="font-family:Lucida Console;text-decoration:underline;"><#menu5_3_4#>&nbspFAQ</a>
+		</div>
 
 		<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
 					  <thead>
@@ -525,8 +586,8 @@ function changeBgColor(obj, num){
           	<tr>
             	<th><#IPConnection_VServerEnable_itemname#><input type="hidden" name="vts_num_x_0" value="<% nvram_get("vts_num_x"); %>" readonly="1" /></th>
             	<td>
-				<input type="radio" value="1" name="vts_enable_x" class="content_input_fd" onclick="return change_common_radio(this, 'IPConnection', 'vts_enable_x', '1')" <% nvram_match("vts_enable_x", "1", "checked"); %>><#checkbox_Yes#>
-				<input type="radio" value="0" name="vts_enable_x" class="content_input_fd" onclick="return change_common_radio(this, 'IPConnection', 'vts_enable_x', '0')" <% nvram_match("vts_enable_x", "0", "checked"); %>><#checkbox_No#>
+								<input type="radio" value="1" name="vts_enable_x" class="content_input_fd" onclick="return change_common_radio(this, 'IPConnection', 'vts_enable_x', '1')" <% nvram_match("vts_enable_x", "1", "checked"); %>><#checkbox_Yes#>
+								<input type="radio" value="0" name="vts_enable_x" class="content_input_fd" onclick="return change_common_radio(this, 'IPConnection', 'vts_enable_x', '0')" <% nvram_match("vts_enable_x", "0", "checked"); %>><#checkbox_No#>
             	</td>
 		</tr>
 		  
@@ -546,10 +607,10 @@ function changeBgColor(obj, num){
 			</td>
 		</tr>
 
-		  <tr id="ori_ftpport" style="display:none;">
-				<th>FTP Server Port</th>
+		  <tr>
+				<th><#IPConnection_VSList_ftpport#></th>
 				<td>
-			  	<input type="text" maxlength="5" name="vts_ftpport" onblur="return validate_portrange(this, '')" class="input_6_table" value="<% nvram_get("vts_ftpport"); %>">
+			  	<input type="text" maxlength="5" name="vts_ftpport" class="input_6_table" value="<% nvram_get("vts_ftpport"); %>" onkeypress="return is_number(this,event);">
 				</td>
 		  </tr>
 
@@ -568,28 +629,29 @@ function changeBgColor(obj, num){
             		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,25);"><#IPConnection_VServerIP_itemname#></a></th>
             		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,26);"><#IPConnection_VServerLPort_itemname#></a></th>
             		<th><#IPConnection_VServerProto_itemname#></th>
-								<th>Edit</th>
+								<th>Add / Delete</th>
           		</tr>  
           		        
           		<tr>
   				<td width="27%">
-  					<input type="text" maxlength="30" class="input_20_table" name="vts_desc_x_0" onkeypress="return is_string(this)"/>
+  					<input type="text" maxlength="30" class="input_20_table" name="vts_desc_x_0" onKeyPress="return is_string(this, event)"/>
   				</td>
         			<td width="15%">
-					<input type="text" maxlength="" class="input_12_table" name="vts_port_x_0" onkeypress="return is_portrange(this)" onblur="validate_multi_range(this, 1, 65535)"/>
+					<input type="text" maxlength="" class="input_12_table" name="vts_port_x_0" onkeypress="return is_portrange(this, event)"/>
 				</td>
 				<td width="21%">
-					<input type="text" maxlength="15" class="input_15_table" name="vts_ipaddr_x_0" align="left" onkeypress="return is_ipaddr(this)" onkeyup="change_ipaddr(this)" style="float:left;"/ autocomplete="off" onblur="if(!over_var){hideClients_Block();}" onClick="hideClients_Block();">
+					<input type="text" maxlength="15" class="input_15_table" name="vts_ipaddr_x_0" align="left" onkeypress="return is_ipaddr(this, event)" style="float:left;"/ autocomplete="off" onblur="if(!over_var){hideClients_Block();}" onClick="hideClients_Block();">
 					<img id="pull_arrow" height="14px;" src="images/arrow-down.gif" align="right" onclick="pullLANIPList(this);" title="Select the IP of DHCP clients." onmouseover="over_var=1;" onmouseout="over_var=0;">			
 				</td>
 				<td width="10%">
-					<input type="text" maxlength="5"  class="input_6_table" name="vts_lport_x_0" onKeyPress="return is_number_sp(event, this);" onblur="validate_number_range(this, 1, 65535)"/>
+					<input type="text" maxlength="5"  class="input_6_table" name="vts_lport_x_0" onKeyPress="return is_number(this,event);"/>
 				</td>
 				<td width="13%">
 					<select name="vts_proto_x_0" class="input_option">
 						<option value="TCP">TCP</option>
 						<option value="UDP">UDP</option>
 						<option value="BOTH">BOTH</option>
+						<option value="OTHER">OTHER</option>
 					</select>
 				</td>
 				<td width="14%">

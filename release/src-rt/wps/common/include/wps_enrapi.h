@@ -1,7 +1,7 @@
 /*
  * WPS Enrollee API
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_enrapi.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_enrapi.h 296092 2011-11-14 09:33:42Z $
  */
 
 #ifndef __WPS_ENROLLEE_API_H__
@@ -79,15 +79,15 @@ typedef struct wps_ap_list_info {
 	uint8       authorizedMACs[SIZE_MAC_ADDR * 5]; /* WSC 2.0 authorizedMACS */
 } wps_ap_list_info_t;
 
-
-uint32 wps_enr_config_init(DevInfo *dev_info);
-uint32 wps_enr_reg_config_init(DevInfo *dev_info, char *nwKey, int nwKeyLen, char *bssid);
+uint32 wpssta_enr_init(DevInfo *user_info);
+uint32 wpssta_reg_init(DevInfo *user_info, char *nwKey, char *bssid);
+bool wps_is_wep_incompatible(bool role_reg);
 void wps_cleanup(void);
-uint32 wps_start_enrollment(char *pin, unsigned long time);
-uint32 wps_start_registration(char *pin, unsigned long time);
-void wps_get_credentials(WpsEnrCred* credential, const char *ssid, int len);
-void wps_get_reg_M7credentials(WpsEnrCred* credential);
-void wps_get_reg_M8credentials(WpsEnrCred* credential);
+uint32 wpssta_start_enrollment(char *dev_pin, unsigned long time);
+uint32 wpssta_start_registration(char *ap_pin, unsigned long time);
+void wpssta_get_credentials(WpsEnrCred* credential, const char *ssid, int len);
+void wpssta_get_reg_M7credentials(WpsEnrCred* credential);
+void wpssta_get_reg_M8credentials(WpsEnrCred* credential);
 int wps_process_ap_msg(char *eapol_msg, int len);
 
 int wps_get_msg_to_send(char **data, uint32 time);

@@ -27,7 +27,7 @@
 	background-position:left;
 	
 	padding-left:30px;
-	height:25px;
+	height:30px;
 	line-height:25px;
 	/*border-bottom:1px solid #CCC; Viz Ban underline*/
 	position:relative;
@@ -47,7 +47,7 @@
 
 .folderClicked{
 	color:#569AC7;
-	font-weight:bolder;
+	/*font-weight:bolder;*/
 	font-size:14px;
 	cursor:text;
 }

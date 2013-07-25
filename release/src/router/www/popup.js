@@ -18,6 +18,13 @@ function LoadingTime(seconds, flag){
 	y = y+progress;
 	if(typeof(seconds) == "number" && seconds >= 0){
 		if(seconds != 0){
+			/* trigger IE8 counter */
+			if(navigator.appName.indexOf("Microsoft") >= 0){
+				var childsel=document.createElement("span");
+				document.body.appendChild(childsel);
+   			document.body.removeChild(document.body.lastChild);
+			}
+
 			showtext($("proceeding_main_txt"), "<#Main_alert_proceeding_desc4#>");
 			showtext($("proceeding_txt"), Math.round(y)+"% <#Main_alert_proceeding_desc1#>");
 			--seconds;
@@ -33,6 +40,7 @@ function LoadingTime(seconds, flag){
 		}
 	}
 }
+
 function LoadingProgress(seconds){
 	$("LoadingBar").style.visibility = "visible";
 	
@@ -47,7 +55,7 @@ function LoadingProgress(seconds){
 		else{
 			$("proceeding_img_text").innerHTML = "<#Main_alert_proceeding_desc3#>";
 			y = 0;
-			if(location.pathname.indexOf("QIS_wizard.htm") < 0){
+			if(location.pathname.indexOf("QIS_wizard.htm") < 0 && location.pathname.indexOf("Advanced_FirmwareUpgrade_Content") < 0){
 				setTimeout("hideLoadingBar();",1000);
 				location.href = "index.asp";
 			}
@@ -56,22 +64,52 @@ function LoadingProgress(seconds){
 }
 
 function showLoading(seconds, flag){
+	if(window.scrollTo)
+		window.scrollTo(0,0);
+
 	disableCheckChangedStatus();
 	
 	htmlbodyforIE = document.getElementsByTagName("html");  //this both for IE&FF, use "html" but not "body" because <!DOCTYPE html PUBLIC.......>
 	htmlbodyforIE[0].style.overflow = "hidden";	  //hidden the Y-scrollbar for preventing from user scroll it.
 	
 	winW_H();
-	var blockmarginTop;
-	var sheight = document.documentElement.scrollHeight;
-	var cheight = document.documentElement.clientHeight
-
-	//alert("document.documentElement.scrollTop: "+document.documentElement.scrollTop + "\ndocument.documentElement.scrollHeight: "+ document.documentElement.scrollHeight + "\ndocument.documentElement.clientHeight: "+ document.documentElement.clientHeight);
-	//blockmarginTop = (navigator.userAgent.indexOf("Safari")>=0)?document.documentElement.scrollHeight - document.documentElement.clientHeight+200:document.documentElement.scrollTop+200;
-	blockmarginTop = (navigator.userAgent.indexOf("Safari")>=0)?(sheight-cheight<=0)?200:sheight-cheight+200:document.documentElement.scrollTop+200;
 	
-	//Lock modified it for Safari4 display issue.
+	var blockmarginTop;
+	var blockmarginLeft;
+	if (window.innerWidth)
+	winWidth = window.innerWidth;
+	else if ((document.body) && (document.body.clientWidth))
+	winWidth = document.body.clientWidth;
+	
+	if (window.innerHeight)
+		winHeight = window.innerHeight;
+	else if ((document.body) && (document.body.clientHeight))
+		winHeight = document.body.clientHeight;
+	
+	if (document.documentElement  && document.documentElement.clientHeight && document.documentElement.clientWidth){
+		winHeight = document.documentElement.clientHeight;
+		winWidth = document.documentElement.clientWidth;
+	}
+
+	if(winWidth >1050){
+	
+		winPadding = (winWidth-1050)/2;	
+		winWidth = 1105;
+		blockmarginLeft= (winWidth*0.35)+winPadding;
+	}
+	else if(winWidth <=1050){
+		blockmarginLeft= (winWidth)*0.35+document.body.scrollLeft;	
+
+	}
+	
+	if(winHeight >660)
+		winHeight = 660;
+	
+	blockmarginTop= winHeight*0.3	
+	
 	$("loadingBlock").style.marginTop = blockmarginTop+"px";
+	$("loadingBlock").style.marginLeft = blockmarginLeft+"px";
+
 	$("Loading").style.width = winW+"px";
 	$("Loading").style.height = winH+"px";
 	
@@ -83,15 +121,20 @@ function showLoading(seconds, flag){
 }
 
 function showLoadingBar(seconds){
+	if(window.scrollTo)
+		window.scrollTo(0,0);
+
 	disableCheckChangedStatus();
 	
 	htmlbodyforIE = document.getElementsByTagName("html");  //this both for IE&FF, use "html" but not "body" because <!DOCTYPE html PUBLIC.......>
 	htmlbodyforIE[0].style.overflow = "hidden";	  //hidden the Y-scrollbar for preventing from user scroll it.
 	
 	winW_H();
+
 	var blockmarginTop;
 	blockmarginTop = document.documentElement.scrollTop + 200;
 	$("loadingBarBlock").style.marginTop = blockmarginTop+"px";
+
 	$("LoadingBar").style.width = winW+"px";
 	$("LoadingBar").style.height = winH+"px";
 	

@@ -1,7 +1,7 @@
 /*
  * WPS HAL include
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_hal.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_hal.h 241182 2011-02-17 21:50:03Z $
  */
 #ifndef __WPS_HAL_H__
 #define __WPS_HAL_H__

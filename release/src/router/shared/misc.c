@@ -20,6 +20,7 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <dirent.h>
 
 #include <bcmnvram.h>
 #include <bcmdevs.h>
@@ -29,13 +30,165 @@
 #include "shared.h"
 
 
+extern char *read_whole_file(const char *target){
+	FILE *fp;
+	char *buffer, *new_str;
+	int i;
+	unsigned int read_bytes = 0;
+	unsigned int each_size = 1024;
+
+	if((fp = fopen(target, "r")) == NULL)
+		return NULL;
+
+	buffer = (char *)malloc(sizeof(char)*each_size);
+	if(buffer == NULL){
+		_dprintf("No memory \"buffer\".\n");
+		fclose(fp);
+		return NULL;
+	}
+	memset(buffer, 0, each_size);
+
+	while ((i = fread(buffer+read_bytes, each_size * sizeof(char), 1, fp)) == 1){
+		read_bytes += each_size;
+		new_str = (char *)malloc(sizeof(char)*(each_size+read_bytes));
+		if(new_str == NULL){
+			_dprintf("No memory \"new_str\".\n");
+			free(buffer);
+			fclose(fp);
+			return NULL;
+		}
+		memset(new_str, 0, sizeof(char)*(each_size+read_bytes));
+		memcpy(new_str, buffer, read_bytes);
+
+		free(buffer);
+		buffer = new_str;
+	}
+
+	fclose(fp);
+	return buffer;
+}
+
+extern char *get_line_from_buffer(const char *buf, char *line, const int line_size){
+	int buf_len, len;
+	char *ptr;
+
+	if(buf == NULL || (buf_len = strlen(buf)) <= 0)
+		return NULL;
+
+	if((ptr = strchr(buf, '\n')) == NULL)
+		ptr = (char *)(buf+buf_len);
+
+	if((len = ptr-buf) < 0)
+		len = buf-ptr;
+	++len; // include '\n'.
+
+	memset(line, 0, line_size);
+	strncpy(line, buf, len);
+
+	return line;
+}
+
+extern char *get_upper_str(const char *const str, char **target){
+	int len, i;
+	char *ptr;
+
+	len = strlen(str);
+	*target = (char *)malloc(sizeof(char)*(len+1));
+	if(*target == NULL){
+		_dprintf("No memory \"*target\".\n");
+		return NULL;
+	}
+	ptr = *target;
+	for(i = 0; i < len; ++i)
+		ptr[i] = toupper(str[i]);
+	ptr[len] = 0;
+
+	return ptr;
+}
+
+extern int upper_strcmp(const char *const str1, const char *const str2){
+	char *upper_str1, *upper_str2;
+	int ret;
+
+	if(str1 == NULL || str2 == NULL)
+		return -1;
+
+	if(get_upper_str(str1, &upper_str1) == NULL)
+		return -1;
+
+	if(get_upper_str(str2, &upper_str2) == NULL){
+		free(upper_str1);
+		return -1;
+	}
+
+	ret = strcmp(upper_str1, upper_str2);
+	free(upper_str1);
+	free(upper_str2);
+
+	return ret;
+}
+
+extern int upper_strncmp(const char *const str1, const char *const str2, int count){
+	char *upper_str1, *upper_str2;
+	int ret;
+
+	if(str1 == NULL || str2 == NULL)
+		return -1;
+
+	if(get_upper_str(str1, &upper_str1) == NULL)
+		return -1;
+
+	if(get_upper_str(str2, &upper_str2) == NULL){
+		free(upper_str1);
+		return -1;
+	}
+
+	ret = strncmp(upper_str1, upper_str2, count);
+	free(upper_str1);
+	free(upper_str2);
+
+	return ret;
+}
+
+extern char *upper_strstr(const char *const str, const char *const target){
+	char *upper_str, *upper_target;
+	char *ret;
+	int len;
+
+	if(str == NULL || target == NULL)
+		return NULL;
+
+	if(get_upper_str(str, &upper_str) == NULL)
+		return NULL;
+
+	if(get_upper_str(target, &upper_target) == NULL){
+		free(upper_str);
+		return NULL;
+	}
+
+	ret = strstr(upper_str, upper_target);
+	if(ret == NULL){
+		free(upper_str);
+		free(upper_target);
+		return NULL;
+	}
+
+	if((len = upper_str-ret) < 0)
+		len = ret-upper_str;
+
+	free(upper_str);
+	free(upper_target);
+
+	return (char *)(str+len);
+}
+
 #ifdef RTCONFIG_IPV6
 int get_ipv6_service(void)
 {
 	const char *names[] = {	// order must be synced with def at shared.h
 		"static6",	// IPV6_NATIVE
 		"dhcp6",	// IPV6_NATIVE_DHCP
-		"6to4",		// IPV6_ANYCAST_6TO4
+		"6to4",		// IPV6_6TO4
 		"6in4",		// IPV6_6IN4
 		"6rd",		// IPV6_6RD
 		"other",	// IPV6_MANUAL
@@ -76,6 +229,161 @@ const char *ipv6_router_address(struct in6_addr *in6addr)
 
 	return addr6;
 }
+
+static const unsigned flagvals[] = { /* Must agree with flagchars[]. */
+	RTF_GATEWAY,
+	RTF_HOST,
+	RTF_REINSTATE,
+	RTF_DYNAMIC,
+	RTF_MODIFIED,
+	RTF_DEFAULT,
+	RTF_ADDRCONF,
+	RTF_CACHE
+};
+
+static const char flagchars[] =
+	"GHRDM"
+	"DAC"
+;
+const char str_default[] = "default";
+
+void ipv6_set_flags(char *flagstr, int flags)
+{
+	int i;
+
+	*flagstr++ = 'U';
+
+	for (i = 0; (*flagstr = flagchars[i]) != 0; i++) {
+		if (flags & flagvals[i]) {
+			++flagstr;
+		}
+	}
+}
+
+char* INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
+{
+	char name[128];
+	int s;
+
+	if (sin6->sin6_family != AF_INET6) {
+		fprintf(stderr, "rresolve: unsupported address family %d!",
+				  sin6->sin6_family);
+		errno = EAFNOSUPPORT;
+		return NULL;
+	}
+	if (numeric & 0x7FFF) {
+		inet_ntop(AF_INET6, &sin6->sin6_addr, name, sizeof(name));
+		return strdup(name);
+	}
+	if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr)) {
+		if (numeric & 0x8000)
+			return strdup(str_default);
+		return strdup("*");
+	}
+
+	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6),
+				name, sizeof(name), NULL, 0, 0);
+	if (s) {
+		perror("getnameinfo failed");
+		return NULL;
+	}
+	return strdup(name);
+}
+
+const char *ipv6_gateway_address()
+{
+	char addr6[128], *naddr6;
+	/* In addr6x, we store both 40-byte ':'-delimited ipv6 addresses.
+	 * We read the non-delimited strings into the tail of the buffer
+	 * using fscanf and then modify the buffer by shifting forward
+	 * while inserting ':'s and the nul terminator for the first string.
+	 * Hence the strings are at addr6x and addr6x+40.  This generates
+	 * _much_ less code than the previous (upstream) approach. */
+	char addr6x[80];
+	char iface[16], flags[16];
+	int iflags, metric, refcnt, use, prefix_len, slen;
+	struct sockaddr_in6 snaddr6;
+	int ret = 0;
+	static char buf[INET6_ADDRSTRLEN];
+	int found = 0;
+
+	FILE *fp = fopen("/proc/net/ipv6_route", "r");
+
+	memset(buf, 0, sizeof(buf));
+
+	while (1) {
+		int r;
+		r = fscanf(fp, "%32s%x%*s%x%32s%x%x%x%x%s\n",
+				addr6x+14, &prefix_len, &slen, addr6x+40+7,
+				&metric, &use, &refcnt, &iflags, iface);
+		if (r != 9) {
+			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
+				break;
+			}
+ ERROR:
+			perror("fscanf");
+			return buf;
+		}
+
+		/* Do the addr6x shift-and-insert changes to ':'-delimit addresses.
+		 * For now, always do this to validate the proc route format, even
+		 * if the interface is down. */
+		{
+			int i = 0;
+			char *p = addr6x+14;
+
+			do {
+				if (!*p) {
+					if (i == 40) { /* nul terminator for 1st address? */
+						addr6x[39] = 0;	/* Fixup... need 0 instead of ':'. */
+						++p;	/* Skip and continue. */
+						continue;
+					}
+					goto ERROR;
+				}
+				addr6x[i++] = *p++;
+				if (!((i+1) % 5)) {
+					addr6x[i++] = ':';
+				}
+			} while (i < 40+28+7);
+		}
+
+		if (!(iflags & RTF_UP)) { /* Skip interfaces that are down. */
+			continue;
+		}
+
+		ipv6_set_flags(flags, (iflags & IPV6_MASK));
+
+		r = 0;
+		do {
+			inet_pton(AF_INET6, addr6x + r,
+					  (struct sockaddr *) &snaddr6.sin6_addr);
+			snaddr6.sin6_family = AF_INET6;
+			naddr6 = INET6_rresolve((struct sockaddr_in6 *) &snaddr6,
+						   0x0fff /* Apparently, upstream never resolves. */
+						   );
+
+			if (!r) {			/* 1st pass */
+				snprintf(addr6, sizeof(addr6), "%s/%d", naddr6, prefix_len);
+				r += 40;
+				free(naddr6);
+			} else {			/* 2nd pass */
+				if (!strcmp(addr6, "::/0") && !strcmp(flags, "UGDA")
+					&& !strcmp(get_wan6face(), iface))
+				{
+					found = 1;
+					snprintf(buf, sizeof(buf), "%s %s", naddr6, iface);
+				}
+				free(naddr6);
+				if (found)
+					return buf;
+				break;
+			}
+		} while (1);
+	}
+
+	return buf;
+}
 #endif
 
 int wl_client(int unit, int subunit)
@@ -103,16 +411,20 @@ int foreach_wif(int include_vifs, void *param,
 		if (nvifname_to_osifname(name, ifname, sizeof(ifname)) != 0)
 			continue;
 
+#ifdef CONFIG_BCMWL5
 		if (wl_probe(ifname) || wl_ioctl(ifname, WLC_GET_INSTANCE, &unit, sizeof(unit)))
 			continue;
+#endif
 
 		// Convert eth name to wl name
 		if (osifname_to_nvifname(name, ifname, sizeof(ifname)) != 0)
 			continue;
 
+#ifdef CONFIG_BCMWL5
 		// Slave intefaces have a '.' in the name
 		if (strchr(ifname, '.') && !include_vifs)
 			continue;
+#endif
 
 		if (get_ifname_unit(ifname, &unit, &subunit) < 0)
 			continue;
@@ -233,6 +545,16 @@ const char *get_wanip(void)
 	return nvram_safe_get(strcat_r(prefix, "ipaddr", tmp));
 }
 
+const int get_wanstate(void)
+{
+	char tmp[100], prefix[]="wanXXXXX_";
+	int unit=0;
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_primary_ifunit());
+
+	return nvram_get_int(strcat_r(prefix, "state_t", tmp));
+}
+
 const char *get_wanface(void)
 {
 	return get_wan_ifname(0);
@@ -244,15 +566,17 @@ const char *get_wan6face(void)
 	switch (get_ipv6_service()) {
 	case IPV6_NATIVE:
 	case IPV6_NATIVE_DHCP:
+	case IPV6_MANUAL:
 		return get_wan6_ifname(0);
-	case IPV6_ANYCAST_6TO4:
+	case IPV6_6TO4:
 		return "v6to4";
 	case IPV6_6IN4:
 		return "v6in4";
 	case IPV6_6RD:
 		return "6rd";
 	}
-	return nvram_safe_get("ipv6_ifname");
+//	return nvram_safe_get("ipv6_ifname");
+	return "";
 }
 
 int update_6rd_info(void)
@@ -314,6 +638,24 @@ const char *getifaddr(char *ifname, int family, int linklocal)
 	return NULL;
 }
 
+int is_intf_up(const char* ifname)
+{
+	struct ifreq ifr;
+	int sfd;
+	int ret = 0;
+
+	if (!((sfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0))
+	{
+		strcpy(ifr.ifr_name, ifname);
+		if (!ioctl(sfd, SIOCGIFFLAGS, &ifr) && (ifr.ifr_flags & IFF_UP))
+			ret = 1;
+
+		close(sfd);
+	}
+
+	return ret;
+}
+
 char *wl_nvname(const char *nv, int unit, int subunit)
 {
 	static char tmp[128];
@@ -338,13 +680,14 @@ int mtd_getinfo(const char *mtdname, int *part, int *size)
 	int r;
 
 	r = 0;
-	if ((strlen(mtdname) < 128) && (strcmp(mtdname, "pmon") != 0)) {
+	if ((strlen(mtdname) < 128)) { // && (strcmp(mtdname, "pmon") != 0)) { //Yau dbg
 		sprintf(t, "\"%s\"", mtdname);
 		if ((f = fopen("/proc/mtd", "r")) != NULL) {
 			while (fgets(s, sizeof(s), f) != NULL) {
 				if ((sscanf(s, "mtd%d: %x", part, size) == 2) && (strstr(s, t) != NULL)) {
 					// don't accidentally mess with bl (0)
-					if (*part > 0) r = 1;
+					if (*part >= 0) r = 1; //Yau > -> >=
+					r =1;
 					break;
 				}
 			}
@@ -515,18 +858,30 @@ uint32 crc_calc(uint32 crc, char *buf, int len)
 }
 
 // ugly solution
+void bcmvlan_models(int model, char *vlan)
+{
+	if(model==MODEL_RTN16||model==MODEL_RTN15U||model==MODEL_RTN66U||model==MODEL_RTAC66U)
+		strcpy(vlan, "vlan1");
+	else if(model==MODEL_RTN12||model==MODEL_RTN12B1||model==MODEL_RTN12C1||model==MODEL_RTN10U||model==MODEL_RTN10D) 
+		strcpy(vlan, "vlan0");
+	else if(model==MODEL_RTN53)
+		strcpy(vlan, "vlan2");
+	else strcpy(vlan, "");
+}
+
 int backup_rx;
 int backup_tx;
 
 uint32 netdev_calc(char *ifname, char *ifname_desc, unsigned long *rx, unsigned long *tx, char *ifname_desc2, unsigned long *rx2, unsigned long *tx2)
 {
 	char word[100], word1[100], *next, *next1;
-	char prefix[32];
-	char *ssid, tmp[100];
+	char tmp[100];
+	char modelvlan[32];
 	int i, j, model;
 
 	strcpy(ifname_desc2, "");
 	model = get_model();
+	bcmvlan_models(model, modelvlan);
 
 	// find in LAN interface
 	if(nvram_contains_word("lan_ifnames", ifname))
@@ -558,26 +913,14 @@ uint32 netdev_calc(char *ifname, char *ifname_desc, unsigned long *rx, unsigned 
 		// special handle for non-tag wan of broadcom solution
 		// pretend vlanX is must called after ethX
 		if(nvram_match("switch_wantag", "none")) { //Don't calc if select IPTV
-		    if(model==MODEL_RTN16||model==MODEL_RTN15U||model==MODEL_RTN66U||model==MODEL_RTN53) {
-			if(strcmp(ifname, "vlan1")==0) {
-				backup_rx -= *rx;
-				backup_tx -= *tx;
+		   if(strlen(modelvlan) && strcmp(ifname, modelvlan)==0) {
+			backup_rx -= *rx;
+			backup_tx -= *tx;
 
-				*rx2 = backup_rx;
-				*tx2 = backup_tx;				
-				strcpy(ifname_desc2, "INTERNET");
-			}
+			*rx2 = backup_rx;
+			*tx2 = backup_tx;				
+			strcpy(ifname_desc2, "INTERNET");
 		    }
-		    else if(model==MODEL_RTN12||model==MODEL_RTN10U) {
-			if(strcmp(ifname, "vlan0")==0) {
-				backup_rx -= *rx;
-				backup_tx -= *tx;
-				
-				*rx2 = backup_rx;
-				*tx2 = backup_tx;				
-				strcpy(ifname_desc2, "INTERNET");
-			}
-		    }	
 		}//End of switch_wantag
 		return 1;
 	}
@@ -590,7 +933,7 @@ uint32 netdev_calc(char *ifname, char *ifname_desc, unsigned long *rx, unsigned 
 	// find in WAN interface
 	else if(nvram_contains_word("wan_ifnames", ifname))
 	{
-		if((model==MODEL_RTN16||model==MODEL_RTN15U||model==MODEL_RTN12||model==MODEL_RTN66U||model==MODEL_RTN10U)&&strcmp(ifname, "eth0")==0) {
+		if(strlen(modelvlan) && strcmp(ifname, "eth0")==0) { 
 			backup_rx = *rx;
 			backup_tx = *tx;
 		}
@@ -629,5 +972,57 @@ int is_private_subnet(const char *ip){
 		return 3;
 	else
 		return 0;
+}
+
+// clean_mode: 0~3, clean_time: 1~(LONG_MAX-1), threshold(KB): 0: always act, >0: act when lower than.
+int free_caches(const char *clean_mode, const int clean_time, const unsigned int threshold){
+	int test_num;
+	FILE *fp;
+	char memdata[256] = {0};
+	unsigned int memfree = 0;
+
+	/* Paul add 2012/7/17, skip free caches for DSL model. */
+	#ifdef RTCONFIG_DSL
+		return 0;
+	#endif
+
+	if(!clean_mode || clean_time <= 0)
+		return -1;
+
+	test_num = strtol(clean_mode, NULL, 10);
+	if(test_num == LONG_MIN || test_num == LONG_MAX
+			|| test_num < atoi(FREE_MEM_NONE) || test_num > atoi(FREE_MEM_ALL)
+			)
+		return -1;
+
+	if(threshold > 0){
+		if((fp = fopen("/proc/meminfo", "r")) != NULL){
+			while(fgets(memdata, 255, fp) != NULL){
+				if(strstr(memdata, "MemFree") != NULL){
+					sscanf(memdata, "MemFree: %d kB", &memfree);
+_dprintf("%s: memfree=%u.\n", __FUNCTION__, memfree);
+					break;
+				}
+			}
+			fclose(fp);
+
+			if(memfree > threshold){
+_dprintf("%s: memfree > threshold.\n", __FUNCTION__);
+				return 0;
+			}
+		}
+	}
+
+_dprintf("%s: Start syncing...\n", __FUNCTION__);
+	sync();
+
+_dprintf("%s: Start cleaning...\n", __FUNCTION__);
+	f_write_string("/proc/sys/vm/drop_caches", clean_mode, 0, 0);
+_dprintf("%s: waiting %d second...\n", __FUNCTION__, clean_time);
+	sleep(clean_time);
+_dprintf("%s: Finish.\n", __FUNCTION__);
+	f_write_string("/proc/sys/vm/drop_caches", FREE_MEM_NONE, 0, 0);
+
+	return 0;
 }
 

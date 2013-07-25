@@ -1,7 +1,7 @@
 /*
  * Broadcom WPS inband UPnP interface
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: ap_upnp_sm.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: ap_upnp_sm.h 312343 2012-02-02 07:26:00Z $
  */
 
 #ifndef __AP_UPNP_SM_H__
@@ -21,32 +21,15 @@
 extern "C" {
 #endif
 
-#ifdef BCMUPNP
-#include <security_ipc.h>
-#else
-/*
- * UPnP command between WPS and WFA device
- */
-#define WPS_UPNPDEV_ADDR		"127.0.0.1"
-#define WPS_UPNPDEV_PORT		40000
-
-#define UPNP_WPS_TYPE_SSR            1           /* Set Selected Registrar */
-#define UPNP_WPS_TYPE_PMR            2           /* Wait For Put Message Resp */
-#define UPNP_WPS_TYPE_GDIR           3           /* Wait For Get DevInfo Resp */
-#define UPNP_WPS_TYPE_PWR            4           /* Put WLAN Response */
-#define UPNP_WPS_TYPE_WE             5           /* WLAN Event */
-#define UPNP_WPS_TYPE_QWFAS          6           /* Query WFAWLANConfig Subscribers */
-#define UPNP_WPS_TYPE_DISCONNECT     7           /* Subscriber unreachable */
-#define UPNP_WPS_TYPE_MAX            8
-
-typedef struct {
-	unsigned int type;
-	unsigned int dst_addr;
-	unsigned int length;
-	unsigned char data[1];
-} UPNP_WPS_CMD;
-#define UPNP_WPS_CMD_SIZE 12
-#endif	/* BCMUPNP */
+/* WPS UPNP definitions */
+#define UPNP_WPS_TYPE_SSR		1		/* Set Selected Registrar */
+#define UPNP_WPS_TYPE_PMR		2		/* Wait For Put Message Resp */
+#define UPNP_WPS_TYPE_GDIR		3		/* Wait For Get DevInfo Resp */
+#define UPNP_WPS_TYPE_PWR		4		/* Put WLAN Response */
+#define UPNP_WPS_TYPE_WE		5		/* WLAN Event */
+#define UPNP_WPS_TYPE_QWFAS		6		/* Query WFAWLANConfig Subscribers */
+#define UPNP_WPS_TYPE_DISCONNECT	7		/* Subscriber unreachable */
+#define UPNP_WPS_TYPE_MAX		8
 
 typedef struct {
 	void *mc_dev;
@@ -67,7 +50,7 @@ typedef struct {
  */
 
 /* Functions */
-uint32 ap_upnp_sm_init(void *mc_dev, int pmr_trigger, void *init_wlan_event,
+uint32 ap_upnp_sm_init(void *mc_dev, void *init_wlan_event,
 	void *update_wlan_event, void *send_data, void *parse_msg, int instance);
 uint32 ap_upnp_sm_deinit(void);
 uint32 ap_upnp_sm_sendMsg(char *dataBuffer, uint32 dataLen);

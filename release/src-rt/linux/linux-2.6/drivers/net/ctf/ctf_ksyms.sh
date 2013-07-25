@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2010, Broadcom Corporation. All Rights Reserved.      
+# Copyright (C) 2011, Broadcom Corporation. All Rights Reserved.      
 #       
 # Permission to use, copy, modify, and/or distribute this software for any      
 # purpose with or without fee is hereby granted, provided that the above      
@@ -14,7 +14,7 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN      
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.      
 #
-# $Id: ctf_ksyms.sh,v 1.1 2009-10-27 01:27:44 Exp $
+# $Id: ctf_ksyms.sh,v 1.1 2009-10-27 01:27:44 $
 #
 
 cat <<EOF

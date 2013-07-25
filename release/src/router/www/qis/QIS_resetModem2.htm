@@ -21,6 +21,7 @@ var now_flag = '<% get_parameter("flag"); %>';
 function initial(){
 	parent.doResetModem();
 	parent.set_step("t1");
+	document.getElementById("go_detect").focus();
 }
 
 function gotoPage(dst_url, flag, isParent){
@@ -32,10 +33,25 @@ function gotoPage(dst_url, flag, isParent){
 	document.redirectForm.flag.value = flag;
 	document.redirectForm.submit();
 }
+
+function submitenter(myfield,e)
+{	
+	var keycode;
+	if (window.event) keycode = window.event.keyCode;
+	else if (e) keycode = e.which;
+	else return true;
+
+	if (keycode == 13){
+		gotoPage('/qis/QIS_verify_detect.htm', 'resetModem', 0);
+   	return false;
+  }
+	else
+   	return true;
+}
 </script>
 </head>
 
-<body onLoad="initial();">
+<body onLoad="initial();" onKeyPress="submitenter(this,event)">
 <div class="QISmain">
 	<div id='waitarea'>
 		<div class="formfonttitle" style="padding:6 0 0 10;">
@@ -64,9 +80,9 @@ function gotoPage(dst_url, flag, isParent){
 			</tr>
 		</table>
 		<br/>	
-		<div class='apply_gen'>
+		<div class="apply_gen">
 			<div id="fresharea">
-				<input type="button" class="button_gen_long" width="72" onclick="gotoPage('/qis/QIS_verify_detect.htm', 'resetModem', 0);" value="<#QKSet_detect_freshbtn#>">
+				<input type="button" id="go_detect" class="button_gen_long" onclick="gotoPage('/qis/QIS_verify_detect.htm', 'resetModem', 0);" value="<#QKSet_detect_freshbtn#>">
 			</div>
 		</div>
 

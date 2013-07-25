@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_6_2#></title>
+<title><#Web_Title#> - <#menu5_6_2#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
@@ -16,6 +16,45 @@
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" language="JavaScript" src="/help.js"></script>
 <script type="text/javascript" language="JavaScript" src="/detect.js"></script>
+<style>
+#ClientList_Block_PC{
+	border:1px outset #999;
+	background-color:#576D73;
+	position:absolute;
+	margin-top:106px;
+	*margin-top:96px;	
+	margin-left:127px;
+	width:345px;
+	text-align:left;	
+	height:auto;
+	overflow-y:auto;
+	z-index:200;
+	padding: 1px;
+	display:none;
+}
+#ClientList_Block_PC div{
+	background-color:#576D73;
+	height:auto;
+	*height:20px;
+	line-height:20px;
+	text-decoration:none;
+	font-family: Lucida Console;
+	padding-left:2px;
+}
+
+#ClientList_Block_PC a{
+	background-color:#EFEFEF;
+	color:#FFF;
+	font-size:12px;
+	font-family:Arial, Helvetica, sans-serif;
+	text-decoration:none;	
+}
+#ClientList_Block_PC div:hover, #ClientList_Block a:hover{
+	background-color:#3366FF;
+	color:#FFFFFF;
+	cursor:default;
+}	
+</style>
 <script>
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
@@ -28,10 +67,11 @@ dstoffset = '<% nvram_get("time_zone_dstoff"); %>';
 
 <% login_state_hook(); %>
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
+var http_clientlist_array = '<% nvram_get("http_clientlist"); %>';
 
 function initial(){
 	show_menu();
-	//load_body();
+	show_http_clientlist();
 	corrected_timezone();
 	load_timezones();
 	show_dst_chk();
@@ -40,13 +80,65 @@ function initial(){
 	load_dst_d_Options();
 	load_dst_h_Options();
 	document.form.http_passwd2.value = "";
+	if(HTTPS_support == -1){
+		$("https_tr").style.display = "none";
+		$("https_lanport").style.display = "none";
+		$("http_client_tr").style.display = "none";
+		$("http_client_table").style.display = "none";
+		$("http_clientlist_Block").style.display = "none";
+	}
+	else{
+		showLANIPList();
+		hide_https_lanport(document.form.http_enable.value);
+	}	
+
+	if(WebDav_support != -1){
+		document.getElementById('http_username_span').style.display = "none";
+		document.form.http_username.disabled = false;
+	}else{
+		document.getElementById('http_username_span').style.display = "";
+		document.form.http_username.disabled = true;
+		document.getElementById('http_username').style.display = "none";
+	}
+	
+	if(wifi_hw_sw_support != -1){
+			document.getElementById('btn_ez_radiotoggle_tr').style.display = "";
+	}else{
+			document.form.btn_ez_radiotoggle[0].disabled = true;
+			document.form.btn_ez_radiotoggle[1].disabled = true;
+			document.getElementById('btn_ez_radiotoggle_tr').style.display = "none";
+	}
 }
+
 var time_zone_tmp="";
 var time_zone_s_tmp="";
 var time_zone_e_tmp="";
 var time_zone_withdst="";
+
 function applyRule(){
 	if(validForm()){
+		var rule_num = $('http_clientlist_table').rows.length;
+		var item_num = $('http_clientlist_table').rows[0].cells.length;
+		var tmp_value = "";
+	
+		for(i=0; i<rule_num; i++){
+			tmp_value += "<"		
+			for(j=0; j<item_num-1; j++){	
+				tmp_value += $('http_clientlist_table').rows[i].cells[j].innerHTML;
+				if(j != item_num-2)	
+					tmp_value += ">";
+			}
+		}
+		if(tmp_value == "<"+"<#IPConnection_VSList_Norule#>" || tmp_value == "<")
+			tmp_value = "";	
+		document.form.http_clientlist.value = tmp_value;
+
+		if(document.form.http_clientlist.value == "" && document.form.http_client[0].checked == 1){
+			alert("<#JS_fieldblank#>");
+			document.form.http_client_ip_x_0.focus();
+			return false;
+		}
+
 		if(document.form.http_passwd2.value.length > 0)
 			document.form.http_passwd.value = document.form.http_passwd2.value;
 
@@ -78,7 +170,7 @@ function validForm(){
 		document.form.http_passwd2.focus();
 		document.form.http_passwd2.select();		
 		return false;	
-	}		
+	}
 	
 	if(document.form.http_passwd2.value.length > 16){
 		showtext($("alert_msg"),"*<#LANHostConfig_x_Password_itemdesc#>");
@@ -125,7 +217,7 @@ function corrected_timezone(){
 		//alert('dstoffset='+dstoffset+', 設定時區='+timezone+' , 當地時區='+today.toString().substring(StrIndex, StrIndex+5))
 		if(timezone != today.toString().substring(StrIndex, StrIndex+5)){
 			$("timezone_hint").style.display = "block";
-			$("timezone_hint").innerHTML = "<#LANHostConfig_x_TimeZone_itemhint#>";
+			$("timezone_hint").innerHTML = "* <#LANHostConfig_x_TimeZone_itemhint#>";
 		}
 		else
 			return;			
@@ -139,6 +231,7 @@ function show_dst_chk(){
 	// match "[std name][offset][dst name]"
 	if(document.form.time_zone_select.value.match(tzdst)){
 		document.getElementById("chkbox_time_zone_dst").style.display="";	
+		document.getElementById("adj_dst").innerHTML = Untranslated.Adj_dst;
 		if(!document.getElementById("time_zone_dst_chk").checked){
 				document.form.time_zone_dst.value=0;
 				document.getElementById("dst_start").style.display="none";
@@ -187,6 +280,7 @@ var timezones = [
 	["UTC1",	"(GMT-01:00) <#TZ26#>"],
 	["GMT0DST_1",	"(GMT) <#TZ27#>"],
 	["GMT0DST_2",	"(GMT) <#TZ28#>"],
+	/*["GMT0DST_3",	"(GMT) <#TZ85#>"],	use adj_dst to desc*/
 	["UTC-1DST_1",	"(GMT+01:00) <#TZ29#>"],
 	["UTC-1_1_1",	"(GMT+01:00) <#TZ30#>"],
 	["UTC-1_2",	"(GMT+01:00) <#TZ31#>"],
@@ -385,7 +479,6 @@ function load_dst_h_Options(){
 			else
 				add_option(document.form.dst_end_h, dst_hour[i], i, 0);			
 		}
-			
 	}	
 }
 
@@ -405,6 +498,147 @@ function add_tz_option(selectObj, str, value, selected){
 	if(selected)
 		selectObj.options[tail].selected = 1;
 }
+
+function hide_https_lanport(_value){
+	$("https_lanport").style.display = (_value == "0") ? "none" : "";
+}
+
+// show clientlist
+function show_http_clientlist(){
+	var http_clientlist_row = http_clientlist_array.split('&#60');
+	var code = "";
+	code +='<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table" id="http_clientlist_table">'; 
+	if(http_clientlist_row.length == 1)
+		code +='<tr><td style="color:#FFCC00;"><#IPConnection_VSList_Norule#></td>';
+	else{
+		for(var i =1; i < http_clientlist_row.length; i++){
+		code +='<tr id="row'+i+'">';
+		code +='<td width="80%">'+ http_clientlist_row[i] +'</td>';		//Url keyword
+		code +='<td width="20%">';
+		code +="<input class=\"remove_btn\" type=\"button\" onclick=\"deleteRow(this);\" value=\"\"/></td>";
+		}
+	}
+  	code +='</tr></table>';
+	
+	$("http_clientlist_Block").innerHTML = code;
+}
+
+function deleteRow(r){
+  var i=r.parentNode.parentNode.rowIndex;
+  $('http_clientlist_table').deleteRow(i);
+  
+  var http_clientlist_value = "";
+	for(i=0; i<$('http_clientlist_table').rows.length; i++){
+		http_clientlist_value += "&#60";
+		http_clientlist_value += $('http_clientlist_table').rows[i].cells[0].innerHTML;
+	}
+	
+	http_clientlist_array = http_clientlist_value;
+	if(http_clientlist_array == "")
+		show_http_clientlist();
+}
+
+function addRow(obj, upper){
+	if('<% nvram_get("http_client"); %>' != "1")
+		document.form.http_client[0].checked = true;
+		
+	//Viz check max-limit 
+	var rule_num = $('http_clientlist_table').rows.length;
+	var item_num = $('http_clientlist_table').rows[0].cells.length;		
+	if(rule_num >= upper){
+		alert("<#JS_itemlimit1#> " + upper + " <#JS_itemlimit2#>");
+		return false;	
+	}
+			
+	if(obj.value == ""){
+		alert("<#JS_fieldblank#>");
+		obj.focus();
+		obj.select();			
+		return false;
+	}
+	else if(valid_IP_form(obj, 0) != true){
+		return false;
+	}
+	else{		
+		//Viz check same rule
+		for(i=0; i<rule_num; i++){
+			for(j=0; j<item_num-1; j++){		//only 1 value column
+				if(obj.value == $('http_clientlist_table').rows[i].cells[j].innerHTML){
+					alert("<#JS_duplicate#>");
+					return false;
+				}	
+			}
+		}
+		
+		http_clientlist_array += "&#60";
+		http_clientlist_array += obj.value;
+		obj.value = "";		
+		show_http_clientlist();
+	}	
+}
+
+function keyBoardListener(evt){
+	var nbr = (window.evt)?event.keyCode:event.which;
+	if(nbr == 13)
+		addRow(document.form.http_client_ip_x_0, 4);
+}
+
+
+//Viz add 2012.02 LAN client ip { start
+
+function showLANIPList(){
+	var code = "";
+	var show_name = "";
+	var client_list_array = '<% get_client_detail_info(); %>';	
+	var client_list_row = client_list_array.split('<');	
+
+	for(var i = 1; i < client_list_row.length; i++){
+		var client_list_col = client_list_row[i].split('>');
+		if(client_list_col[1] && client_list_col[1].length > 20)
+			show_name = client_list_col[1].substring(0, 16) + "..";
+		else
+			show_name = client_list_col[1];	
+
+		//client_list_col[]  0:type 1:device 2:ip 3:mac 4: 5: 6:
+		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[2]+'\');"><strong>'+client_list_col[2]+'</strong> ';
+		
+		if(show_name && show_name.length > 0)
+				code += '( '+show_name+')';
+		code += ' </div></a>';
+		}
+	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
+	$("ClientList_Block_PC").innerHTML = code;
+}
+
+function setClientIP(ipaddr){
+	document.form.http_client_ip_x_0.value = ipaddr;
+	hideClients_Block();
+	over_var = 0;
+}
+
+
+var over_var = 0;
+var isMenuopen = 0;
+
+function hideClients_Block(){
+	$("pull_arrow").src = "/images/arrow-down.gif";
+	$('ClientList_Block_PC').style.display='none';
+	isMenuopen = 0;
+}
+
+function pullLANIPList(obj){
+	
+	if(isMenuopen == 0){		
+		obj.src = "/images/arrow-top.gif"
+		$("ClientList_Block_PC").style.display = 'block';		
+		document.form.http_client_ip_x_0.focus();		
+		isMenuopen = 1;
+	}
+	else
+		hideClients_Block();
+}
+
+//Viz add 2012.02 LAN client ip } end 
 </script>
 </head>
 
@@ -429,8 +663,8 @@ function add_tz_option(selectObj, str, value, selected){
 <input type="hidden" name="time_zone_dst" value="<% nvram_get("time_zone_dst"); %>">
 <input type="hidden" name="time_zone" value="<% nvram_get("time_zone"); %>">
 <input type="hidden" name="time_zone_dstoff" value="<% nvram_get("time_zone_dstoff"); %>">
-
 <input type="hidden" name="http_passwd" value="<% nvram_get("http_passwd"); %>">
+<input type="hidden" name="http_clientlist" value="<% nvram_get("http_clientlist"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -465,15 +699,24 @@ function add_tz_option(selectObj, str, value, selected){
         </tr>
     	</thead>
         <tr>
-          <th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_new#></a></th>
+          <th width="40%"><#Router_Login_Name#></th>
           <td>
-            <input type="password" name="http_passwd2" onKeyPress="return is_string(this);" class="input_15_table" maxlength="17" />
+				  	<div id="http_username_span" name="http_username_span" style="color:#FFFFFF;margin-left:8px;"><% nvram_get("http_username"); %></div>
+						<input type="text" id="http_username" name="http_username" style="height:25px;" class="input_15_table" maxlength="17" value='<% nvram_get("http_username"); %>'>
           </td>
         </tr>
+
         <tr>
-          <th valign="top"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_retype#></a></th>
+          <th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_new#></a></th>
           <td>
-            <input type="password" name="v_password2" onKeyPress="return is_string(this);" class="input_15_table" maxlength="17" /><br/><span id="alert_msg"></span>
+            <input type="password" autocapitalization="off" name="http_passwd2" onKeyPress="return is_string(this, event);" class="input_15_table" maxlength="17" />
+          </td>
+        </tr>
+
+        <tr>
+          <th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_retype#></a></th>
+          <td>
+            <input type="password" name="v_password2" onKeyPress="return is_string(this, event);" class="input_15_table" maxlength="17" /><br/><span id="alert_msg"></span>
           </td>
         </tr>
       </table>
@@ -483,20 +726,27 @@ function add_tz_option(selectObj, str, value, selected){
           <td colspan="2"><#t2Misc#></td>
         </tr>
     	</thead>
+	<tr id="btn_ez_radiotoggle_tr">
+		<th>WPS Button behavior</th>
+		<td>
+			<input type="radio" name="btn_ez_radiotoggle" class="input" value="1" <% nvram_match_x("", "btn_ez_radiotoggle", "1", "checked"); %>>Toggle Radio
+			<input type="radio" name="btn_ez_radiotoggle" class="input" value="0" <% nvram_match_x("", "btn_ez_radiotoggle", "0", "checked"); %>>Activate WPS
+		</td>
+	</tr>
         <tr>
           <th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(11,1)"><#LANHostConfig_x_ServerLogEnable_itemname#></a></th>
-          <td><input type="text" maxlength="15" class="input_15_table" name="log_ipaddr" value="<% nvram_get("log_ipaddr"); %>" onKeyPress="return is_ipaddr(this)" onKeyUp="change_ipaddr(this)"></td>
+          <td><input type="text" maxlength="15" class="input_15_table" name="log_ipaddr" value="<% nvram_get("log_ipaddr"); %>" onKeyPress="return is_ipaddr(this, event)" ></td>
         </tr>
         <tr>
           <th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(11,2)"><#LANHostConfig_x_TimeZone_itemname#></a></th>
           <td>
             <select name="time_zone_select" class="input_option" onchange="return change_common(this, 'LANHostConfig', 'time_zone_select')">
-            <option value="<% nvram_get("time_zone"); %>" selected><% nvram_get("time_zone"); %></option>
+           		<option value="<% nvram_get("time_zone"); %>" selected><% nvram_get("time_zone"); %></option>
             </select>
           	<div>
           		<span id="chkbox_time_zone_dst" style="color:white;display:none;">
           			<input type="checkbox" name="time_zone_dst_chk" id="time_zone_dst_chk" <% nvram_match("time_zone_dst", "1", "checked"); %> class="input" onClick="return change_common(this,'LANHostConfig','time_zone_dst_chk')">
-          			<label for="time_zone_dst_chk">Manual daylight saving time.</label>
+          			<label for="time_zone_dst_chk"><span id="adj_dst"></span></label>
           			<br>
           		</span>	
           		<span id="dst_start" style="color:white;display:none;">
@@ -522,9 +772,9 @@ function add_tz_option(selectObj, str, value, selected){
         <tr>
           <th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(11,3)"><#LANHostConfig_x_NTPServer1_itemname#></a></th>
           <td>
-						<input type="text" maxlength="256" class="input_32_table" name="ntp_server0" value="<% nvram_get("ntp_server0"); %>" onKeyPress="return is_string(this);">
+						<input type="text" maxlength="256" class="input_32_table" name="ntp_server0" value="<% nvram_get("ntp_server0"); %>" onKeyPress="return is_string(this, event);">
     	      <a href="javascript:openLink('x_NTPServer1')"  name="x_NTPServer1_link" style=" margin-left:5px; text-decoration: underline;"><#LANHostConfig_x_NTPServer1_linkname#>
-					</td>
+			</td>
         </tr>
 
 				<tr>
@@ -535,12 +785,63 @@ function add_tz_option(selectObj, str, value, selected){
 				  </td>
 				</tr>
 
+		  	<tr id="https_tr">
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 5);"><#WLANConfig11b_AuthenticationMethod_itemname#></a></th>
+					<td>
+				  	<select name="http_enable" class="input_option" onchange="hide_https_lanport(this.value);">
+							<option value="0" <% nvram_match("http_enable", "0", "selected"); %>>HTTP</option>
+							<option value="1" <% nvram_match("http_enable", "1", "selected"); %>>HTTPS</option>
+							<option value="2" <% nvram_match("http_enable", "2", "selected"); %>>BOTH</option>
+				  	</select>
+					</td>
+		  	</tr>
+
+		  	<tr id="https_lanport">
+					<th>HTTPS Lan port</th>
+          <td>
+						<input type="text" maxlength="5" class="input_6_table" name="https_lanport" value="<% nvram_get("https_lanport"); %>">
+					</td>
+		  	</tr>
+
+				<tr id="http_client_tr">
+				  <th>Only allow specific IP</th>
+				  <td>
+				    <input type="radio" name="http_client" class="input" value="1" <% nvram_match_x("", "http_client", "1", "checked"); %>><#checkbox_Yes#>
+				    <input type="radio" name="http_client" class="input" value="0" <% nvram_match_x("", "http_client", "0", "checked"); %>><#checkbox_No#>
+				  </td>
+				</tr>
       </table>
 
-      	<div class="apply_gen">
-      		<input name="button" type="button" class="button_gen" onclick="applyRule();" value="<#CTL_apply#>"/>
-      	</div>
-            
+			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" id="http_client_table">
+				<thead>
+					<tr>
+						<td colspan="4">Specified IP</td>
+					</tr>
+				</thead>
+			
+			  <tr>
+					<th width="80%">Client list</th>
+					<th width="20%">Add / Delete</th>
+				</tr>
+
+				<tr>
+					<!-- client info -->
+					<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>					
+					
+					<td width="80%">
+				 		<input type="text" class="input_32_table" maxlength="15" name="http_client_ip_x_0"  onKeyPress="" onClick="hideClients_Block();" onblur="if(!over_var){hideClients_Block();}">
+            <img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the device name of LAN clients." onmouseover="over_var=1;" onmouseout="over_var=0;">				 		
+				 	</td>
+				 	<td width="20%">	
+				  		<input class="add_btn" type="button" onClick="addRow(document.form.http_client_ip_x_0, 4);" value="">
+				 	</td>	
+				</tr>
+			</table>
+     	<div id="http_clientlist_Block"></div>
+
+     	<div class="apply_gen">
+     		<input name="button" type="button" class="button_gen" onclick="applyRule();" value="<#CTL_apply#>"/>
+     	</div>
       
       </td></tr>
 </tbody>

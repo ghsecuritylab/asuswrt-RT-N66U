@@ -29,9 +29,7 @@
 #include <linux/netdevice.h>
 #include <linux/socket.h>
 #include <linux/mm.h>
-//#ifdef CONFIG_BCM_NAT
 #include <net/ip.h>
-//#endif
 
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_l3proto.h>
@@ -82,33 +80,6 @@ EXPORT_PER_CPU_SYMBOL(nf_conntrack_stat);
 #ifdef HNDCTF
 extern int ip_conntrack_ipct_delete(struct nf_conn *ct, int ct_timeout);
 #endif /* HNDCTF */
-
-#if 1
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-#define	BCM_FASTNAT_DENY	1
-extern int ipv4_conntrack_fastnat;
-
-typedef int (*bcmNatBindHook)(struct nf_conn *ct,
-	enum ip_conntrack_info ctinfo,
-	struct sk_buff **pskb, 
-	struct nf_conntrack_l3proto *l3proto,
-	struct nf_conntrack_l4proto *l4proto);
-
-static bcmNatBindHook bcm_nat_bind_hook = NULL;
-int bcm_nat_bind_hook_func(bcmNatBindHook hook_func) {
-	bcm_nat_bind_hook = hook_func;
-	return 1;
-};
-
-typedef int (*bcmNatHitHook)(struct sk_buff *skb);
-bcmNatHitHook bcm_nat_hit_hook = NULL;
-int bcm_nat_hit_hook_func(bcmNatHitHook hook_func) {
-	bcm_nat_hit_hook = hook_func;
-	return 1;
-};
-#endif
-#endif
-
 
 /*
  * This scheme offers various size of "struct nf_conn" dependent on
@@ -879,10 +850,6 @@ resolve_normal_ct(struct sk_buff *skb,
 	return ct;
 }
 
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-extern struct sk_buff * nf_ct_ipv4_gather_frags(struct sk_buff *skb, u_int32_t user);
-#endif
-
 unsigned int
 nf_conntrack_in(int pf, unsigned int hooknum, struct sk_buff **pskb)
 {
@@ -894,10 +861,6 @@ nf_conntrack_in(int pf, unsigned int hooknum, struct sk_buff **pskb)
 	u_int8_t protonum;
 	int set_reply = 0;
 	int ret;
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-	struct nf_conn_nat *nat;
-	struct nf_conn_help *help;
-#endif
 
 	/* Previously seen (loopback or untracked)?  Ignore. */
 	if ((*pskb)->nfct) {
@@ -912,20 +875,6 @@ nf_conntrack_in(int pf, unsigned int hooknum, struct sk_buff **pskb)
 		DEBUGP("not prepared to track yet or error occured\n");
 		return -ret;
 	}
-
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-	if (pf == PF_INET) {
-		/* Gather fragments. */
-		if (ip_hdr(*pskb)->frag_off & htons(IP_MF | IP_OFFSET)) {
-			*pskb = nf_ct_ipv4_gather_frags(*pskb,
-						hooknum == NF_IP_PRE_ROUTING ?
-						IP_DEFRAG_CONNTRACK_IN :
-						IP_DEFRAG_CONNTRACK_OUT);
-			if (!*pskb)
-				return NF_STOLEN;
-		}
-	}
-#endif
 
 	l4proto = __nf_ct_l4proto_find((u_int16_t)pf, protonum);
 
@@ -968,35 +917,7 @@ nf_conntrack_in(int pf, unsigned int hooknum, struct sk_buff **pskb)
 		return -ret;
 	}
 
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-	help = nfct_help(ct);
-	nat = nfct_nat(ct);
-	if (pf == PF_INET && ipv4_conntrack_fastnat && bcm_nat_bind_hook
-		&& !(nat->info.nat_type & BCM_FASTNAT_DENY)
-		&& !help->helper
-		&& (ctinfo == IP_CT_ESTABLISHED || ctinfo == IP_CT_IS_REPLY) //Yau patch
-		//&& (ctinfo == IP_CT_ESTABLISHED ||
-		//    ctinfo == IP_CT_ESTABLISHED + IP_CT_IS_REPLY)
-		&& (hooknum == NF_IP_PRE_ROUTING ||hooknum == NF_IP_FORWARD)
-		&& (protonum == IPPROTO_TCP || protonum == IPPROTO_UDP)) {
-
-		struct nf_conntrack_tuple *t1, *t2;
-		t1 = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple;
-		t2 = &ct->tuplehash[IP_CT_DIR_REPLY].tuple;
-		if (!(t1->dst.u3.ip == t2->src.u3.ip &&
-			t1->src.u3.ip == t2->dst.u3.ip &&
-			t1->dst.u.all == t2->src.u.all &&
-			t1->src.u.all == t2->dst.u.all)) {
-			ret = bcm_nat_bind_hook(ct, ctinfo, pskb, l3proto, l4proto);
-		}
-	}
-#endif
-
 	if (set_reply && !test_and_set_bit(IPS_SEEN_REPLY_BIT, &ct->status)) {
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-		if (pf == PF_INET && hooknum == NF_IP_LOCAL_OUT)
-			nat->info.nat_type |= BCM_FASTNAT_DENY;
-#endif
 		nf_conntrack_event_cache(IPCT_STATUS, *pskb);
 	}
 	return ret;

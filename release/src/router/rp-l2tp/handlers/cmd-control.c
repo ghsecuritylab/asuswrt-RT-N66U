@@ -14,7 +14,7 @@
 ***********************************************************************/
 
 static char const RCSID[] =
-"$Id: cmd-control.c 2930 2011-04-26 15:24:06Z themiron.ru $";
+"$Id: cmd-control.c 3323 2011-09-21 18:45:48Z lly.dev $";
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/un.h>

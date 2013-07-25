@@ -39,10 +39,19 @@
 #include <hndmips.h>
 #include <sflash.h>
 #include <linux/delay.h>
+#ifdef NFLASH_SUPPORT
+#include <nflash.h>
+#endif
+
+/* Temp buffer to hold the nvram transfered romboot CFE */
+char __initdata ram_nvram_buf[NVRAM_SPACE] __attribute__((aligned(PAGE_SIZE)));
 
 /* In BSS to minimize text size and page aligned so it can be mmap()-ed */
 static char nvram_buf[NVRAM_SPACE] __attribute__((aligned(PAGE_SIZE)));
 static char *nvram_commit_buf = NULL;
+#ifdef RTN66U_NVRAM_64K_SUPPORT /*Only for RT-N66U upgrade from nvram 32K -> 64K*/
+int nvram_32_reset = 0;
+#endif
 
 #define CFE_UPDATE  1 // added by Chen-I for mac/regulation update
 #ifdef CFE_UPDATE
@@ -79,7 +88,7 @@ static int cfe_commit(void);
 #else /* !MODULE */
 
 /* Global SB handle */
-extern void *bcm947xx_sih;
+extern si_t *bcm947xx_sih;
 extern spinlock_t bcm947xx_sih_lock;
 
 /* Convenience */
@@ -87,6 +96,8 @@ extern spinlock_t bcm947xx_sih_lock;
 #define sih_lock bcm947xx_sih_lock
 #define KB * 1024
 #define MB * 1024 * 1024
+
+#define _nvram_safe_get(name) (_nvram_get(name) ? : "")
 
 #define NLS_XFR 1              /* added by Jiahao for WL500gP */
 #ifdef NLS_XFR
@@ -317,10 +328,25 @@ early_nvram_init(void)
 	int i;
 	uint32 base, off, lim;
 	u32 *src, *dst;
+	uint32 fltype;
+#ifdef NFLASH_SUPPORT
+	struct nflash *nfl_info = NULL;
+	uint32 blocksize;
+#endif
+	header = (struct nvram_header *)ram_nvram_buf;
 
 	if ((cc = si_setcore(sih, CC_CORE_ID, 0)) != NULL) {
-		base = KSEG1ADDR(SI_FLASH2);
-		switch (readl(&cc->capabilities) & CC_CAP_FLASH_MASK) {
+#ifdef NFLASH_SUPPORT
+		if ((sih->ccrev == 38) && ((sih->chipst & (1 << 4)) != 0)) {
+			fltype = NFLASH;
+			base = KSEG1ADDR(SI_FLASH1);
+		} else
+#endif
+		{
+			fltype = readl(&cc->capabilities) & CC_CAP_FLASH_MASK;
+			base = KSEG1ADDR(SI_FLASH2);
+		}
+		switch (fltype) {
 		case PFLASH:
 			lim = SI_FLASH2_SZ;
 			break;
@@ -331,7 +357,13 @@ early_nvram_init(void)
 				return -1;
 			lim = info->size;
 			break;
-
+#ifdef NFLASH_SUPPORT
+		case NFLASH:
+			if ((nfl_info = nflash_init(sih, cc)) == NULL)
+				return -1;
+			lim = SI_FLASH1_SZ;
+			break;
+#endif
 		case FLASH_NONE:
 		default:
 			return -1;
@@ -341,8 +373,37 @@ early_nvram_init(void)
 		base = KSEG1ADDR(SI_FLASH1);
 		lim = SI_FLASH1_SZ;
 	}
-
+#ifdef NFLASH_SUPPORT
+	if (nfl_info != NULL) {
+		blocksize = nfl_info->blocksize;
+		off = blocksize;
+		while (off <= lim) {
+			if (nflash_checkbadb(sih, cc, off) != 0) {
+				off += blocksize;
+				continue;
+			}
+			header = (struct nvram_header *) KSEG1ADDR(base + off);
+			if (header->magic == NVRAM_MAGIC)
+				if (nvram_calc_crc(header) == (uint8) header->crc_ver_init) {
+					goto found;
+				}
+			off += blocksize;
+		}
+	} else
+#endif
 	off = FLASH_MIN;
+
+#ifdef RTN66U_NVRAM_64K_SUPPORT
+	header = (struct nvram_header *) KSEG1ADDR(base + lim - 0x8000);
+	if(header->magic==0xffffffff) {
+        	header = (struct nvram_header *) KSEG1ADDR(base + 1 KB);
+	        if (nvram_valid(header)) {
+			nvram_32_reset=1;
+        	        goto found;
+		}
+	}
+#endif
+
 	while (off <= lim) {
 		/* Windowed flash access */
 		header = (struct nvram_header *) KSEG1ADDR(base + off - NVRAM_SPACE);
@@ -355,7 +416,6 @@ early_nvram_init(void)
 	header = (struct nvram_header *) KSEG1ADDR(base + 4 KB);
 	if (nvram_valid(header))
 		goto found;
-
 	header = (struct nvram_header *) KSEG1ADDR(base + 1 KB);
 	if (nvram_valid(header))
 		goto found;
@@ -460,11 +520,30 @@ _nvram_read(char *buf)
 {
 	struct nvram_header *header = (struct nvram_header *) buf;
 	size_t len;
+	int offset = 0;
 
+	if (nvram_mtd) {
+#ifdef NFLASH_SUPPORT
+		if (nvram_mtd->type == MTD_NANDFLASH)
+			offset = 0;
+		else
+#endif
+			offset = nvram_mtd->size - NVRAM_SPACE;
+	}
+
+#ifdef RTN66U_NVRAM_64K_SUPPORT /*Only for RT-N66U upgrade from nvram 32K -> 64K*/
+	if (nvram_32_reset==1 || 
+	    !nvram_mtd ||
+            nvram_mtd->read(nvram_mtd, offset, NVRAM_SPACE, &len, buf) ||
+            len != NVRAM_SPACE ||
+            !nvram_valid(header)) {
+		nvram_32_reset=0;
+#else
 	if (!nvram_mtd ||
-	    nvram_mtd->read(nvram_mtd, nvram_mtd->size - NVRAM_SPACE, NVRAM_SPACE, &len, buf) ||
+	    nvram_mtd->read(nvram_mtd, offset, NVRAM_SPACE, &len, buf) ||
 	    len != NVRAM_SPACE ||
 	    !nvram_valid(header)) {
+#endif
 		/* Maybe we can recover some data from early initialization */
 		memcpy(buf, nvram_buf, NVRAM_SPACE);
 	}
@@ -523,7 +602,6 @@ nvram_set(const char *name, const char *value)
 
 	spin_lock_irqsave(&nvram_lock, flags);
 
-	//printk("nvram_set: name = %s, value = %s!\n", name, value);
 #ifdef CFE_UPDATE //write back to default sector as well, Chen-I
         if(strncmp(name, CFE_NVRAM_PREFIX, strlen(CFE_NVRAM_PREFIX))==0)
         {
@@ -608,6 +686,55 @@ erase_callback(struct erase_info *done)
 	wake_up(wait_q);
 }
 
+#ifdef NFLASH_SUPPORT
+int
+nvram_nflash_commit(void)
+{
+	char *buf;
+	size_t len, magic_len;
+	unsigned int i;
+	int ret;
+	struct nvram_header *header;
+	unsigned long flags;
+	u_int32_t offset;
+	struct erase_info erase;
+
+	if (!(buf = kmalloc(NVRAM_SPACE, GFP_KERNEL))) {
+		printk("nvram_commit: out of memory\n");
+		return -ENOMEM;
+	}
+
+	down(&nvram_sem);
+
+	offset = 0;
+	header = (struct nvram_header *)buf;
+	header->magic = NVRAM_MAGIC;
+	/* reset MAGIC before we regenerate the NVRAM,
+	 * otherwise we'll have an incorrect CRC
+	 */
+	/* Regenerate NVRAM */
+	spin_lock_irqsave(&nvram_lock, flags);
+	ret = _nvram_commit(header);
+	spin_unlock_irqrestore(&nvram_lock, flags);
+	if (ret)
+		goto done;
+
+	/* Write partition up to end of data area */
+	i = header->len;
+	ret = nvram_mtd->write(nvram_mtd, offset, i, &len, buf);
+	if (ret || len != i) {
+		printk("nvram_commit: write error\n");
+		ret = -EIO;
+		goto done;
+	}
+
+done:
+	up(&nvram_sem);
+	kfree(buf);
+	return ret;
+}
+#endif
+
 //#define NVRAM2HANDLER 1
 
 #ifdef NVRAM2HANDLER
@@ -664,6 +791,10 @@ nvram_commit(void)
 		return -EINVAL;
 	}
 
+#ifdef NFLASH_SUPPORT
+	if (nvram_mtd->type == MTD_NANDFLASH)
+		return nvram_nflash_commit();
+#endif
 	/* Backup sector blocks to be erased */
 	erasesize = ROUNDUP(NVRAM_SPACE, nvram_mtd->erasesize);
 #if 0
@@ -779,6 +910,18 @@ nvram_commit(void)
 
 	offset = nvram_mtd->size - erasesize;
 	ret = nvram_mtd->read(nvram_mtd, offset, 4, &len, nvram_commit_buf);
+
+#ifdef RTN66U_NVRAM_64K_SUPPORT /*Only for RT-N66U upgrade from nvram 32K -> 64K*/
+        if(nvramlen<0x8001){
+                char *log_buf;
+                u_int32_t offset_t;
+                size_t log_len;
+
+                offset_t = 0x18000;
+                log_buf =0x01020304;
+                ret = nvram_mtd->write(nvram_mtd, offset_t, sizeof(log_buf), &log_len, &log_buf);
+        }
+#endif
 
 done:
 	up(&nvram_sem);
@@ -1029,8 +1172,9 @@ dev_nvram_init(void)
 		si_setosh(sih, osh);
 	}
 
-	/* Initialize hash table */
-	_nvram_init(sih);
+printk("dev_nvram_init: _nvram_init\n");
+        /* Initialize hash table */
+        _nvram_init(sih);
 
 	/* Create /dev/nvram handle */
 	nvram_class = class_create(THIS_MODULE, "nvram");
@@ -1380,207 +1524,6 @@ done:
 	printk("cfe_commit: done %d\n", ret);
         return ret;
 #endif
-}
-#endif
-
-
-//#ifdef CFE_UPDATE
-#if 0
-void cfe_init(void)
-{
-        size_t erasesize, len;
-        int i;
-
-        /* Find associated MTD device */
-        for (i = 0; i < MAX_MTD_DEVICES; i++) {
-                cfe_mtd = get_mtd_device(NULL, i);
-                if (cfe_mtd) {
-                        printk("CFE MTD: %x %s %x\n", i, cfe_mtd->name, cfe_mtd->size);
-                        if (!strcmp(cfe_mtd->name, "boot"))
-                                break;
-                        put_mtd_device(cfe_mtd);
-                }
-        }
-        if (i >= MAX_MTD_DEVICES)
-        {
-                printk("No CFE MTD\n");
-                cfe_mtd = NULL;
-        }
-
-        if(!cfe_mtd) goto fail;
-
-        /* sector blocks to be erased and backup */
-        erasesize = ROUNDUP(CFE_NVRAM_SPACE, cfe_mtd->erasesize);
-
-        /* printk("block size %d\n", erasesize); */
-
-        cfe_buf = kmalloc(erasesize, GFP_KERNEL);
-
-        if(!cfe_buf)
-        {
-                /* printk("No CFE Memory\n"); */
-                goto fail;
-        }
-        cfe_mtd->read(cfe_mtd, CFE_NVRAM_START, erasesize, &len, cfe_buf);
-
-        /* find nvram header */
-        for(i=0;i<len;i+=4)
-        {
-                cfe_nvram_header=(struct nvram_header *)&cfe_buf[i];
-                if (cfe_nvram_header->magic==NVRAM_MAGIC) break;
-        }
-
-        bcm947xx_watchdog_disable(); /*disable watchdog as well */
-
-#if 0                                                           
-        printf("read from nvram %d %s\n", i, cfe_buf);
-        for(i=0;i<CFE_SPACE;i++)
-        {
-              if(i%16) printk("\n");
-              printk("%02x ", (unsigned char)cfe_buf[i]);
-        }
-#endif
-        return;
-fail:
-        if (cfe_mtd)
-        {
-                put_mtd_device(cfe_mtd);
-                cfe_mtd=NULL;
-        }
-        if(cfe_buf)
-        {
-                kfree(cfe_buf);
-                cfe_buf=NULL;
-        }
-        return;
-}
-
-void cfe_update(const char *keyword, const char *value)
-{
-        unsigned long i, offset;
-        struct nvram_header tmp, *header;
-        uint8 crc;
-//        int ret;
-        int found = 0;
-
-        if(!cfe_buf||!cfe_mtd)
-                cfe_init();
-
-        if (!cfe_buf||!cfe_mtd) return;
-
-        header = cfe_nvram_header;
-
-        printk("before: %x %x\n", header->len,  cfe_nvram_header->crc_ver_init&0xff); 
-
-        for(i=CFE_NVRAM_START;i<=CFE_NVRAM_END;i++)
-        {
-                if(strncmp(&cfe_buf[i], keyword, strlen(keyword))==0)
-                {
-                        printk("before: %s\n", cfe_buf+i); 
-                        offset=strlen(keyword);
-                        memcpy(cfe_buf+i+offset+1, value, strlen(value));
-                        printk("after: %s\n", cfe_buf+i); 
-                        found = 1;
-                }
-        }
-
-        if(!found)
-        {
-                char *tmp_buf = (char *)cfe_nvram_header;
-
-                /* printk("header len: %x\n", header->len); */
-                sprintf(tmp_buf+header->len, "%s=%s", keyword, value);
-                header->len = header->len + strlen(keyword) + strlen(value) + 2;
-                /* printk("header len: %x\n", header->len); */
-        }
-
-        tmp.crc_ver_init = htol32(header->crc_ver_init);
-        tmp.config_refresh = htol32(header->config_refresh);
-        tmp.config_ncdl = htol32(header->config_ncdl);
-        crc = hndcrc8((char *) &tmp + 9, sizeof(struct nvram_header) - 9, CRC8_INIT_VALUE);
-
-        /* Continue CRC8 over data bytes */
-        crc = hndcrc8((char *) &header[1], header->len - sizeof(struct nvram_header), crc);
-        header->crc_ver_init = (header->crc_ver_init&0xFFFFFF00)|crc;
-        printk("after: %x %x\n", header->crc_ver_init&0xFF, crc); 
-}
-
-int cfe_commit(void)
-{
-        DECLARE_WAITQUEUE(wait, current);
-        wait_queue_head_t wait_q;
-        struct erase_info erase;
-//        unsigned int i;
-        int ret;
-        size_t erasesize, len;
-        u_int32_t offset;
-//        char *buf;
-
-        if(!cfe_buf||!cfe_mtd) cfe_init();
-
-        if(!cfe_mtd||!cfe_buf)
-        {
-                ret = - ENOMEM;
-                goto done;
-        }
-
-        /* Backup sector blocks to be erased */
-        erasesize = ROUNDUP(CFE_NVRAM_SPACE, cfe_mtd->erasesize);
-
-	down(&nvram_sem);
-
-        /* Erase sector blocks */
-        init_waitqueue_head(&wait_q);
-
-
-        for (offset=CFE_NVRAM_START;offset <= CFE_NVRAM_END;offset += cfe_mtd->erasesize) {
-           erase.mtd = cfe_mtd;
-           erase.addr = offset;
-           erase.len = cfe_mtd->erasesize;
-           erase.callback = erase_callback;
-           erase.priv = (u_long) &wait_q;
-
-           set_current_state(TASK_INTERRUPTIBLE);
-           add_wait_queue(&wait_q, &wait);
-           /* Unlock sector blocks */
-           if (cfe_mtd->unlock)
-                   cfe_mtd->unlock(cfe_mtd, offset, cfe_mtd->erasesize);
-
-           if ((ret = cfe_mtd->erase(cfe_mtd, &erase))) {
-                set_current_state(TASK_RUNNING);
-                remove_wait_queue(&wait_q, &wait);
-                printk("cfe_commit: erase error\n");
-                goto done;
-           }
-
-           /* Wait for erase to finish */
-           schedule();
-           remove_wait_queue(&wait_q, &wait);
-        }
-
-        ret = cfe_mtd->write(cfe_mtd, CFE_NVRAM_START, erasesize, &len, cfe_buf);
-        /* printk("Write offset: %x %x %x\n", ret, len, erasesize); */
-
-        if (ret || len != erasesize) {
-           printk("cfe_commit: write error\n");
-           ret = -EIO;
-        }
-
-done:
-	up(&nvram_sem);
-        if (cfe_mtd)
-        {
-                put_mtd_device(cfe_mtd);
-                cfe_mtd=NULL;
-        }
-        if(cfe_buf)
-        {
-                kfree(cfe_buf);
-                cfe_buf=NULL;
-        }
-        /* printk("commit: %d\n", ret); */
-        return ret;
-
 }
 #endif
 

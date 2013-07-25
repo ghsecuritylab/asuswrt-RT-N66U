@@ -43,13 +43,31 @@ extern const char *rt_buildinfo;
 
 
 #ifdef RTCONFIG_IPV6
-#define	IPV6_DISABLED		0
-#define	IPV6_NATIVE		1
-#define	IPV6_NATIVE_DHCP	2
-#define	IPV6_ANYCAST_6TO4	3
-#define	IPV6_6IN4		4
-#define	IPV6_6RD		5
-#define	IPV6_MANUAL		6
+enum {
+	IPV6_DISABLED = 0,
+	IPV6_NATIVE,
+	IPV6_NATIVE_DHCP,
+	IPV6_6TO4,
+	IPV6_6IN4,
+	IPV6_6RD,
+	IPV6_MANUAL
+};
+
+#ifndef RTF_UP
+/* Keep this in sync with /usr/src/linux/include/linux/route.h */
+#define RTF_UP          0x0001  /* route usable                 */
+#define RTF_GATEWAY     0x0002  /* destination is a gateway     */
+#define RTF_HOST        0x0004  /* host entry (net otherwise)   */
+#define RTF_REINSTATE   0x0008  /* reinstate route after tmout  */
+#define RTF_DYNAMIC     0x0010  /* created dyn. (by redirect)   */
+#define RTF_MODIFIED    0x0020  /* modified dyn. (by redirect)  */
+#endif
+#ifndef RTF_DEFAULT
+#define	RTF_DEFAULT	0x00010000	/* default - learned via ND	*/
+#define	RTF_ADDRCONF	0x00040000	/* addrconf route - RA		*/
+#define	RTF_CACHE	0x01000000	/* cache entry			*/
+#endif
+#define IPV6_MASK (RTF_GATEWAY|RTF_HOST|RTF_DEFAULT|RTF_ADDRCONF|RTF_CACHE)
 #endif
 
 enum {
@@ -81,12 +99,21 @@ typedef struct {
 	} iface[2];
 } wanface_list_t;
 
+extern char *read_whole_file(const char *target);
+extern char *get_line_from_buffer(const char *buf, char *line, const int line_size);
+extern char *get_upper_str(const char *const str, char **target);
+extern int upper_strcmp(const char *const str1, const char *const str2);
+extern int upper_strncmp(const char *const str1, const char *const str2, int count);
+extern char *upper_strstr(const char *const str, const char *const target);
+
 extern void chld_reap(int sig);
 extern int get_wan_proto(void);
 #ifdef RTCONFIG_IPV6
 extern int get_ipv6_service(void);
 #define ipv6_enabled()	(get_ipv6_service() != IPV6_DISABLED)
 extern const char *ipv6_router_address(struct in6_addr *in6addr);
+extern void ipv6_set_flags(char *flagstr, int flags);
+extern const char *ipv6_gateway_address();
 #else
 #define ipv6_enabled()	(0)
 #endif
@@ -156,15 +183,21 @@ enum {
 #ifdef RTCONFIG_RALINK
 	MODEL_EAN66,	
 	MODEL_RTN56U,
-	MODEL_RTN55U,
 	MODEL_RTN13U,
+#ifdef RTCONFIG_DSL
+	MODEL_DSLN55U,
+#endif
 #endif
 	MODEL_RTN12,
+	MODEL_RTN12B1,
+	MODEL_RTN12C1,
 	MODEL_RTN16,
 	MODEL_RTN15U,
 	MODEL_RTN53,
 	MODEL_RTN66U,
+	MODEL_RTAC66U,
 	MODEL_RTN10U,
+	MODEL_RTN10D,
 	MODEL_GENERIC
 };
 
@@ -240,6 +273,10 @@ extern int f_wait_notexists(const char *name, int max);
 #define BTN_WPS				1
 #define BTN_FAN				2
 #define BTN_HAVE_FAN			3
+#define BTN_WIFI_SW			4
+#define BTN_SWMODE_SW_ROUTER		5
+#define BTN_SWMODE_SW_REPEATER		6
+#define BTN_SWMODE_SW_AP		7
 
 #define LED_POWER			0
 #define LED_USB				1
@@ -248,6 +285,8 @@ extern int f_wait_notexists(const char *name, int max);
 #define HAVE_FAN			4
 #define LED_LAN				5
 #define LED_WAN				6
+#define LED_2G				7
+#define LED_5G				8
 
 #define	LED_OFF				0
 #define	LED_ON				1
@@ -268,12 +307,18 @@ extern int base64_decoded_len(int len);										// maximum possible, not actual
 
 
 // strings.c
+extern int char_to_ascii_safe(const char *output, const char *input, int outsize);
+extern void char_to_ascii(const char *output, const char *input);
 extern const char *find_word(const char *buffer, const char *word);
 extern int remove_word(char *buffer, const char *word);
 
 #ifdef RTCONFIG_RALINK
 extern int ralink_gpio_init(unsigned int idx, int dir);
+#ifdef RTCONFIG_DSL
+extern int config8367r(int argc, char *argv[]);
+#else
 extern void config8367m(int argc, char *argv[]);
+#endif
 #endif
 
 // file.c

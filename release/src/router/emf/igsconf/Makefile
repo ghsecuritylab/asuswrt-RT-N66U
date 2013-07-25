@@ -1,5 +1,7 @@
+include ../../common.mak
+
 #
-# $Id: Makefile 241182 2011-02-17 21:50:03Z gmo $
+# $Id: Makefile 241182 2011-02-17 21:50:03Z $
 #
 
 CROSS =
@@ -9,9 +11,9 @@ STRIP = $(CROSS)strip
 
 ALL_OBJS = igsu.o igsu_linux.o
 
-CCFLAGS = -Os -Wall -I../../../include -I../../shared -I../../../include/emf/igs
+CCFLAGS = -Os -Wall -I$(SRCBASE)/include -I../../shared -I$(SRCBASE)/include/emf/igs
 
-ifneq ($(wildcard ./prebuilt),)
+ifeq ($(wildcard ./*.c),)
 all:
 	-cp prebuilt/igs igs
 else

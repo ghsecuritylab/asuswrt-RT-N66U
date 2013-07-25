@@ -1,7 +1,7 @@
 /*
  * WPS TYPE
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,11 +9,26 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wpstypes.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wpstypes.h 291174 2011-10-21 07:57:07Z $
  */
 
 #ifndef _WPS_TYPE_
 #define _WPS_TYPE_
+
+#if !defined(WIN32)
+#ifdef __ECOS
+typedef void *uintptr_t;
+#else /* !__ECOS */
+#include <stdint.h> /* for uintptr_t */
+#endif /* __ECOS */
+#endif /* !WIN32 */
+
+#define UINT2PTR(val)   ((void *)(uintptr_t)(uint32)(val))
+#define PTR2UINT(val)   ((uint32)(uintptr_t)(val))
+
+#ifndef	BOOL
+#define	BOOL int
+#endif
 
 #ifdef __cplusplus
 typedef unsigned char uint8;

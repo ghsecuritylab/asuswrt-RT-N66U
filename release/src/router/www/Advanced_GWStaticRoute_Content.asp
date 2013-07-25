@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_2_3#></title>
+<title><#Web_Title#> - <#menu5_2_3#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
@@ -16,7 +16,45 @@
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" language="JavaScript" src="/help.js"></script>
 <script type="text/javascript" language="JavaScript" src="/detect.js"></script>
+<style>
+#ClientList_Block_PC{
+	border:1px outset #999;
+	background-color:#576D73;
+	position:absolute;
+	margin-top:105px;
+	*margin-top:96px;	
+	margin-left:8px;
+	width:215px;
+	text-align:left;	
+	height:auto;
+	overflow-y:auto;
+	z-index:200;
+	padding: 1px;
+	display:none;
+}
+#ClientList_Block_PC div{
+	background-color:#576D73;
+	height:auto;
+	*height:20px;
+	line-height:20px;
+	text-decoration:none;
+	font-family: Lucida Console;
+	padding-left:2px;
+}
 
+#ClientList_Block_PC a{
+	background-color:#EFEFEF;
+	color:#FFF;
+	font-size:12px;
+	font-family:Arial, Helvetica, sans-serif;
+	text-decoration:none;	
+}
+#ClientList_Block_PC div:hover, #ClientList_Block a:hover{
+	background-color:#3366FF;
+	color:#FFFFFF;
+	cursor:default;
+}	
+</style>
 <script>
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
@@ -29,6 +67,8 @@ var sr_rulelist_array = '<% nvram_get("sr_rulelist"); %>';
 function initial(){
 	show_menu();
 	showsr_rulelist();
+	showLANIPList();
+	
 }
 
 function applyRule(){
@@ -48,6 +88,9 @@ function applyRule(){
 		tmp_value = "";	
 
 	document.form.sr_rulelist.value = tmp_value;
+
+	if(wl6_support != -1)
+		document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
 
 	showLoading();
 	document.form.submit();
@@ -89,9 +132,11 @@ function addRow(obj, head){
 }
 
 function addRow_Group(upper){
-	var rule_num = $('sr_rulelist_table').rows.length;
-	var item_num = $('sr_rulelist_table').rows[0].cells.length;	
+	if('<% nvram_get("sr_enable_x"); %>' != "1")
+		document.form.sr_enable_x[0].checked = true;
 	
+	var rule_num = $('sr_rulelist_table').rows.length;
+	var item_num = $('sr_rulelist_table').rows[0].cells.length;		
 	if(rule_num >= upper){
 		alert("<#JS_itemlimit1#> " + upper + " <#JS_itemlimit2#>");
 		return false;	
@@ -166,8 +211,8 @@ function addRow_Group(upper){
 		addRow(document.form.sr_netmask_x_0, 0);
 		addRow(document.form.sr_gateway_x_0, 0);
 		addRow(document.form.sr_matric_x_0, 0);
-		addRow(document.form.sr_if_x_o, 0);
-		document.form.sr_if_x_o.value="LAN";
+		addRow(document.form.sr_if_x_0, 0);
+		document.form.sr_if_x_0.value="LAN";
 		showsr_rulelist();
 	}else{
 		return false;
@@ -181,7 +226,7 @@ function edit_Row(r){
 	document.form.sr_netmask_x_0.value = $('sr_rulelist_table').rows[i].cells[1].innerHTML; 
 	document.form.sr_gateway_x_0.value = $('sr_rulelist_table').rows[i].cells[2].innerHTML; 
 	document.form.sr_matric_x_0.value = $('sr_rulelist_table').rows[i].cells[3].innerHTML;
-	document.form.sr_if_x_o.value = $('sr_rulelist_table').rows[i].cells[3].innerHTML;
+	document.form.sr_if_x_0.value = $('sr_rulelist_table').rows[i].cells[4].innerHTML;
 	
   del_Row(r);	
 }
@@ -217,17 +262,80 @@ function showsr_rulelist(){
 		for(var i = 1; i < sr_rulelist_row.length; i++){
 			code +='<tr id="row'+i+'">';
 			var sr_rulelist_col = sr_rulelist_row[i].split('&#62');
-			var wid=[20, 20, 20, 8, 10];
+			var wid=[34, 18, 18, 8, 10];
 				for(var j = 0; j < sr_rulelist_col.length; j++){
 					code +='<td width="'+wid[j]+'%">'+ sr_rulelist_col[j] +'</td>';		//IP  width="98"
 				}
-				code +='<td width="22%"><!--input class="edit_btn" onclick="edit_Row(this);" value=""/-->';
+				code +='<td width="12%"><!--input class="edit_btn" onclick="edit_Row(this);" value=""/-->';
 				code +='<input class="remove_btn" onclick="del_Row(this);" value=""/></td></tr>';
 		}
 	}
   code +='</table>';
 	$("sr_rulelist_Block").innerHTML = code;
 }
+
+
+//Viz add 2012.02 LAN client ip { start
+
+function showLANIPList(){
+	var code = "";
+	var show_name = "";
+	var client_list_array = '<% get_client_detail_info(); %>';	
+	var client_list_row = client_list_array.split('<');	
+
+	for(var i = 1; i < client_list_row.length; i++){
+		var client_list_col = client_list_row[i].split('>');
+		if(client_list_col[1] && client_list_col[1].length > 20)
+			show_name = client_list_col[1].substring(0, 16) + "..";
+		else
+			show_name = client_list_col[1];	
+
+		//client_list_col[]  0:type 1:device 2:ip 3:mac 4: 5: 6:
+		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[2]+'\');"><strong>'+client_list_col[2]+'</strong> ';
+		
+		if(show_name && show_name.length > 0)
+				code += '( '+show_name+')';
+		code += ' </div></a>';
+		}
+	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
+	$("ClientList_Block_PC").innerHTML = code;
+}
+
+function setClientIP(ipaddr){
+	document.form.sr_ipaddr_x_0.value = ipaddr;
+	hideClients_Block();
+	over_var = 0;
+}
+
+
+var over_var = 0;
+var isMenuopen = 0;
+
+function hideClients_Block(){
+	$("pull_arrow").src = "/images/arrow-down.gif";
+	$('ClientList_Block_PC').style.display='none';
+	isMenuopen = 0;
+}
+
+function pullLANIPList(obj){
+	
+	if(isMenuopen == 0){		
+		obj.src = "/images/arrow-top.gif"
+		$("ClientList_Block_PC").style.display = 'block';		
+		document.form.sr_ipaddr_x_0.focus();		
+		isMenuopen = 1;
+	}
+	else
+		hideClients_Block();
+}
+function Ctrl_LANIPList(obj){
+	if(obj.value != "LAN")
+		$("pull_arrow").style.display ="none";
+	else
+		$("pull_arrow").style.display ="";
+}
+
+//Viz add 2012.02 LAN client ip } end  
 </script>
 </head>
 
@@ -299,34 +407,34 @@ function showsr_rulelist(){
 			  	</tr>
 			</thead>			
 				<tr>
-					<!--th class="th_15_table"><a href="javascript:void(0);" onClick="openHint(6,1);"><div class="table_text"><#RouterConfig_GWStaticIP_itemname#></div></a></th>
-					<th class="th_15_table"><a href="javascript:void(0);" onClick="openHint(6,2);"><div class="table_text"><#RouterConfig_GWStaticMask_itemname#></div></a></th>
-					<th class="th_15_table"><a href="javascript:void(0);" onClick="openHint(6,3);"><div class="table_text"><#RouterConfig_GWStaticGW_itemname#></div></a></th>
-					<th class="th_3_table"><a href="javascript:void(0);" onClick="openHint(6,4);"><div class="table_text"><#RouterConfig_GWStaticMT_itemname#></div></a></th>
-					<th class="select_table"><a href="javascript:void(0);" onClick="openHint(6,5);"><div class="table_text"><#RouterConfig_GWStaticIF_itemname#></div></a></th>
-					<th class="edit_table">Edit</th-->
 					<th><a href="javascript:void(0);" onClick="openHint(6,1);"><div class="table_text"><#RouterConfig_GWStaticIP_itemname#></div></a></th>
 					<th><a href="javascript:void(0);" onClick="openHint(6,2);"><div class="table_text"><#RouterConfig_GWStaticMask_itemname#></div></a></th>
 					<th><a href="javascript:void(0);" onClick="openHint(6,3);"><div class="table_text"><#RouterConfig_GWStaticGW_itemname#></div></a></th>
 					<th><a href="javascript:void(0);" onClick="openHint(6,4);"><div class="table_text"><#RouterConfig_GWStaticMT_itemname#></div></a></th>
-					<th><a href="javascript:void(0);" onClick="openHint(6,5);"><div class="table_text"><#RouterConfig_GWStaticIF_itemname#></div></a></th>
-					<th>Edit</th>					
+					<th><a href="javascript:void(0);" onClick="openHint(6,5);"><div class="table_text"><#wan_interface#></div></a></th>
+					<th>Add / Delete</th>					
 			  </tr>
 			  
 			  <tr>
-					<td width="20%"><input type="text" maxlength="15" class="input_15_table" name="sr_ipaddr_x_0" onKeyPress="return is_ipaddr(this)" onKeyUp="change_ipaddr(this)" onBlur="valid_IP_form(this,1)"></td>
-					<td width="20%"><input type="text" maxlength="15" class="input_15_table" name="sr_netmask_x_0" onKeyPress="return is_ipaddr(this)" onKeyUp="change_ipaddr(this)"></td>
-					<td width="20%"><input type="text" maxlength="15" class="input_15_table" name="sr_gateway_x_0" onKeyPress="return is_ipaddr(this)" onKeyUp="change_ipaddr(this)"></td>
-					<td width="8%"><input type="text" maxlength="3" class="input_3_table" name="sr_matric_x_0"  onKeyPress="return is_number_sp(event, this);"></td>
+			  	<!-- client info -->
+					<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
+					
+					<td width="34%">
+						<input type="text" class="input_20_table" maxlength="15" name="sr_ipaddr_x_0" style="margin-left:-22px;width:215px;" onKeyPress="return is_ipaddr(this, event)" onClick="hideClients_Block();" onblur="if(!over_var){hideClients_Block();}">
+						<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the device name of DHCP clients." onmouseover="over_var=1;" onmouseout="over_var=0;">						
+					</td>
+					<td width="18%"><input type="text" maxlength="15" class="input_15_table" name="sr_netmask_x_0" onKeyPress="return is_ipaddr(this, event)" ></td>
+					<td width="18%"><input type="text" maxlength="15" class="input_15_table" name="sr_gateway_x_0" onKeyPress="return is_ipaddr(this, event)" ></td>
+					<td width="8%"><input type="text" maxlength="3" class="input_3_table" name="sr_matric_x_0"  onKeyPress="return is_number(this, event);"></td>
 					<td width="10%">
-						<select name="sr_if_x_o" class="input_option" style="width:62px;">
-							<option  <% nvram_match_list_x("RouterConfig","sr_if_x", "LAN","selected", 0); %> value="LAN">LAN</option>
-							<option  <% nvram_match_list_x("RouterConfig","sr_if_x", "MAN","selected", 0); %> value="MAN">MAN</option>
-							<option  <% nvram_match_list_x("RouterConfig","sr_if_x", "WAN","selected", 0); %> value="WAN">WAN</option>
+						<select name="sr_if_x_0" class="input_option" style="width:62px;" onchange="Ctrl_LANIPList(this);">
+							<option value="LAN">LAN</option>
+							<option value="MAN">MAN</option>
+							<option value="WAN">WAN</option>
 						</select>
 					</td>
 				
-					<td width="22%">
+					<td width="12%">
 						<div> 
 							<input type="button" class="add_btn" onClick="addRow_Group(32);" value="">
 						</div>

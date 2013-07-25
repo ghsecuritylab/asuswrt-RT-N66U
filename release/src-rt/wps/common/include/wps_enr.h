@@ -1,7 +1,7 @@
 /*
  * WPS ENROLL header file
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_enr.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_enr.h 278550 2011-08-19 01:53:37Z $
  */
 
 #ifndef __WPS_ENR_H__
@@ -20,11 +20,8 @@
 
 /* OS dependent APIs */
 void wpsenr_osl_proc_states(int state);
-int wpsenr_osl_set_wsec(void *credential);
+int wpsenr_osl_set_wsec(int ess_id, void *credential, int mode);
 int wpsenr_osl_clear_wsec(void);
 int wpsenr_osl_restore_wsec(void);
-
-/* Common interface to enr wksp */
-int wpsenr_open_session(void *wps_app, char*ifname);
 
 #endif /* __WPS_ENR_H__ */

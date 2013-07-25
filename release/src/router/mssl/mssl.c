@@ -201,14 +201,6 @@ static FILE *_ssl_fopen(int sd, int client)
 		goto ERROR;
 	}
 	
-	/* debug err function */
-/*
-	fprintf(stderr,"[ssl_fopen] SSL connection on socket %x, Version: %s, Cipher=%s\n", 
-		kuki->sd, 
-		SSL_get_version(kuki->ssl), 
-		SSL_get_cipher(kuki->ssl)
-		); 
-*/
 	_dprintf("SSL connection using %s cipher\n", SSL_get_cipher(kuki->ssl));
 
 	if ((f = fopencookie(kuki, "r+", mssl)) == NULL) {
@@ -253,7 +245,6 @@ int mssl_init(char *cert, char *priv)
 	// Create the new CTX with the method 
 	// If server=1, use TLSv1_server_method() or SSLv23_server_method()
 	// else 	use TLSv1_client_method() or SSLv23_client_method()
-	//ctx = SSL_CTX_new(server ? TLSv1_server_method() : TLSv1_client_method()); // TLSv1
 	ctx = SSL_CTX_new(server ? SSLv23_server_method() : SSLv23_client_method()); // SSLv23 for IE
 
 	if (!ctx) {

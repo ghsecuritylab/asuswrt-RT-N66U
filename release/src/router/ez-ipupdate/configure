@@ -14,7 +14,7 @@ ac_default_prefix=/usr/local
 ac_help="$ac_help
   --enable-default-service=SERVICE
                           the default service type to use
-                          possibilities are: ezip, pgpow, justlinux, dhs,
+                          possibilities are: ezip, pgpow, justlinux, dhs, dnsomaic,
                           dyndns, dyndns-static, ods, tzo, gnudip, easydns, easydns-partner, dyns, hn, zoneedit, heipv6tb"
 ac_help="$ac_help
   --enable-debug          include support for debugging"
@@ -1820,6 +1820,10 @@ EOF
 ;;
   dhs ) cat >> confdefs.h <<\EOF
 #define DEF_SERVICE "dhs"
+EOF
+;;
+  dnsomatic ) cat >> confdefs.h <<\EOF
+#define DEF_SERVICE "dnsomatic"
 EOF
 ;;
   dyndns ) cat >> confdefs.h <<\EOF

@@ -707,11 +707,14 @@ bcm_robo_attach(si_t *sih, void *h, char *vars, miird_f miird, miiwr_f miiwr)
 	/* Enable switch leds */
 	if (sih->chip == BCM5356_CHIP_ID) {
 		si_pmu_chipcontrol(sih, 2, (1 << 25), (1 << 25));
+		/* also enable fast MII clocks */
+		si_pmu_chipcontrol(sih, 0, (1 << 1), (1 << 1));
 	} else if ((sih->chip == BCM5357_CHIP_ID) || (sih->chip == BCM53572_CHIP_ID)) {
 		uint32 led_gpios = 0;
 		char *var;
 
-		if ((sih->chippkg != BCM47186_PKG_ID) && (sih->chippkg != BCM47188_PKG_ID))
+		if (((sih->chip == BCM5357_CHIP_ID) && (sih->chippkg != BCM47186_PKG_ID)) ||
+		    ((sih->chip == BCM53572_CHIP_ID) && (sih->chippkg != BCM47188_PKG_ID)))
 			led_gpios = 0x1f;
 		var = getvar(vars, "et_swleds");
 		if (var)
@@ -1212,6 +1215,14 @@ vlan_setup:
 		robo->ops->write_reg(robo, 0x30, 0x62, &val16, sizeof(val16));
 	}
 
+	/* Drop reserved bit, if any */
+	robo->ops->read_reg(robo, PAGE_CTRL, 0x2f, &val8, sizeof(val8));
+	if (/*((robo->devid == DEVID53115) || (robo->devid == DEVID53125)) &&*/
+	    val8 & (1 << 1)) {
+		val8 &= ~(1 << 1);
+		robo->ops->write_reg(robo, PAGE_CTRL, 0x2f, &val8, sizeof(val8));
+	}
+
 	/* Disable management interface access */
 	if (robo->ops->disable_mgmtif)
 		robo->ops->disable_mgmtif(robo);
@@ -1267,13 +1278,6 @@ bcm_robo_enable_switch(robo_info_t *robo)
 		robo->ops->read_reg(robo, PAGE_CTRL, REG_CTRL_MIIPO, &val8, sizeof(val8));
 		val8 |= 0x81;	/* Make Link pass and override it. */
 		robo->ops->write_reg(robo, PAGE_CTRL, REG_CTRL_MIIPO, &val8, sizeof(val8));
-	}
-
-	/* Drop reserved bit, if any */
-	robo->ops->read_reg(robo, PAGE_CTRL, 0x2f, &val8, sizeof(val8));
-	if (val8 & (1 << 1)) {
-		val8 &= ~(1 << 1);
-		robo->ops->write_reg(robo, PAGE_CTRL, 0x2f, &val8, sizeof(val8));
 	}
 
 	/* Disable management interface access */

@@ -2,7 +2,7 @@
 #
 # Create the wpsvers.h file from version.h.in
 #
-# $Id: wpsvers.sh,v 1.2 2010-04-08 00:08:22 Exp $
+# $Id: wpsvers.sh,v 1.2 2010-04-08 00:08:22 $
 
 # Check for the in file, if not there we're probably in the wrong directory
 if [ ! -f version.h.in ]; then

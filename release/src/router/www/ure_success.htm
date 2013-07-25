@@ -7,7 +7,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#WPS_PBCbutton_hint_success#></title>
+<title><#Web_Title#> - <#WPS_PBCbutton_hint_success#></title>
 
 <link rel="stylesheet" type="text/css" href="/qis/qis_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
@@ -60,6 +60,9 @@ function addBookmarkForBrowser(sTitle) {
 <body onload="initial();" class="LevelQIS">
 <script>
 	var sw_mode = '<% nvram_get("sw_mode"); %>';
+	if(sw_mode == 3 && '<% nvram_get("wlc_psta"); %>' == 1)
+		sw_mode = 2;
+
 	if(sw_mode != 2){
 		alert("<#page_not_support_mode_hint#>");
 		location.href = "/index.asp";
@@ -72,7 +75,7 @@ function addBookmarkForBrowser(sTitle) {
 </noscript>
 <table width="705"  border="0" align="center" cellpadding="0" cellspacing="0">
   <tr>
-  	<td  colspan="3" height="55" valign="top" background="images/qis_title.gif"><div class="modelName" style="margin:28px 0px 0px 180px;"><#Web_Title#></div></td>
+  	<td colspan="3" height="55" valign="top" background="images/qis_title.gif"><div class="modelName" style="margin:28px 0px 0px 180px;"><#Web_Title2#></div></td>
   </tr>
 </table>
 <table width="705"  border="0" align="center" cellpadding="0" cellspacing="0">

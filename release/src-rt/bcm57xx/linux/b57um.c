@@ -10,7 +10,7 @@
 /*                                                                            */
 /******************************************************************************/
 
-/* $Id: b57um.c,v 1.34.10.1 2010-10-09 01:46:48 Exp $ */
+/* $Id: b57um.c 320789 2012-03-13 04:01:27Z $ */
 
 char bcm5700_driver[] = "bcm5700";
 char bcm5700_version[] = "8.3.14";
@@ -1208,7 +1208,7 @@ robo_fail:
 	pUmDevice->cih = ctf_attach(pUmDevice->osh, dev->name, &b57_msg_level, NULL, NULL);
 
 	ctf_dev_register(pUmDevice->cih, dev, FALSE);
-	ctf_enable(pUmDevice->cih, dev, TRUE);
+	ctf_enable(pUmDevice->cih, dev, TRUE, NULL);
 #endif /* HNDCTF */
 
 	return 0;
@@ -4327,6 +4327,68 @@ STATIC int bcm5700_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 			return -EIO;
 
 		return 0;
+	}
+
+	case SIOCSETGETVAR:
+	{
+		int ret = 0;
+		void *buffer = NULL;
+		bool get = FALSE, set = TRUE;
+		et_var_t var;
+
+		if (set && mm_copy_from_user(&var, rq->ifr_data, sizeof(var)))
+			return -EFAULT;
+
+		/* prepare buffer if any */
+		if (var.buf) {
+			if (!var.set)
+				get = TRUE;
+
+			if (!(buffer = (void *) MALLOC(SI_OSH, var.len))) {
+				B57_ERR(("%s: out of memory, malloced %d bytes\n", __FUNCTION__,
+					MALLOCED(SI_OSH)));
+				return -ENOMEM;
+			}
+
+			if (mm_copy_from_user(buffer, var.buf, var.len)) {
+				MFREE(SI_OSH, buffer, var.len);
+				return -EFAULT;
+			}
+		}
+
+		/* do var.cmd */
+		switch (var.cmd) {
+		case IOV_ET_ROBO_DEVID:
+		{
+			uint *vecarg = (uint *)buffer;
+			robo_info_t *robo = (robo_info_t *)pUmDevice->robo;
+
+			if (((pDevice->Flags & ROBO_SWITCH_FLAG) == 0) ||
+			    (robo == NULL)) {
+				ret = -ENXIO;
+				break;
+			}
+
+			/* get robo device id */
+			*vecarg = robo->devid;
+
+			if (mm_copy_to_user(var.buf, buffer, var.len)) {
+				ret = -EFAULT;
+				break;
+			}
+
+			break;
+		}
+
+		default:
+			ret = -EOPNOTSUPP;
+			break;
+		}
+
+		if (buffer)
+			MFREE(SI_OSH, buffer, var.len);
+
+		return ret;
 	}
 
 	case SIOCSETCSETMSGLEVEL:

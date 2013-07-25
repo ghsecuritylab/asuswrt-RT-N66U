@@ -43,7 +43,11 @@
 void init_devs(void)
 {
 	mknod("/dev/video0", S_IFCHR | 0x666, makedev(81, 0));
+#ifdef RTCONFIG_DSL
+	mknod("/dev/rtl8367r", S_IFCHR | 0x666, makedev(206, 0));
+#else
 	mknod("/dev/rtl8367m", S_IFCHR | 0x666, makedev(206, 0));
+#endif
 	mknod("/dev/spiS0", S_IFCHR | 0x666, makedev(217, 0));
 	mknod("/dev/i2cM0", S_IFCHR | 0x666, makedev(218, 0));
 	mknod("/dev/rdm0", S_IFCHR | 0x666, makedev(254, 0));
@@ -110,7 +114,7 @@ void generate_switch_para(void)
 	}
 }
 
-void init_switch()
+void init_switch_ralink()
 {
 	generate_switch_para();
 
@@ -119,15 +123,28 @@ void init_switch()
 #ifdef RTCONFIG_RALINK_RT3052
 	if(is_routing_enabled()) config_3052(nvram_get_int("switch_stb_x"));
 #else
-	if (!nvram_match("et1macaddr", ""))
-		eval("ifconfig", "eth3", "hw", "ether", nvram_safe_get("et1macaddr"));
-	else
-		eval("ifconfig", "eth3", "hw", "ether", nvram_safe_get("et0macaddr"));
+	if(strlen(nvram_safe_get("wan0_ifname"))) {
+		if (!nvram_match("et1macaddr", ""))
+			eval("ifconfig", nvram_safe_get("wan0_ifname"), "hw", "ether", nvram_safe_get("et1macaddr"));
+		else
+			eval("ifconfig", nvram_safe_get("wan0_ifname"), "hw", "ether", nvram_safe_get("et0macaddr"));
+	}
 	config_switch();
 #endif
 
-	reinit_hwnat();
+//	reinit_hwnat();
 }
+
+void init_switch()
+{
+#ifdef RTCONFIG_DSL
+	init_switch_dsl();
+	config_switch_dsl();	
+#else
+	init_switch_ralink();
+#endif	
+}
+
 
 int config_switch_for_first_time = 1;
 void config_switch()
@@ -155,7 +172,7 @@ void config_switch()
 		if (stbport < 0 || stbport > 6) stbport = 0;
 		dbG("STB port: %d\n", stbport);
 
-		if(strcmp(nvram_safe_get("switch_wantag"), "none"))/* Cherry Cho added in 2011/6/28. */
+		if(!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", ""))//2012.03 Yau modify
 		{
 			char tmp[128];
 			int voip_port = 0;
@@ -224,6 +241,19 @@ void config_switch()
 				system("8367m 36 20");
 				system("8367m 37 4");
 				system("8367m 39 65553");	
+			}
+			else if(!strcmp(nvram_safe_get("switch_wantag"), "m1_fiber"))//VoIP: P1 tag. Cherry Cho added in 2012/1/13.
+			{
+				system("8367m 40 1");
+				system("8367m 38 2");/* VoIP: P1  2 = 0x10 */
+				/* Internet */
+				system("8367m 36 1103");
+				system("8367m 37 1");
+				system("8367m 39 51184413");
+				/* VoIP */
+				system("8367m 36 1107");
+				system("8367m 37 1");				
+				system("8367m 39 18");//VoIP Port: P1 tag
 			}
 			else/* Cherry Cho added in 2011/7/11. */
 			{
@@ -349,40 +379,40 @@ void config_switch()
 		}
 
 		/* unknown unicast storm control */
-		if (!nvram_get("switch_controlrate_unknown_unicast"))
+		if (!nvram_get("switch_ctrlrate_unknown_unicast"))
 			controlrate_unknown_unicast = 0;
 		else
-			controlrate_unknown_unicast = atoi(nvram_get("switch_controlrate_unknown_unicast"));
+			controlrate_unknown_unicast = atoi(nvram_get("switch_ctrlrate_unknown_unicast"));
 		if (controlrate_unknown_unicast < 0 || controlrate_unknown_unicast > 1024)
 			controlrate_unknown_unicast = 0;
 		if (controlrate_unknown_unicast)
 			eval("8367m", "22", controlrate_unknown_unicast);
 	
 		/* unknown multicast storm control */
-		if (!nvram_get("switch_controlrate_unknown_multicast"))
+		if (!nvram_get("switch_ctrlrate_unknown_multicast"))
 			controlrate_unknown_multicast = 0;
 		else
-			controlrate_unknown_multicast = atoi(nvram_get("switch_controlrate_unknown_multicast"));
+			controlrate_unknown_multicast = atoi(nvram_get("switch_ctrlrate_unknown_multicast"));
 		if (controlrate_unknown_multicast < 0 || controlrate_unknown_multicast > 1024)
 			controlrate_unknown_multicast = 0;
 		if (controlrate_unknown_multicast)
 			eval("8367m", "23", controlrate_unknown_multicast);
 	
 		/* multicast storm control */
-		if (!nvram_get("switch_controlrate_multicast"))
+		if (!nvram_get("switch_ctrlrate_multicast"))
 			controlrate_multicast = 0;
 		else
-			controlrate_multicast = atoi(nvram_get("switch_controlrate_multicast"));
+			controlrate_multicast = atoi(nvram_get("switch_ctrlrate_multicast"));
 		if (controlrate_multicast < 0 || controlrate_multicast > 1024)
 			controlrate_multicast = 0;
 		if (controlrate_multicast)
 			eval("8367m", "24", controlrate_multicast);
 	
 		/* broadcast storm control */
-		if (!nvram_get("switch_controlrate_broadcast"))
+		if (!nvram_get("switch_ctrlrate_broadcast"))
 			controlrate_broadcast = 0;
 		else
-			controlrate_broadcast = atoi(nvram_get("switch_controlrate_broadcast"));
+			controlrate_broadcast = atoi(nvram_get("switch_ctrlrate_broadcast"));
 		if (controlrate_broadcast < 0 || controlrate_broadcast > 1024)
 			controlrate_broadcast = 0;
 		if (controlrate_broadcast)
@@ -393,20 +423,50 @@ void config_switch()
 	eval("8367m", "16");	// link up all ports
 }
 
+int
+switch_exist(void)
+{
+	int ret;
+#ifdef RTCONFIG_DSL
+	// 0 means switch exist
+	ret = 0;
+#else
+	ret = eval("8367m", "41");
+	_dprintf("eval(8367m, 41) ret(%d)\n", ret);
+#endif
+	return !ret;
+}
+
 void init_wl(void)
 {
-	modprobe("rt2860v2_ap");
-	modprobe("RT3090_ap_util");
-	modprobe("RT3090_ap");
-	modprobe("RT3090_ap_net");
+	if (!is_module_loaded("rt2860v2_ap"))
+		modprobe("rt2860v2_ap");
+
+	if (!is_module_loaded("RT3090_ap_util"))
+	{
+		modprobe("RT3090_ap_util");
+		modprobe("RT3090_ap");
+		modprobe("RT3090_ap_net");
+	}
+
+	sleep(1);
 }
 
 void fini_wl(void)
 {
-	modprobe_r("RT3090_ap_net");
-	modprobe_r("RT3090_ap");
-	modprobe_r("RT3090_ap_util");
-	modprobe_r("rt2860v2_ap");
+        
+	if (is_module_loaded("hw_nat"))
+		modprobe_r("hw_nat");
+
+	if (is_module_loaded("RT3090_ap_util"))
+	{
+		modprobe_r("RT3090_ap_net");
+		modprobe_r("RT3090_ap");
+		modprobe_r("RT3090_ap_util");
+	}
+
+	if (is_module_loaded("rt2860v2_ap"))
+                modprobe_r("rt2860v2_ap");
 }
 
 void init_syspara(void)
@@ -464,8 +524,10 @@ void init_syspara(void)
 	else
 		nvram_set("wl_mssid", "1");
 
+	//TODO: separate for different chipset solution
 	nvram_set("et0macaddr", macaddr);
 	nvram_set("et1macaddr", macaddr2);
+	
 
         if (FRead(dst, OFFSET_MAC_GMAC0, bytes)<0)
                 dbg("READ MAC address GMAC0: Out of scope\n");
@@ -603,17 +665,19 @@ void generate_wl_para(int unit, int subunit)
 {
 }
 
-int is_hwnat_loaded(void)
+int is_module_loaded(const char *module)
 {
 	DIR *dir_to_open = NULL;
+	char sys_path[128];
 
-	dir_to_open = opendir("/sys/module/hw_nat");
+	sprintf(sys_path, "/sys/module/%s", module);
+	dir_to_open = opendir(sys_path);
 	if(dir_to_open)
 	{
 		closedir(dir_to_open);
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -626,16 +690,16 @@ void reinit_hwnat()
 	// in restart_qos for qos_enable
 	// in restart_wireless for wlx_mrate_x
 	
-	if (nvram_get_int("hwnat")) {	
-		if (!((nvram_get_int("qos_enable") || nvram_get_int("fw_pt_l2tp") || nvram_get_int("fw_pt_ipsec") || nvram_get_int("wl0_mrate_x") || nvram_get_int("wl1_mrate_x")))) {
-			if (!is_hwnat_loaded()) {
+	if (nvram_get_int("hwnat")) {
+		if (is_nat_enabled() && !((nvram_get_int("qos_enable") || nvram_get_int("fw_pt_l2tp") || nvram_get_int("fw_pt_ipsec") || nvram_get_int("wl0_mrate_x") || nvram_get_int("wl1_mrate_x")))) {
+			if (!nvram_get_int("hwnat_disable") && !is_module_loaded("hw_nat")) {
 				system("echo 2 > /proc/sys/net/ipv4/conf/default/force_igmp_version");
 				system("echo 2 > /proc/sys/net/ipv4/conf/all/force_igmp_version");
 				sleep(1);
 				modprobe("hw_nat");
 			}
 		}	
-		else if (is_hwnat_loaded()) {
+		else if (is_module_loaded("hw_nat")) {
 			modprobe_r("hw_nat");
 			sleep(1);
 			system("echo 0 > /proc/sys/net/ipv4/conf/default/force_igmp_version");
@@ -661,3 +725,13 @@ char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
 		sprintf(buf, "");
 	return buf;
 }
+
+int
+wl_exist(char *ifname, int band)
+{
+	int ret = 0;
+	ret = eval("iwpriv", ifname, "stat");
+	_dprintf("eval(iwpriv, %s, stat) ret(%d)\n", ifname, ret);
+	return !ret;
+}
+

@@ -48,7 +48,7 @@ subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
-#	$(ACLOCAL_M4)
+	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(install_sh) -d
@@ -255,9 +255,9 @@ $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENC
 	$(SHELL) ./config.status --recheck
 
 $(top_srcdir)/configure:  $(am__configure_deps)
-#	cd $(srcdir) && $(AUTOCONF)
+	cd $(srcdir) && $(AUTOCONF)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
-#	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
+	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 sqlite3.pc: $(top_builddir)/config.status $(srcdir)/sqlite3.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)

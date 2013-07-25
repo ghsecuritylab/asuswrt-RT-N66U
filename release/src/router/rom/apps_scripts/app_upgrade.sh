@@ -64,9 +64,12 @@ _download_package(){
 		download_file=$pkg_file
 	fi
 
-	echo "wget $wget_options $pkg_server/$pkg_file -O $2$download_dir/$download_file"
-	wget $wget_options $pkg_server/$pkg_file -O $2$download_dir/$download_file
+	echo "wget -c $wget_options $pkg_server/$pkg_file -O $2$download_dir/$download_file"
+	wget -c $wget_options $pkg_server/$pkg_file -O $2$download_dir/$download_file
 	if [ "$?" != "0" ]; then
+		rm -f $2$download_dir/$download_file
+		sync
+
 		nvram set apps_state_error=6
 		return 1
 	fi

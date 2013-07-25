@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -32,6 +32,30 @@ p{
 	font-size: 12px;
 	font-family: Lucida Console;
 }
+#device_img1{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: 4px -0px; width: 26px; height: 22px;
+}
+#device_img2{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: 4px -32px; width: 24px; height: 20px;
+}
+#device_img3{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: 4px -62px; width: 24px; height: 20px;
+}
+#device_img4{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: 4px -92px; width: 24px; height: 20px;
+}
+#device_img5{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: 4px -122px; width: 24px; height: 20px;
+}
+#device_img6{
+  background: url(../images/wl_device/wl_devices.png);
+  background-position: -0px -152px; width: 30px; height: 30px;
+}
 </style>
 <link href="/form_style.css" rel="stylesheet" type="text/css" />
 <link href="/NM_style.css" rel="stylesheet" type="text/css" />
@@ -43,15 +67,83 @@ p{
 var $j = jQuery.noConflict();
 <% login_state_hook(); %>
 
-var DEVICE_TYPE = ["", "<#Device_type_01_PC#>", "<#Device_type_02_RT#>", "<#Device_type_03_AP#>", "<#Device_type_04_NAS#>", "<#Device_type_05_IC#>", "<#Device_type_06_OD#>"];
+var DEVICE_TYPE = ["", "<#Device_type_01_PC#>", "<#Device_type_02_RT#>", "<#Device_type_03_AP#>", "<#Device_type_04_NS#>", "<#Device_type_05_IC#>", "<#Device_type_06_OD#>"];
 var client_list_array;
 var client_list_row;
 var networkmap_scanning;
 var macfilter_rulelist_array = '<% nvram_get("macfilter_rulelist"); %>';
 var macfilter_rulelist_row = macfilter_rulelist_array.split('&#60'); 
 var macfilter_enable =  '<% nvram_get("macfilter_enable_x"); %>';
-var listFlag = 0;
-var itemperpage = 13;
+
+/* get client info form dhcp lease log */
+loadXMLDoc("/getdhcpLeaseInfo.asp");
+var _xmlhttp;
+function loadXMLDoc(url){
+	if(parent.sw_mode != 1) return false;
+ 
+	var ie = window.ActiveXObject;
+	if(ie)
+		_loadXMLDoc_ie(url);
+	else
+		_loadXMLDoc(url);
+}
+
+var _xmlDoc_ie;
+function _loadXMLDoc_ie(file){
+	_xmlDoc_ie = new ActiveXObject("Microsoft.XMLDOM");
+	_xmlDoc_ie.async = false;
+	if (_xmlDoc_ie.readyState==4){
+		_xmlDoc_ie.load(file);
+		setTimeout("parsedhcpLease(_xmlDoc_ie);", 1000);
+	}
+}
+
+function _loadXMLDoc(url) {
+	_xmlhttp = new XMLHttpRequest();
+	if (_xmlhttp && _xmlhttp.overrideMimeType)
+		_xmlhttp.overrideMimeType('text/xml');
+	else
+		return false;
+
+	_xmlhttp.onreadystatechange = state_Change;
+	_xmlhttp.open('GET', url, true);
+	_xmlhttp.send(null);
+}
+
+function state_Change(){
+	if(_xmlhttp.readyState==4){// 4 = "loaded"
+  	if(_xmlhttp.status==200){// 200 = OK
+			parsedhcpLease(_xmlhttp.responseXML);    
+		}
+  	else{
+			return false;
+    }
+  }
+}
+
+var leasehostname;
+var leasemac;
+function parsedhcpLease(xmldoc)
+{
+	var dhcpleaseXML = xmldoc.getElementsByTagName("dhcplease");
+	leasehostname = dhcpleaseXML[0].getElementsByTagName("hostname");
+	leasemac = dhcpleaseXML[0].getElementsByTagName("mac");
+}
+
+var retHostName = function(_mac){
+	if(parent.sw_mode != 1) return false;
+
+	for(var idx=0; idx<leasemac.length; idx++){
+		if( _mac.toLowerCase() == leasemac[idx].childNodes[0].nodeValue.toLowerCase()){
+			if(leasehostname[idx].childNodes[0].nodeValue != "*")
+				return leasehostname[idx].childNodes[0].nodeValue;
+			else
+				return "";
+		}
+	}
+	return "";
+}
+/* end */
 
 function update_clients(e) {
   $j.ajax({
@@ -79,16 +171,18 @@ function gotoMACFilter(){
 }
 
 function initial(){
-	$("loadingBarBlock").style.display = "none";
-	$("LoadingBar").style.display = "none";
-	update_clients();
+	setTimeout("update_clients();", 1000);
 	
-	if(macfilter_enable != 0 && sw_mode == 1 || ParentalCtrl_support != -1)
-		$("macFilterHint").style.display = "";
+	if((macfilter_enable != 0 || ParentalCtrl_support != -1) && sw_mode == 1)
+			$("macFilterHint").style.display = "";
 }
 
+var listFlag = 0;
+var itemperpage = 14;
 function _showNextItem(num){
-	if(client_list_row.length < parseInt(itemperpage)+2){
+	var _client_list_row_length = client_list_row.length-1;
+
+	if(_client_list_row_length < parseInt(itemperpage)+1){
 		$("leftBtn").style.visibility = "hidden";
 		$("rightBtn").style.visibility = "hidden";
 		return false;
@@ -98,37 +192,47 @@ function _showNextItem(num){
 		$("row"+i).style.display = "none";
 	}
 
-	var startNum = parseInt(num)*itemperpage+1;
-	if(num == Math.round(client_list_row.length/itemperpage))
+	if(num == 0)
+		var startNum = 1;
+	else
+		var startNum = parseInt(num)*itemperpage+1;
+
+	if(num == Math.floor(_client_list_row_length/itemperpage))  // last page
 		var endNum = client_list_row.length;
 	else
-		var endNum = itemperpage*(parseInt(num)+1)+1;
-
-	if(endNum == client_list_row.length)
-		$("rightBtn").style.visibility = "hidden";
-	else
-		$("rightBtn").style.visibility = "";
-
-	if(startNum == 1)
-		$("leftBtn").style.visibility = "hidden";
-	else
-		$("leftBtn").style.visibility = "";
+		var endNum = startNum + itemperpage;
 
 	for(i=startNum; i<endNum; i++){
 		$("row"+i).style.display = "";
 	}
+
+	// start
+	if(startNum == 1){
+		$("leftBtn").style.visibility = "hidden";
+	}else{
+		$("leftBtn").style.visibility = "";
+		$("leftBtn").title = "<#prev_page#>";
+	}	
+
+	// end
+	if(endNum == client_list_row.length){
+		$("rightBtn").style.visibility = "hidden";
+	}else{
+		$("rightBtn").style.visibility = "";
+		$("rightBtn").title = "<#next_page#>";
+	}	
 }
 
 function showNextItem(act){
-	if(act == 1)
+	if(act == 1) // next page
 		listFlag++;
-	else
+	else  // previous page
 		listFlag--;
 
 	if(listFlag < 0)
 		listFlag = 0;
-	else if(listFlag > Math.round(client_list_row.length/itemperpage))
-		listFlag = Math.round(client_list_row.length/itemperpage);
+	else if(listFlag > Math.floor(client_list_row.length/itemperpage))
+		listFlag = Math.floor(client_list_row.length/itemperpage);
 
 	_showNextItem(listFlag);
 }
@@ -142,8 +246,6 @@ function showclient_list(list){
 	
 	if(list)
 		$("isblockdesc").innerHTML = "<#btn_remove#>";
-	//else
-		//$("isblockdesc").innerHTML = "<#Block#>";	not to show <th>
 
 	code +='<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table" id="client_list_table">';
 	if(client_list_row.length == 1)
@@ -154,8 +256,11 @@ function showclient_list(list){
 			var client_list_col = client_list_row[i].split('>');
 			var overlib_str = "";
 
+			if(client_list_col[1] == "")	
+				client_list_col[1] = retHostName(client_list_col[3]);
+
 			if(client_list_col[1].length > 16){
-				overlib_str += "<p><#BOP_account_user_item#></p>" + client_list_col[1];
+				overlib_str += "<p><#PPPConnection_UserName_itemname#></p>" + client_list_col[1];
 				client_list_col[1] = client_list_col[1].substring(0, 13);
 				client_list_col[1] += "...";
 			}
@@ -167,14 +272,24 @@ function showclient_list(list){
 				overlib_str += "<p><#Device_service_Printer#></p>YES";
 			if(client_list_col[6] == 1)
 				overlib_str += "<p><#Device_service_iTune#></p>YES";
+
 			for(var j = 0; j < client_list_col.length-3; j++){				
 				if(j == 0){
-					if(client_list_col[0] == "0"){
-						code +='<td width="12%" height="30px;"><img title="'+DEVICE_TYPE[client_list_col[0]]+'" src="/images/InternetScan.gif"></td>';
+					if(client_list_col[0] == "0" || client_list_col[0] == ""){
+
+						code +='<td width="12%" height="30px;" title="'+DEVICE_TYPE[client_list_col[0]]+'"><div id="device_img6"></div></td>';
+						//if(client_list_col[1] != "")
+							//code +='<td width="12%" height="30px;"><img title="'+DEVICE_TYPE[client_list_col[0]]+'" src="/images/wl_device/6.png"></td>';
+						//else
+							//code +='<td width="12%" height="30px;"><img title="'+DEVICE_TYPE[client_list_col[0]]+'" src="/images/InternetScan.gif"></td>';
+
 						networkmap_scanning = 1;
 					}
-					else					
-						code +='<td width="12%" height="30px;"><img title="'+DEVICE_TYPE[client_list_col[0]]+'" src="/images/wl_device/' + client_list_col[0] +'.png"></td>';
+					else{
+						/*code +='<td width="12%" height="30px;"><img title="'+DEVICE_TYPE[client_list_col[0]]+'" src="/images/wl_device/' + client_list_col[0] +'.png"></td>';*/
+						code +='<td width="12%" height="30px;" title="'+DEVICE_TYPE[client_list_col[0]]+'">';
+						code +='<div id="device_img'+client_list_col[0]+'"></div></td>';
+					}	
 				}
 				else if(j == 1){
 					if(client_list_col[1] != "")	
@@ -183,10 +298,10 @@ function showclient_list(list){
 						code += '<td width="40%"><span class="ClientName" onmouseover="return overlib(\''+ overlib_str +'\');" onmouseout="nd();">'+ client_list_col[3] +'</span></td>';	//MAC	
 				}
 				else if(j == 2){
-					if(client_list_col[4] == "1")					
-						code += '<td width="36%"><a title="<#LAN_IP#>" class="ClientName" style="text-decoration:underline;" target="_blank" href="http://'+ client_list_col[2] +'">'+ client_list_col[2] +'</a></td>';
+					if(client_list_col[4] == "1")			
+						code += '<td width="36%"><a title="<#LAN_IP_client#>" class="ClientName" style="text-decoration:underline;" target="_blank" href="http://'+ client_list_col[2] +'">'+ client_list_col[2] +'</a></td>';
 					else
-						code += '<td width="36%"><span title="<#LAN_IP#>" class="ClientName">'+ client_list_col[2] +'</span></td>';	
+						code += '<td width="36%"><span title="<#LAN_IP_client#>" class="ClientName">'+ client_list_col[2] +'</span></td>';	
 				}
 				else if(j == client_list_col.length-4)
 					code += '';
@@ -324,12 +439,6 @@ function networkmap_update(){
 
 <iframe name="applyFrame" id="applyFrame" src="" width="0" height="0" frameborder="0" scrolling="no"></iframe>
 
-<div id="LoadingBar" class="popup_bar_bg"><#Device_Searching#>
-<!--[if lte IE 6.5]><iframe class="hackiframe"></iframe><![endif]-->
-</div>
-<div id="loadingBarBlock" class="loadingBarBlock" align="center">
-</div>
-
 <form method="post" name="form" id="refreshForm" action="/start_apply.htm" target="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="action_mode" value="">
@@ -347,8 +456,8 @@ function networkmap_update(){
 		<td>		
 			<table width="100px" border="0" align="left" cellpadding="0" cellspacing="0">
   			<tr>
-  				<td ><div id="t0" class="tabclick_NW" align="center" style="margin-right:2px; width:70px;" onclick="showclient_list(0)"><span id="span1" ><a href="#"><#ConnectedClient#></a></span></div></td>
-  				<td ><div id="t1" class="tab_NW" align="center" style="margin-right:2px; width:70px;" onclick="showclient_list(1)"><span id="span1" ><a href="#"><#BlockedClient#></a></span></div></td>
+  				<td ><div id="t0" class="tabclick_NW" align="center" style="font-weight: bolder; margin-right:2px; width:70px;" onclick="showclient_list(0)"><span id="span1" ><a><#ConnectedClient#></a></span></div></td>
+  				<td ><div id="t1" class="tab_NW" align="center" style="font-weight: bolder; margin-right:2px; width:70px;" onclick="showclient_list(1)"><span id="span1" ><a><#BlockedClient#></a></span></div></td>
 				<td>&nbsp</td>
 			</tr>
 			</table>
@@ -360,7 +469,11 @@ function networkmap_update(){
 		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="table1px">
   		<tr>
     			<td style="padding:3px 3px 5px 5px;">
-						<div id="client_list_Block"></div>
+						<div id="client_list_Block">
+							<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table" id="client_list_table">
+								<tr><td style="color:#FFCC00;font-size:12px; border-collapse: collapse;border:1;" colspan="4"><span style="line-height:25px;"><#Device_Searching#></span>&nbsp;<img style="margin-top:10px;" src="/images/InternetScan.gif"></td></tr>
+							</table>
+						</div>
     			</td>
   		</tr>
  		</table>
@@ -375,8 +488,8 @@ function networkmap_update(){
 </table>
 
 <br/>
-<img height="20" id="leftBtn" onclick="showNextItem(0);" style="cursor:pointer;margin-left:10px;" src="/sliderplugin/arrow-left.png">
+<img height="25" id="leftBtn" onclick="showNextItem(0);" style="visibility:hidden;cursor:pointer;margin-left:10px;" src="/images/arrow-left.png">
 <input type="button" id="refresh_list" class="button_gen" onclick="networkmap_update();" value="<#CTL_refresh#>" style="margin-left:70px;">
-<img height="20" id="rightBtn" onclick="showNextItem(1);" style="cursor:pointer;margin-left:60px;" src="/sliderplugin/arrow-right.png">
+<img height="25" id="rightBtn" onclick="showNextItem(1);" style="visibility:hidden;cursor:pointer;margin-left:50px;" src="/images/arrow-right.png">
 </body>
 </html>

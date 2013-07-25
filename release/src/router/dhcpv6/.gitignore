@@ -1,9 +1,0 @@
-*.o
-Makefile
-config.log
-config.status
-dhcp6c
-stamp-h1
-cfparse.c
-cftoken.c
-y.tab.h

@@ -170,7 +170,7 @@ ifdef UDPXREC
 endif
 
 clean:
-	rm -f $(CORES) $(DEPFILE) $(OBJ) $(EXEC) $(UDPXREC)
+	rm -f $(CORES) $(DEPFILE) $(OBJ) $(EXEC) $(UDPXREC) util/mkdep
 
 incbuild:
 	@expr `cat $(BUILDFILE)` + 1 > $(BUILDFILE)

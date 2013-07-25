@@ -1,7 +1,7 @@
 /*
  * State machine infomation
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,12 +9,13 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: sminfo.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: sminfo.h 295630 2011-11-11 04:45:47Z $
  */
 
 #ifndef _SM_INFO_H
 #define _SM_INFO_H
 
+#include <wps_devinfo.h>
 
 /* data structures for each instance of registration protocol */
 typedef enum {
@@ -49,24 +50,24 @@ typedef struct {
 	EMsg e_lastMsgRecd;
 	EMsg e_lastMsgSent;
 
+	TRANSPORT_TYPE transportType;
+	bool initialized;
+
 	/* TODO: must store previous message as well to compute hash */
 
 	/* enrollee endpoint - filled in by the Registrar, NULL for Enrollee */
-	DevInfo *p_enrolleeInfo;
+	DevInfo *enrollee;
 
 	/* Registrar endpoint - filled in by the Enrollee, NULL for Registrar */
-	DevInfo *p_registrarInfo;
+	DevInfo *registrar;
+
+	DevInfo *dev_info;
 
 	/* Diffie Hellman parameters */
 	BIGNUM *DH_PubKey_Peer; /* peer's pub key stored in bignum format */
-	DH *DHSecret; /* local key pair in bignum format */
 	uint8 pke[SIZE_PUB_KEY]; /* enrollee's raw pub key */
 	uint8 pkr[SIZE_PUB_KEY]; /* registrar's raw pub key */
 
-	BufferObj *password;
-	void *staEncrSettings; /* to be sent in M2/M8 by reg & M7 by enrollee */
-	void *apEncrSettings;
-	uint16 enrolleePwdId;
 	uint8 enrolleeNonce[SIZE_128_BITS]; /* N1 */
 	uint8 registrarNonce[SIZE_128_BITS]; /* N2 */
 
@@ -91,7 +92,10 @@ typedef struct {
 
 	BufferObj *inMsg; /* A recd msg will be stored here */
 	BufferObj *outMsg; /* Contains msg to be transmitted */
-	uint8 reg2Nonce[SIZE_128_BITS]; /* brcm */
 } RegData;
+
+RegData *state_machine_new();
+void state_machine_delete(RegData *reg_info);
+uint32 state_machine_init_sm(RegData *reg_info);
 
 #endif /* _SM_INFO_H */

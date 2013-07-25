@@ -233,6 +233,48 @@ EXIT:
 	_exit(errno);
 }
 
+
+/*
+ * Concatenates NULL-terminated list of arguments into a single
+ * commmand and executes it
+ * @param	argv	argument list
+ * @return	stdout of executed command or NULL if an error occurred
+ */
+char *
+_backtick(char *const argv[])
+{
+	int filedes[2];
+	pid_t pid;
+	int status;
+	char *buf = NULL;
+
+	/* create pipe */
+	if (pipe(filedes) == -1) {
+		perror(argv[0]);
+		return NULL;
+	}
+
+	switch (pid = fork()) {
+	case -1:	/* error */
+		return NULL;
+	case 0:		/* child */
+		close(filedes[0]);	/* close read end of pipe */
+		dup2(filedes[1], 1);	/* redirect stdout to write end of pipe */
+		close(filedes[1]);	/* close write end of pipe */
+		execvp(argv[0], argv);
+		exit(errno);
+		break;
+	default:	/* parent */
+		close(filedes[1]);	/* close write end of pipe */
+		buf = fd2str(filedes[0]);
+		waitpid(pid, &status, 0);
+		break;
+	}
+
+	return buf;
+}
+
+
 /*
  * fread() with automatic retry on syscall interrupt
  * @param	ptr	location to store to
@@ -269,6 +311,54 @@ int safe_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
 	return ret;
 }
+
+
+/*
+ * Returns the process ID.
+ *
+ * @param	name	pathname used to start the process.  Do not include the
+ *                      arguments.
+ * @return	pid
+ */
+pid_t
+get_pid_by_name(char *name)
+{
+	pid_t           pid = -1;
+	DIR             *dir;
+	struct dirent   *next;
+
+	if ((dir = opendir("/proc")) == NULL) {
+		perror("Cannot open /proc");
+		return -1;
+	}
+
+	while ((next = readdir(dir)) != NULL) {
+		FILE *fp;
+		char filename[256];
+		char buffer[256];
+
+		/* If it isn't a number, we don't want it */
+		if (!isdigit(*next->d_name))
+			continue;
+
+		sprintf(filename, "/proc/%s/cmdline", next->d_name);
+		fp = fopen(filename, "r");
+		if (!fp) {
+			continue;
+		}
+		buffer[0] = '\0';
+		fgets(buffer, 256, fp);
+		fclose(fp);
+
+		if (!strcmp(name, buffer)) {
+			pid = strtol(next->d_name, NULL, 0);
+			break;
+		}
+	}
+
+	return pid;
+}
+
 
 /*
  * Convert Ethernet address string representation to binary data
@@ -817,6 +907,13 @@ nvifname_to_osifname(const char *nvifname, char *osifname_buf,
 		strncpy(osifname_buf, nvifname, osifname_buf_len);
 		return 0;
 	}
+
+#ifdef RTCONFIG_RALINK
+	if (strstr(nvifname, "ra") || strstr(nvifname, ".")) {
+		strncpy(osifname_buf, nvifname, osifname_buf_len);
+		return 0;
+	}
+#endif
 
 	snprintf(varname, sizeof(varname), "%s_ifname", nvifname);
 	ptr = nvram_get(varname);
@@ -1397,3 +1494,18 @@ int is_hwnat_loaded(void)
 	return 0;
 }
 
+int _vstrsep(char *buf, const char *sep, ...)
+{
+	va_list ap;
+	char **p;
+	int n;
+
+	n = 0;
+	va_start(ap, sep);
+	while ((p = va_arg(ap, char **)) != NULL) {
+		if ((*p = strsep(&buf, sep)) == NULL) break;
+		++n;
+	}
+	va_end(ap);
+	return n;
+}

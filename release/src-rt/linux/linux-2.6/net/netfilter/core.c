@@ -23,11 +23,6 @@
 
 #include "nf_internals.h"
 
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-typedef int (*bcmNatHitHook)(struct sk_buff *skb);
-extern bcmNatHitHook bcm_nat_hit_hook;
-#endif
-
 #ifdef CONFIG_IP_NF_LFP
 typedef int (*lfpHitHook)(int pf, unsigned int hook, struct sk_buff *skb);
 extern lfpHitHook lfp_hit_hook;
@@ -150,11 +145,6 @@ unsigned int nf_iterate(struct list_head *head,
 		   reference here, since function can't sleep. --RR */
 		verdict = elem->hook(hook, skb, indev, outdev, okfn);
 
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-		if (verdict == NF_FAST_NAT)
-			return NF_FAST_NAT;
-#endif
-
 		if (verdict != NF_ACCEPT) {
 #ifdef CONFIG_NETFILTER_DEBUG
 			if (unlikely((verdict & NF_VERDICT_MASK)
@@ -211,17 +201,6 @@ next_hook:
 			      verdict >> NF_VERDICT_BITS))
 			goto next_hook;
 	}
-#if defined(CONFIG_BCM_NAT) || defined(CONFIG_BCM_NAT_MODULE)
-	else if (verdict == NF_FAST_NAT) {
-		if (bcm_nat_hit_hook) {
-			ret = bcm_nat_hit_hook(*pskb);
-		}
-		else {
-			kfree_skb(*pskb);
-			ret = -EPERM;
-		}
-	}
-#endif
 unlock:
 	rcu_read_unlock();
 	return ret;

@@ -147,11 +147,16 @@ time_t login_timestamp=0; // the timestamp of the logined ip
 unsigned int login_ip_tmp=0; // the ip of the current session.
 unsigned int login_try=0;
 unsigned int last_login_ip = 0;	// the last logined ip 2008.08 magic
+/* limit login IP addr; 2012.03 Yau */
+unsigned int access_ip[4]; 
 
 // 2008.08 magic {
 time_t request_timestamp = 0;
 time_t turn_off_auth_timestamp = 0;
 int temp_turn_off_auth = 0;	// for QISxxx.htm pages
+
+/* Const vars */
+const int int_1 = 1;
 
 void http_login(unsigned int ip, char *url);
 void http_login_timeout(unsigned int ip);
@@ -205,8 +210,7 @@ initialize_listen_socket( usockaddr* usaP )
 	return -1;
 	}
     (void) fcntl( listen_fd, F_SETFD, FD_CLOEXEC );
-    i = 1;
-    if ( setsockopt( listen_fd, SOL_SOCKET, SO_REUSEADDR, (char*) &i, sizeof(i) ) < 0 )
+    if ( setsockopt( listen_fd, SOL_SOCKET, SO_REUSEADDR, &int_1, sizeof(int_1) ) < 0 )
 	{
 	close(listen_fd);	// 1104 chk
 	perror( "setsockopt" );
@@ -245,10 +249,6 @@ auth_check( char* dirname, char* authorization ,char* url)
     if ( !authorization || strncmp( authorization, "Basic ", 6 ) != 0) 
     {
 	send_authenticate( dirname );
-		if (login_ip != 0)	// 2008.08 magic
-			http_logout(login_ip_tmp);
-	
-		last_login_ip = 0;	// 2008.08 magic
 	return 0;
     }
 
@@ -260,7 +260,6 @@ auth_check( char* dirname, char* authorization ,char* url)
     if ( authpass == (char*) 0 ) {
 	/* No colon?  Bogus auth info. */
 	send_authenticate( dirname );
-	http_logout(login_ip_tmp);
 	return 0;
     }
     *authpass++ = '\0';
@@ -280,7 +279,6 @@ auth_check( char* dirname, char* authorization ,char* url)
     }
 
     send_authenticate( dirname );
-    http_logout(login_ip_tmp);
     return 0;
     }
 
@@ -527,6 +525,11 @@ int is_firsttime(void);
 time_t detect_timestamp, detect_timestamp_old, signal_timestamp;
 char detect_timestampstr[32];
 
+
+#define APPLYAPPSTR 	"applyapp.cgi"
+#define GETAPPSTR 	"getapp"
+
+
 static void
 handle_request(void)
 {
@@ -538,7 +541,7 @@ handle_request(void)
     struct mime_handler *handler;
     struct except_mime_handler *exhandler;
     int mime_exception, login_state;
-
+    int fromapp=0;
     int cl = 0, flags;
 
     /* Initialize the request variables. */
@@ -569,7 +572,7 @@ handle_request(void)
     cur = protocol + strlen(protocol) + 1;
 
 #ifdef TRANSLATE_ON_FLY
-	memset(Accept_Language, 0, sizeof(Accept_Language));
+    memset(Accept_Language, 0, sizeof(Accept_Language));
 #endif
 
 
@@ -697,34 +700,45 @@ handle_request(void)
 	}
 // 2007.11 James. }
 
-	//printf("httpd url: %s file: %s\n", url, file);	
-
-	http_login_timeout(login_ip_tmp);	// 2008.07 James.
-	login_state = http_login_check();
-
-	// for each page, mime_exception is defined to do exception handler
-		
+	if(strncmp(url, APPLYAPPSTR, strlen(APPLYAPPSTR))==0)  fromapp=1;
+	else if(strncmp(url, GETAPPSTR, strlen(GETAPPSTR))==0)  {
+		fromapp=1;
+		strcpy(url, url+strlen(GETAPPSTR));
+		file += strlen(GETAPPSTR);
+	}
+	
+	//printf("httpd url: %s file: %s\n", url, file);
+	
 	mime_exception = 0;
 
-	// check exception first
-	for (exhandler = &except_mime_handlers[0]; exhandler->pattern; exhandler++) {
-		if(match(exhandler->pattern, url)) 
-		{
-			mime_exception = exhandler->flag;
-			break;
-		}
-	}	
+	if(!fromapp) {
+		http_login_timeout(login_ip_tmp);	// 2008.07 James.
+		login_state = http_login_check();
+
+		// for each page, mime_exception is defined to do exception handler
+		
+		mime_exception = 0;
+
+		// check exception first
+		for (exhandler = &except_mime_handlers[0]; exhandler->pattern; exhandler++) {
+			if(match(exhandler->pattern, url)) 
+			{
+				mime_exception = exhandler->flag;
+				break;
+			}
+		}	
 	
-	if(login_state==1)
-	{
-		x_Setting = nvram_get_int("x_Setting");
-		skip_auth = 0;
-	}
-	else if(login_state==3) { // few pages can be shown even someone else login
-		if(!(mime_exception&MIME_EXCEPTION_NOAUTH_ALL)) {
-			file = "Nologin.asp";
-			memset(url, 0, sizeof(url));
-			strcpy(url, file);
+		if(login_state==1)
+		{
+			x_Setting = nvram_get_int("x_Setting");
+			skip_auth = 0;
+		}
+		else if(login_state==3) { // few pages can be shown even someone else login
+			if(!(mime_exception&MIME_EXCEPTION_NOAUTH_ALL)) {
+				file = "Nologin.asp";
+				memset(url, 0, sizeof(url));
+				strcpy(url, file);
+			}
 		}
 	}
 			
@@ -743,9 +757,12 @@ handle_request(void)
 				else {
 					handler->auth(auth_userid, auth_passwd, auth_realm);
 					if (!auth_check(auth_realm, authorization, url))
+					{
+						if(!fromapp) http_logout(login_ip_tmp);
 						return;
+					}
 				}
-				http_login(login_ip_tmp, url);
+				if(!fromapp) http_login(login_ip_tmp, url);
 			}
 			
 			if (strcasecmp(method, "post") == 0 && !handler->input) {
@@ -793,33 +810,60 @@ handle_request(void)
 	
 	if (!handler->pattern) 
 		send_error( 404, "Not Found", (char*) 0, "File not found." );
-	if(!strcmp(file, "Logout.asp")) 
-		http_logout(login_ip_tmp);
+
+	if(!fromapp) {
+		if(!strcmp(file, "Logout.asp")) 
+			http_logout(login_ip_tmp);
+	}
 }
 
 //2008 magic{
 void http_login_cache(usockaddr *u) {
 	struct in_addr temp_ip_addr;
 	char *temp_ip_str;
-	
+
 	login_ip_tmp = (unsigned int)(u->sa_in.sin_addr.s_addr);
 	temp_ip_addr.s_addr = login_ip_tmp;
 	temp_ip_str = inet_ntoa(temp_ip_addr);
 }
 
+void http_get_access_ip(void) {
+        struct in_addr tmp_access_addr;
+	char tmp_access_ip[32];
+	char *nv, *nvp, *b;
+	int i=0, p=0;
+
+	for(; i<4; i++)
+		access_ip[i]=0;
+
+        nv = nvp = strdup(nvram_safe_get("http_clientlist"));
+
+        if (nv) {
+                while ((b = strsep(&nvp, "<")) != NULL) {
+                        if (strlen(b)==0) continue;
+                        sprintf(tmp_access_ip, "%s", b);
+                        inet_aton(tmp_access_ip, &tmp_access_addr);
+			
+                        access_ip[p] = (unsigned int)tmp_access_addr.s_addr;
+			p++;
+                }
+                free(nv);
+        }
+}
 
 void http_login(unsigned int ip, char *url) {
 	struct in_addr login_ip_addr;
 	char *login_ip_str;
 	char login_ipstr[32], login_timestampstr[32];
-	
-	if (http_port != SERVER_PORT 
+
+	if ((http_port != SERVER_PORT
 #ifdef RTCONFIG_HTTPS
-		|| http_port != SERVER_PORT_SSL
+	  && http_port != SERVER_PORT_SSL
+	  && http_port != nvram_get_int("https_lanport")
 #endif
-		|| ip == 0x100007f)
+	    ) || ip == 0x100007f)
 		return;
-	
+
 	login_ip = ip;
 	last_login_ip = 0;
 	
@@ -838,18 +882,35 @@ void http_login(unsigned int ip, char *url) {
 	nvram_set("login_timestamp", login_timestampstr);
 }
 
-// 0: can not login, 1: can login, 2: loginer, 3: not loginer.
-int http_login_check(void) {
-	if (http_port != SERVER_PORT 
+int http_client_ip_check(void) {
+
+        int i = 0;
+        if(nvram_match("http_client", "1")) {
+                while(i<4) {
+                        if(access_ip[i]!=0) {
+                                if(login_ip_tmp==access_ip[i])
+                                        return 1;
+                        }
+                        i++;
+                }
+		return 0;
+        }
+
+	return 1;
+}
+
+// 0: can not login, 1: can login, 2: loginer, 3: not loginer
+int http_login_check(void)
+{
+	if ((http_port != SERVER_PORT
 #ifdef RTCONFIG_HTTPS
-		|| http_port != SERVER_PORT_SSL
+	  && http_port != SERVER_PORT_SSL
+	  && http_port != nvram_get_int("https_lanport")
 #endif
-		|| login_ip_tmp == 0x100007f)
+	    ) || login_ip_tmp == 0x100007f)
 		//return 1;
 		return 0;	// 2008.01 James.
-	
-	//http_login_timeout(login_ip_tmp);	// 2008.07 James.
-	
+
 	if (login_ip == 0)
 		return 1;
 	else if (login_ip == login_ip_tmp)
@@ -897,6 +958,10 @@ void http_logout(unsigned int ip) {
 int is_auth(void)
 {
 	if (http_port==SERVER_PORT ||
+#ifdef RTCONFIG_HTTPS
+	    http_port==SERVER_PORT_SSL ||
+	    http_port==nvram_get_int("https_lanport") ||
+#endif
 		strcmp(nvram_get_x("PrinterStatus", "usb_webhttpcheck_x"), "1")==0) return 1;
 	else return 0;
 }
@@ -951,7 +1016,11 @@ load_dictionary (char *lang, pkw_t pkw)
 
 	do      {
 //		 printf("Open (%s) dictionary file.\n", dfn);
-		dfp = fopen (dfn, "r");
+//
+// Now DICT files all use UTF-8, it is no longer a text file
+// it need to use open as binary
+//
+		dfp = fopen (dfn, "rb");
 		if (dfp != NULL)	{
 #ifndef RELOAD_DICT
 			snprintf (loaded_dict, sizeof (loaded_dict), "%s", dfn);
@@ -994,11 +1063,13 @@ load_dictionary (char *lang, pkw_t pkw)
 			tmp_ptr++;
 			remain_dict--;
 		}
-		if (*tmp_ptr == 0) {
+		else if (*tmp_ptr == 0) {
 			break;
 		}
-		tmp_ptr++;
-		remain_dict--;
+		else {
+			tmp_ptr++;
+			remain_dict--;
+		}
 	}
 	// allocate memory according dict_item
 	pkw->idx = malloc (dict_item * sizeof(unsigned char*));
@@ -1259,6 +1330,8 @@ void reapchild()	// 0527 add
 	wait(NULL);
 }
 
+int do_ssl = 0; 	// use Global for HTTPS upgrade judgment in web.c
+int ssl_stream_fd; 	// use Global for HTTPS stream fd in web.c
 int main(int argc, char **argv)
 {
 	usockaddr usa;
@@ -1268,8 +1341,9 @@ int main(int argc, char **argv)
 	fd_set active_rfds;
 	conn_list_t pool;
         int c;
-        int do_ssl = 0;
+        //int do_ssl = 0;
 
+	do_ssl = 0; // default
 	// usage : httpd -s -p [port]
 	if(argc) {
         	while ((c = getopt(argc, argv, "sp:")) != -1) {
@@ -1297,12 +1371,15 @@ int main(int argc, char **argv)
 	detect_timestamp = 0;
 	signal_timestamp = 0;
 
+	http_get_access_ip();
+
 	/* Ignore broken pipes */
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, reapchild);	// 0527 add
 
 #ifdef RTCONFIG_HTTPS
-	if (do_ssl) start_ssl();
+	if (do_ssl)
+		start_ssl();
 #endif
 
 	/* Initialize listen socket */
@@ -1348,7 +1425,6 @@ int main(int argc, char **argv)
 		tv.tv_usec = 0;
 		while ((count = select(max_fd + 1, &rfds, NULL, NULL, &tv)) < 0 && errno == EINTR)
 			continue;
-		
 		if (count < 0) {
 			perror("select");
 			return errno;
@@ -1361,13 +1437,16 @@ int main(int argc, char **argv)
 				perror("malloc");
 				return errno;
 			}
-			while ((item->fd = accept(listen_fd, &item->usa.sa, &sz)) < 0 && item->fd == EINTR)
+			while ((item->fd = accept(listen_fd, &item->usa.sa, &sz)) < 0 && errno == EINTR)
 				continue;
-		
 			if (item->fd < 0) {
 				perror("accept");
-				return errno;
+				free(item);
+				continue;
 			}
+
+			/* Set the KEEPALIVE option to cull dead connections */
+			setsockopt(item->fd, SOL_SOCKET, SO_KEEPALIVE, &int_1, sizeof(int_1));
 
 			/* Add to active connections */
 			FD_SET(item->fd, &active_rfds);
@@ -1387,52 +1466,51 @@ int main(int argc, char **argv)
 			FD_CLR(item->fd, &active_rfds);
 			TAILQ_REMOVE(&pool.head, item, entry);
 			pool.count--;
-			/* Process request if any or close timed out */
+
+			/* Process request if any */
 			if (count) {
 #ifdef RTCONFIG_HTTPS
 				if (do_ssl) {
-					conn_fp = ssl_server_fopen(item->fd);
-					if(conn_fp == NULL) {
+					ssl_stream_fd = item->fd;
+					if (!(conn_fp = ssl_server_fopen(item->fd))) {
 						perror("fdopen(ssl)");
-						return errno;
+						goto skip;
 					}
-
-				}
-				else
+				} else
 #endif
 				if (!(conn_fp = fdopen(item->fd, "r+"))) {
 					perror("fdopen");
-					return errno;
+					goto skip;
+				} else {
+					/* Will be closed by fclose */
+					item->fd = -1;
 				}
 
 				http_login_cache(&item->usa);
-				handle_request();
-#ifdef RTCONFIG_HTTPS
-				if(conn_fp!=NULL) {
-					fflush(conn_fp);
-					fclose(conn_fp);
-					conn_fp = NULL;
-				}
-				// ssl must close fd
-				if (item->fd != -1) {
-					close(item->fd);
-					item->fd = -1;
-				}
-#else
+				if (http_client_ip_check())
+					handle_request();
+
 				fflush(conn_fp);
 				fclose(conn_fp);
-#endif
+
+			skip:
 				/* Skip the rest of */
 				if (--count == 0) {
 					next = NULL;
 				}
-			} else
+			}
+
+			/* Close timed out and/or still alive */
+			if (item->fd >= 0)
 				close(item->fd);
+
 			free(item);
 		}
 	}
+
 	shutdown(listen_fd, 2);
 	close(listen_fd);
+
 	return 0;
 }
 
@@ -1493,7 +1571,7 @@ void start_ssl(void)
 				// browsers seems to like this when the ip address moves...	-- zzz
 				f_read("/dev/urandom", &sn, sizeof(sn));
 
-				sprintf(t, "%llu", sn & 0x7FFFFFFFFFFFFFFFUL);
+				sprintf(t, "%llu", sn & 0x7FFFFFFFFFFFFFFFULL);
 				eval("gencert.sh", t);
 			}
 		}

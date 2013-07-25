@@ -1318,69 +1318,83 @@ int main (int argc, char *argv[])
 }
 
 /* Route manipulation */
-
 static int
 route_ctrl(int ctrl, struct rtentry *rt)
 {
 	int s;
 
 	/* Open a raw socket to the kernel */
-	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ||	ioctl(s, ctrl, rt) < 0)
-		l2tp_log (LOG_ERR, "route_ctrl: %s", strerror(errno));
+	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0 || ioctl(s, ctrl, rt) < 0)
+		route_msg("%s: %s", __FUNCTION__, strerror(errno));
 	else errno = 0;
 
 	close(s);
 	return errno;
 }
 
-int
+/* static */ int
 route_del(struct rtentry *rt)
 {
 	if (rt->rt_dev) {
 		route_ctrl(SIOCDELRT, rt);
-		free(rt->rt_dev);
-		rt->rt_dev = NULL;
+		free(rt->rt_dev), rt->rt_dev = NULL;
 	}
+
 	return 0;
 }
 
-int
+/* static */ int
 route_add(const struct in_addr inetaddr, struct rtentry *rt)
 {
-	char buf[256], dev[64];
-	int metric, flags;
-	u_int32_t dest, mask;
+	char buf[256], dev[64], rdev[64];
+	u_int32_t dest, mask, gateway, flags, bestmask = 0;
+	int metric;
 
 	FILE *f = fopen("/proc/net/route", "r");
 	if (f == NULL) {
-	        l2tp_log (LOG_ERR, "/proc/net/route: %s", strerror(errno));
+		route_msg("%s: /proc/net/route: %s", strerror(errno), __FUNCTION__);
 		return -1;
 	}
 
-	while (fgets(buf, sizeof(buf), f)) {
-		if (sscanf(buf, "%63s %x %x %X %*s %*s %d %x", dev, &dest,
-		    	&sin_addr(&rt->rt_gateway).s_addr, &flags, &metric, &mask) != 6)
+	rt->rt_gateway.sa_family = 0;
+
+	while (fgets(buf, sizeof(buf), f))
+	{
+		if (sscanf(buf, "%63s %x %x %x %*s %*s %d %x", dev, &dest,
+			&gateway, &flags, &metric, &mask) != 6)
 			continue;
 		if ((flags & RTF_UP) == (RTF_UP) && (inetaddr.s_addr & mask) == dest &&
-		    (dest || strncmp(dev, "ppp", 3)) /* avoid default via pppX to avoid on-demand loops*/) {
-			rt->rt_metric = metric + 1;
+		    (dest || strncmp(dev, "ppp", 3)) /* avoid default via pppX to avoid on-demand loops*/)
+		{
+			if ((mask | bestmask) == bestmask && rt->rt_gateway.sa_family)
+				continue;
+			bestmask = mask;
+
+			sin_addr(&rt->rt_gateway).s_addr = gateway;
 			rt->rt_gateway.sa_family = AF_INET;
-			break;
+			rt->rt_flags = flags;
+			rt->rt_metric = metric;
+			strncpy(rdev, dev, sizeof(rdev));
+
+			if (mask == INADDR_BROADCAST)
+				break;
 		}
 	}
 
 	fclose(f);
 
 	/* check for no route */
-	if (rt->rt_gateway.sa_family != AF_INET) {
-	        /* l2tp_log (LOG_ERR, "route_add: no route to host"); */
+	if (rt->rt_gateway.sa_family != AF_INET) 
+	{
+		/* route_msg("%s: no route to host", __FUNCTION__); */
 		return -1;
 	}
 
-	/* check for existing route to this host, 
-	add if missing based on the existing routes */
-	if (flags & RTF_HOST) {
-	        /* l2tp_log (LOG_ERR, "route_add: not adding existing route"); */
+	/* check for existing route to this host,
+	 * add if missing based on the existing routes */
+	if (rt->rt_flags & RTF_HOST)
+	{
+		/* route_msg("%s: not adding existing route", __FUNCTION__); */
 		return -1;
 	}
 
@@ -1390,23 +1404,22 @@ route_add(const struct in_addr inetaddr, struct rtentry *rt)
 	sin_addr(&rt->rt_genmask).s_addr = INADDR_BROADCAST;
 	rt->rt_genmask.sa_family = AF_INET;
 
-	rt->rt_flags = RTF_UP | RTF_HOST;
-	if (flags & RTF_GATEWAY)
-		rt->rt_flags |= RTF_GATEWAY;
+	rt->rt_flags &= RTF_GATEWAY;
+	rt->rt_flags |= RTF_UP | RTF_HOST;
 
 	rt->rt_metric++;
-	rt->rt_dev = strdup(dev);
+	rt->rt_dev = strdup(rdev);
 
-	if (!rt->rt_dev) {
-	        l2tp_log (LOG_ERR, "route_add: no memory");
+	if (!rt->rt_dev)
+	{
+		/* route_msg("%s: no memory", __FUNCTION__); */
 		return -1;
 	}
 
 	if (!route_ctrl(SIOCADDRT, rt))
 		return 0;
 
-	free(rt->rt_dev);
-	rt->rt_dev = NULL;
+	free(rt->rt_dev), rt->rt_dev = NULL;
 
 	return -1;
 }

@@ -2422,7 +2422,7 @@ struct sk_buff **tcp4_gro_receive(struct sk_buff **head, struct sk_buff *skb)
 }
 EXPORT_SYMBOL(tcp4_gro_receive);
 
-int BCMFASTPATH tcp4_gro_complete(struct sk_buff *skb)
+int BCMFASTPATH_HOST tcp4_gro_complete(struct sk_buff *skb)
 {
 	struct iphdr *iph = ip_hdr(skb);
 	struct tcphdr *th = tcp_hdr(skb);
@@ -2496,5 +2496,3 @@ EXPORT_SYMBOL(tcp_proc_unregister);
 #endif
 EXPORT_SYMBOL(sysctl_local_port_range);
 EXPORT_SYMBOL(sysctl_tcp_low_latency);
-
-

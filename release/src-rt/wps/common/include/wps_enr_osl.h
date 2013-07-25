@@ -1,7 +1,7 @@
 /*
  * WPS Enrollee OS layer
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_enr_osl.h 247315 2011-03-18 12:26:00Z kenlo $
+ * $Id: wps_enr_osl.h 247314 2011-03-18 12:25:52Z $
  */
 
 #ifndef __OSL_H__

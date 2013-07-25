@@ -21,7 +21,11 @@ OBJS += $(TOP)/wireless_tools/iwlib.o
 ifeq ($(RTCONFIG_RALINK_RT3052),y)
 OBJS += ra3052.o rtl8367m.o flash_mtd.o api-ralink.o
 else
+ifeq ($(RTCONFIG_DSL),y)
+OBJS += rtl8367r.o flash_mtd.o api-ralink.o
+else
 OBJS += rtl8367m.o flash_mtd.o api-ralink.o
+endif
 endif
 else
 OBJS += broadcom.o api-broadcom.o

@@ -67,10 +67,8 @@
 #include <asm/uaccess.h>
 #include <asm/system.h>
 
-#ifdef CONFIG_INET_GRO
 #include <typedefs.h>
 #include <bcmdefs.h>
-#endif /* CONFIG_INET_GRO */
 
 #include "kmap_skb.h"
 
@@ -215,6 +213,10 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask,
 	skb->nfct_reasm = NULL;
 	skb->nfct = NULL;
 	skb->nfcache = 0;
+#endif
+#ifdef HNDCTF
+        skb->mac_len = 0;
+        skb->hdr_len = 0;
 #endif
 #ifdef CONFIG_BRIDGE_NETFILTER
 	skb->nf_bridge = NULL;
@@ -421,7 +423,7 @@ void kfree_skb(struct sk_buff *skb)
 }
 
 #ifdef CONFIG_INET_GRO
-static void BCMFASTPATH __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
+static void BCMFASTPATH_HOST __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 {
 	new->tstamp		= old->tstamp;
 	new->dev		= old->dev;
@@ -538,6 +540,9 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask)
 	C(len);
 	C(data_len);
 	C(mac_len);
+#ifdef HNDCTF
+	C(ctf_mac_len);
+#endif
 	n->hdr_len = skb->nohdr ? skb_headroom(skb) : skb->hdr_len;
 	n->cloned = 1;
 	n->nohdr = 0;
@@ -2235,6 +2240,9 @@ struct sk_buff *skb_segment(struct sk_buff *skb, int features)
 
 		__copy_skb_header(nskb, skb);
 		nskb->mac_len = skb->mac_len;
+#ifdef HNDCTF
+		nskb->ctf_mac_len = skb->ctf_mac_len;
+#endif
 
 		skb_reserve(nskb, headroom);
 		skb_reset_mac_header(nskb);
@@ -2301,7 +2309,7 @@ err:
 EXPORT_SYMBOL_GPL(skb_segment);
 
 #ifdef CONFIG_INET_GRO
-int BCMFASTPATH skb_gro_receive(struct sk_buff **head, struct sk_buff *skb)
+int BCMFASTPATH_HOST skb_gro_receive(struct sk_buff **head, struct sk_buff *skb)
 {
 	struct sk_buff *p = *head;
 	struct sk_buff *nskb;
@@ -2345,6 +2353,9 @@ int BCMFASTPATH skb_gro_receive(struct sk_buff **head, struct sk_buff *skb)
 
 	__copy_skb_header(nskb, p);
 	nskb->mac_len = p->mac_len;
+#ifdef HNDCTF
+	nskb->ctf_mac_len = p->ctf_mac_len;
+#endif
 
 	skb_reserve(nskb, headroom);
 	__skb_put(nskb, skb_gro_offset(p));
@@ -2636,5 +2647,3 @@ EXPORT_SYMBOL(skb_append_datato_frags);
 
 EXPORT_SYMBOL_GPL(skb_to_sgvec);
 EXPORT_SYMBOL_GPL(skb_cow_data);
-
-

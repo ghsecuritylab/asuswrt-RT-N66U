@@ -1,7 +1,7 @@
 /*
  * WPS upnp
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_upnp.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_upnp.h 279189 2011-08-23 10:14:21Z $
  */
 
 #ifndef __WPS_UPNP_H__
@@ -48,10 +48,10 @@ void wps_upnp_update_init_wlan_event(int if_instance, char *mac, int init);
 void wps_upnp_forward_preb_req(int if_instance, unsigned char *macaddr,
 	char *databuf, int datalen);
 
-#ifdef __CONFIG_LIBUPNP__
+#ifdef WPS_UPNP_DEVICE
 int wps_libupnp_ProcessMsg(char *ifname, char *upnpmsg, int upnpmsg_len);
 int wps_libupnp_GetOutMsgLen(char *ifname);
 char *wps_libupnp_GetOutMsg(char *ifname);
-#endif /* __CONFIG_LIBUPNP__ */
+#endif /* WPS_UPNP_DEVICE */
 
 #endif	/* __WPS_UPNP_H__ */

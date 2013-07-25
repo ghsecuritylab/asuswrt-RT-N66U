@@ -45,7 +45,7 @@ typedef enum _USBD_PIPE_TYPE_64 {
     UsbdPipeTypeIsochronous_64,
     UsbdPipeTypeBulk_64,
     UsbdPipeTypeInterrupt_64
-}__attribute__((aligned(8))) USBD_PIPE_TYPE_64;
+} USBD_PIPE_TYPE_64;
 
 typedef struct _USBD_PIPE_INFORMATION_64 {
     //
@@ -204,13 +204,10 @@ struct _URB_CONTROL_TRANSFER_EX_64 {
 }__attribute__((aligned(8)));
 
 typedef enum _USB_IO_PRIORITY_64  {
-
     UsbIoPriorty_Normal_64 = 0,
     UsbIoPriority_High_64 = 8,
     UsbIoPriority_VeryHigh_64 = 16
-
-}__attribute__((aligned(8))) USB_IO_PRIORITY_64  ;
-
+} USB_IO_PRIORITY_64;
 
 typedef struct _USB_IO_PARAMETERS_64 {
 

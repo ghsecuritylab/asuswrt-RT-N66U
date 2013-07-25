@@ -1,7 +1,7 @@
 /*
  * WPS ERROR code definition
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wpserror.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wpserror.h 321622 2012-03-16 04:10:38Z $
  */
 
 #ifndef _WPS_ERROR_
@@ -51,6 +51,9 @@
 #define WPS_SEND_RET_MSG_CONT       WPS_BASE+25 /* Send re-transmittion message and continue */
 #define WPS_SEND_FRAG_CONT          WPS_BASE+26 /* Send fragment and continue */
 #define WPS_SEND_FRAG_ACK_CONT      WPS_BASE+27 /* Send fragment ACK message and continue */
+#define WPS_IGNORE_MSG_CONT         WPS_BASE+28 /* Ignore this message and continue */	
+#define WPS_ERR_PBC_OVERLAP         WPS_BASE+29 /* PBC overlap found my M1 UUID mismatch */
+#define WPS_M2D_NACK_CONT           WPS_BASE+30	/* Received NACK reply in M2D state */
 
 /* CQueue */
 #define CQUEUE_BASE               0x2000
@@ -111,6 +114,7 @@
 #define RPROT_ERR_MULTIPLE_M2      RPROT_BASE+7
 #define RPROT_ERR_AUTH_ENC_FLAG    RPROT_BASE+8
 #define RPROT_ERR_ROGUE_SUSPECTED  RPROT_BASE+9 /* WSC 2.0 */
+#define RPROT_ERR_INCOMPATIBLE_WEP RPROT_BASE+10 /* WSC 2.0 */
 #define WPS_PASSWORD_AUTH_ERROR 18
 
 /* Portability */

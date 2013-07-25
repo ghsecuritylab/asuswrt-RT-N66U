@@ -1,4 +1,9 @@
-﻿var helptitle = new Array(19);
+﻿var Untranslated = {
+	wireless_psk_fillin : 'Please type password',
+	Adj_dst : 'Manual daylight saving time'
+};
+
+var helptitle = new Array(19);
 // Wireless
 helptitle[0] = [["", ""],
 				["<#WLANConfig11b_SSID_itemname#>", "wl_ssid"],
@@ -55,15 +60,15 @@ helptitle[3] = [["", ""],
 // LAN
 helptitle[4] = [["", ""],
 				["<#LANHostConfig_IPRouters_itemname#>", "lan_ipaddr"],
-				["<#LANHostConfig_SubnetMask_itemname#>", "lan_netmask"],
-				["<#LANHostConfig_x_Gateway_itemname#>", "lan_gateway"]];
+				["<#IPConnection_x_ExternalSubnetMask_itemname#>", "lan_netmask"],
+				["<#IPConnection_x_ExternalGateway_itemname#>", "lan_gateway"]];
 helptitle[5] = [["", ""],
 			 	["<#LANHostConfig_DHCPServerConfigurable_itemname#>", "dhcp_enable_x"],
 				["<#LANHostConfig_DomainName_itemname#>", "lan_domain"],
 				["<#LANHostConfig_MinAddress_itemname#>", "dhcp_start"],
 				["<#LANHostConfig_MaxAddress_itemname#>", "dhcp_end"],
 				["<#LANHostConfig_LeaseTime_itemname#>", "dhcp_lease"],
-				["<#LANHostConfig_x_LGateway_itemname#>", "dhcp_gateway_x"],
+				["<#IPConnection_x_ExternalGateway_itemname#>", "dhcp_gateway_x"],
 				["<#LANHostConfig_x_LDNSServer1_itemname#>", "dhcp_dns1_x"],
 				["<#LANHostConfig_x_WINSServer_itemname#>", "dhcp_wins_x"],
 				["<#LANHostConfig_ManualDHCPEnable_itemname#>", "dhcp_static_x"],
@@ -75,7 +80,7 @@ helptitle[6] = [["", ""],
 				["<#RouterConfig_GWStaticMask_itemname#>", "sr_netmask_x_0"],
 				["<#RouterConfig_GWStaticGW_itemname#>", "sr_gateway_x_0"],
 				["<#RouterConfig_GWStaticMT_itemname#>", "sr_matric_x_0"],
-				["<#RouterConfig_GWStaticIF_itemname#>", "sr_if_x_0"],
+				["<#wan_interface#>", "sr_if_x_0"],
 				["<#RouterConfig_IPTV_itemname#>"]];
 // WAN
 helptitle[7] = [["", ""],
@@ -203,6 +208,13 @@ helptitle[22] = [["", ""],
 				["Router(<#OP_GW_item#>)", ""],
 				["Repeater(<#OP_RE_item#>)", ""],
 				["AP(<#OP_AP_item#>)", ""]];
+
+/*
+if(psta_support != -1){
+	helptitle[22] = [["", ""],["Router(<#OP_GW_item#>)", ""],["Media bridge", ""],["AP(<#OP_AP_item#>)", ""]];
+}
+*/
+
 helptitle[23] = [["", ""],
 				["5GHz SSID:", "ssid_5g"],
 				["2.4GHz SSID:", "ssid_2g"]];
@@ -226,7 +238,7 @@ helpcontent[0] = new Array("",
 						   "<#WLANConfig11b_EChannel_itemdesc#>",
 							 "",
 							 "<#WLANConfig11b_TxPower_itemdesc#>(<#JS_validrange#> 0 <#JS_validrange_to#> 100)",
-							 "<#WLANConfig11b_WEPKey_itemtype1#><br/><#WLANConfig11b_WEPKey_itemtype2#>",
+							 "WEP-64bits: <#WLANConfig11b_WEPKey_itemtype1#><br/>WEP-128bits: <#WLANConfig11b_WEPKey_itemtype2#>",
 							 "<#WLANConfig11b_WEPKey_itemtype1#><br/><#WLANConfig11b_WEPKey_itemtype2#>",
 							 "<#WLANConfig11b_WEPKey_itemtype1#><br/><#WLANConfig11b_WEPKey_itemtype2#>",
 							 "<#WLANConfig11b_WEPKey_itemtype1#><br/><#WLANConfig11b_WEPKey_itemtype2#>",
@@ -270,7 +282,7 @@ helpcontent[4] = new Array("",
 						   "<#LANHostConfig_x_Gateway_itemdesc#>");
 helpcontent[5] = new Array("",
 							 "<#LANHostConfig_DHCPServerConfigurable_itemdesc#>",
-							 "<#LANHostConfig_DomainName_itemdesc#><#LANHostConfig_x_DDNS_alarm_hostname#> <#LANHostConfig_DomainName_itemdesc2#>",
+							 "<#LANHostConfig_DomainName_itemdesc#><#LANHostConfig_DomainName_itemdesc2#>",
 							 "<#LANHostConfig_MinAddress_itemdesc#>",
 							 "<#LANHostConfig_MaxAddress_itemdesc#>",
 							 "<#LANHostConfig_LeaseTime_itemdesc#>",
@@ -363,7 +375,7 @@ helpcontent[14] = new Array("",
 							"<#UPnPMediaServer_Help#>");
 //AiDisk Wizard
 helpcontent[15] = new Array("",
-							"<#AiDisk_moreconfig#>",
+							"", /*<#AiDisk_moreconfig#>*/
 							"<#AiDisk_Step1_help#><p><a href='../Advanced_AiDisk_ftp.asp' target='_parent' hidefocus='true'><#MoreConfig#></a></p><!--span style='color:red'><#AiDisk_Step1_help2#></span-->",
 							"<#AiDisk_Step2_help#>",
 							"<#AiDisk_Step3_help#>");
@@ -463,11 +475,23 @@ function gotocooler(){
 	top.location.href = "/Advanced_PerformanceTuning_Content.asp";
 }
 
+<% available_disk_names_and_sizes(); %>
 function overHint(itemNum){
 	var statusmenu = "";
 	var title2 = 0;
 	var title5 = 0;
 
+	// wifi hw switch
+	if(itemNum == 8){
+		statusmenu = "<div class='StatusHint'>Wi-Fi:</div>";
+		if(wifi_hw_switch == "wifi_hw_switch=0")
+			wifiDesc = "Wi-Fi=Disabled"
+		else
+			wifiDesc = "Wi-Fi=Enabled"
+
+		statusmenu += "<span>" + wifiDesc.substring(6, wifiDesc.length) + "</span>";
+	}	
+	
 	// cooler
 	if(itemNum == 7){
 		statusmenu = "<div class='StatusHint'>Cooler:</div>";
@@ -485,7 +509,7 @@ function overHint(itemNum){
 	if(itemNum == 6){
 		statusmenu = "<div class='StatusHint'><#Printing_button_item#></div>";
 		if(monoClient == "monoClient=")
-			monoClient = "monoClient=Disabled"
+			monoClient = "monoClient=<#CTL_Disabled#>"
 		statusmenu += "<span>" + monoClient.substring(11, monoClient.length) + "</span>";
 	}
 	if(itemNum == 5){
@@ -500,7 +524,21 @@ function overHint(itemNum){
 					statusmenu += "<div class='StatusHint'>2.4GHz Network:</div>";
 					title2 = 1;
 				}
-				statusmenu += "<span>" + gn_array_2g[i][1] + "</span><br>";
+
+				statusmenu += "<span>" + gn_array_2g[i][1] + " (";
+
+				if(gn_array_2g[i][11] == 0)
+					statusmenu += '<#Limitless#>';
+				else{
+					var expire_hr = Math.floor(gn_array_2g[i][13]/3600);
+					var expire_min = Math.floor((gn_array_2g[i][13]%3600)/60);
+					if(expire_hr > 0)
+						statusmenu += '<b id="expire_hr_'+i+'">'+ expire_hr + '</b> Hr <b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+					else
+						statusmenu += '<b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+				}
+
+				statusmenu += " left)</span><br>";
 			}
 		}
 		if(band5g_support != -1){
@@ -510,19 +548,33 @@ function overHint(itemNum){
 						statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz Network:</div>";				
 						title5 = 1;
 					}
-					statusmenu += "<span>" + gn_array_5g[i][1] + "</span><br>";
+	
+					statusmenu += "<span>" + gn_array_5g[i][1] + " (";
+
+					if(gn_array_5g[i][11] == 0)
+						statusmenu += '<#Limitless#>';
+					else{
+						var expire_hr = Math.floor(gn_array_5g[i][13]/3600);
+						var expire_min = Math.floor((gn_array_5g[i][13]%3600)/60);
+						if(expire_hr > 0)
+							statusmenu += '<b id="expire_hr_'+i+'">'+ expire_hr + '</b> Hr <b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+						else
+							statusmenu += '<b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+					}
+
+					statusmenu += " left)</span><br>";
 				}
 			}
 		}
 		if(title2 == 0 && title5 == 0)
-			statusmenu += "<div class='StatusHint'>Guest Network:</div><span>Disabled</span>";
+			statusmenu += "<div class='StatusHint'><#Guest_Network#>:</div><span><#CTL_Disabled#></span>";
 	}
 
 	// internet
 	if(itemNum == 3){
 		if((link_status == "2" && link_auxstatus == "0") || (link_status == "2" && link_auxstatus == "2")){
-			statusmenu = "<div class='StatusHint'>Internet:</div>";
-			statusmenu += "<span>Connected</span>";
+			statusmenu = "<div class='StatusHint'><#statusTitle_Internet#>:</div>";
+			statusmenu += "<span><#Connected#></span>";
 		}
 		else{
 			if(sw_mode == 1){
@@ -559,9 +611,10 @@ function overHint(itemNum){
 	// usb storage
 	if(itemNum == 2){
 		var dmStatus = "Not installed";
-		var apps_dev = "<% nvram_get("apps_dev"); %>";
+		var apps_dev = '<% nvram_get("apps_dev"); %>';
 
-		if(usb_path1 == "usb=" && usb_path2 == "usb="){
+//		if(usb_path1 == "usb=" && usb_path2 == "usb="){
+		if(foreign_disk_total_mounted_number()[0] == null){
 			statusmenu = "<div class='StatusHint'><#no_usb_found#></div>";
 		}
 		else if(foreign_disk_total_mounted_number()[0] == "0" && foreign_disk_total_mounted_number()[foreign_disk_total_mounted_number().length-1] == "0"){
@@ -593,8 +646,12 @@ function overHint(itemNum){
 				dmStatus = "Not installed";		
 			else if(getCookie_help("dm_enable") == "no" && getCookie_help("dm_install") == "yes")
 				dmStatus = "Disabled";
-
 			statusmenu += "<span>"+ dmStatus +"</span>";
+
+			if(usb_path1 == "usb=modem" || usb_path2 == "usb=modem"){
+				statusmenu += "<div class='StatusHint'><#HSDPAConfig_USBAdapter_itemname#>:</div>";
+				statusmenu += "<span>On</span>";
+			}
 		}
 	}
 
@@ -640,7 +697,10 @@ function openHint(hint_array_id, hint_show_id, flag){
 				}
 			}
 			else if(sw_mode == 2){
-				statusmenu = "<span class='StatusClickHint' onclick='top.location.href=\"/QIS_wizard.htm?flag=sitesurvey\";' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'><#APSurvey_action_search_again_hint2#></span>";
+				if(psta_support == -1)
+					statusmenu = "<span class='StatusClickHint' onclick='top.location.href=\"http://www.asusnetwork.net/QIS_wizard.htm?flag=sitesurvey\";' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'><#APSurvey_action_search_again_hint2#></span>";
+				else
+					statusmenu = "<span class='StatusClickHint' onclick='top.location.href=\"/QIS_wizard.htm?flag=sitesurvey\";' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'><#APSurvey_action_search_again_hint2#></span>";
 			}
 			_caption = "Internet Status";
 		}

@@ -16,7 +16,7 @@
 ***********************************************************************/
 
 static char const RCSID[] =
-"$Id: network.c 2939 2011-04-26 16:35:39Z themiron.ru $";
+"$Id: network.c 3323 2011-09-21 18:45:48Z lly.dev $";
 
 #include "l2tp.h"
 #include "event.h"

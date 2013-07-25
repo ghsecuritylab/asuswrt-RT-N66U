@@ -80,6 +80,7 @@
 #define MAXARGS		1	/* max # args to a command */
 #define MAXNAMELEN	256	/* max length of hostname or name for auth */
 #define MAXSECRETLEN	256	/* max length of password or secret */
+#define MAXUNIT		255	/* max ppp interface */
 
 /*
  * Option descriptor structure.
@@ -315,8 +316,7 @@ extern bool	tune_kernel;	/* May alter kernel settings as necessary */
 extern int	connect_delay;	/* Time to delay after connect script */
 extern int	max_data_rate;	/* max bytes/sec through charshunt */
 extern int	req_unit;	/* interface unit number to use */
-extern char	path_ipup[MAXPATHLEN]; /* pathname of ip-up script */
-extern char	path_ipdown[MAXPATHLEN]; /* pathname of ip-down script */
+extern int	req_minunit;	/* interface minimal unit number to use */
 extern bool	multilink;	/* enable multilink operation */
 extern bool	noendpoint;	/* don't send or accept endpt. discrim. */
 extern char	*bundle_name;	/* bundle name for multilink */
@@ -502,7 +502,7 @@ void notify __P((struct notifier *, int));
 int  ppp_send_config __P((int, int, u_int32_t, int, int));
 int  ppp_recv_config __P((int, int, u_int32_t, int, int));
 const char *protocol_name __P((int));
-void remove_pidfiles __P((void));
+void remove_pidfiles __P((int));
 void lock_db __P((void));
 void unlock_db __P((void));
 

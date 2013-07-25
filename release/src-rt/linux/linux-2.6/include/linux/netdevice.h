@@ -31,7 +31,7 @@
 
 #ifdef __KERNEL__
 #include <linux/timer.h>
-#ifdef CONFIG_INET_GRO
+#ifdef CONFIG_INET_GRO 
 #include <linux/mm.h>
 #endif /* CONFIG_INET_GRO */
 #include <asm/atomic.h>
@@ -266,7 +266,7 @@ struct netdev_boot_setup {
 
 extern int __init netdev_boot_setup(char *str);
 
-#ifdef CONFIG_INET_GRO
+#ifdef CONFIG_INET_GRO 
 enum {
 	GRO_MERGED,
 	GRO_MERGED_FREE,
@@ -340,8 +340,8 @@ struct net_device
 #define NETIF_F_GSO		2048	/* Enable software GSO. */
 #define NETIF_F_LLTX		4096	/* LockLess TX */
 #ifdef CONFIG_INET_GRO
-#define NETIF_F_GRO		16384
-#endif	/* CONFIG_INET_GRO */
+#define NETIF_F_GRO		16384	/* Generic receive offload */
+#endif /* CONFIG_INET_GRO */
 
 	/* Segmentation offload features */
 #define NETIF_F_GSO_SHIFT	16
@@ -558,9 +558,8 @@ struct net_device
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	void                    (*poll_controller)(struct net_device *dev);
 #endif
-
-#ifdef CONFIG_INET_GRO
-	unsigned int		gro_count;
+#ifdef CONFIG_INET_GRO 
+	unsigned int 		gro_count;
 	struct sk_buff		*gro_list;
 #endif /* CONFIG_INET_GRO */
 	/* rtnetlink link ops */
@@ -586,10 +585,10 @@ static inline void *netdev_priv(struct net_device *dev)
 
 #ifdef CONFIG_INET_GRO
 struct napi_gro_cb {
-	/* This indicates where we are processing relative to skb->date. */
+	/* This indicates where we are processing relative to skb->data. */
 	int data_offset;
 
-	/* This is non->zero if the packet may be of the same flow. */
+	/* This is non-zero if the packet may be of the same flow. */
 	int same_flow;
 
 	/* This is non-zero if the packet cannot be merged with the new skb. */
@@ -623,7 +622,7 @@ struct packet_type {
 	int			(*gso_send_check)(struct sk_buff *skb);
 #ifdef CONFIG_INET_GRO
 	struct sk_buff		**(*gro_receive)(struct sk_buff **head,
-					struct sk_buff *skb);
+					       struct sk_buff *skb);
 	int			(*gro_complete)(struct sk_buff *skb);
 #endif /* CONFIG_INET_GRO */
 	void			*af_packet_priv;
@@ -690,9 +689,9 @@ extern int		dev_restart(struct net_device *dev);
 extern int		netpoll_trap(void);
 #endif
 #ifdef CONFIG_INET_GRO
-extern void 		*skb_gro_header(struct sk_buff *skb, unsigned int hlen);
-extern int		skb_gro_receive(struct sk_buff **head,
-					struct sk_buff *skb);
+extern void	      *skb_gro_header(struct sk_buff *skb, unsigned int hlen);
+extern int	       skb_gro_receive(struct sk_buff **head,
+				       struct sk_buff *skb);
 
 static inline unsigned int skb_gro_offset(const struct sk_buff *skb)
 {
@@ -717,8 +716,8 @@ static inline void skb_gro_reset_offset(struct sk_buff *skb)
 static inline void *skb_gro_mac_header(struct sk_buff *skb)
 {
 	return skb_mac_header(skb) < skb->data ? skb_mac_header(skb) :
-		page_address(skb_shinfo(skb)->frags[0].page) +
-		skb_shinfo(skb)->frags[0].page_offset;
+	       page_address(skb_shinfo(skb)->frags[0].page) +
+	       skb_shinfo(skb)->frags[0].page_offset;
 }
 #endif /* CONFIG_INET_GRO */
 
@@ -820,6 +819,9 @@ extern int		netif_rx(struct sk_buff *skb);
 extern int		netif_rx_ni(struct sk_buff *skb);
 #define HAVE_NETIF_RECEIVE_SKB 1
 extern int		netif_receive_skb(struct sk_buff *skb);
+#ifdef CONFIG_INET_GRO
+extern void		napi_gro_flush(struct net_device *gro_dev);
+#endif /* CONFIG_INET_GRO */
 extern int		dev_valid_name(const char *name);
 extern int		dev_ioctl(unsigned int cmd, void __user *);
 extern int		dev_ethtool(struct ifreq *);

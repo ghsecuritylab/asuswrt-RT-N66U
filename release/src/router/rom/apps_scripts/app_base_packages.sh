@@ -58,6 +58,7 @@ if [ ! -f "$APPS_INSTALL_PATH/bin/ipkg" ] || [ ! -f "$APPS_INSTALL_PATH/lib/libu
 	if [ -z "$apps_from_internet" ]; then
 		tar xzf $apps_local_space/asus_base_apps.tgz # uclibc-opt & ipkg-opt.
 		cp -f $apps_local_space/optware.asus $APPS_INSTALL_PATH/lib/ipkg/lists/
+		cp -f $apps_local_space/optware.oleg $APPS_INSTALL_PATH/lib/ipkg/lists/
 		if [ "$?" != "0" ]; then
 			cd $CURRENT_PWD
 			nvram set apps_state_error=10
@@ -77,9 +78,12 @@ if [ ! -f "$APPS_INSTALL_PATH/bin/ipkg" ] || [ ! -f "$APPS_INSTALL_PATH/lib/libu
 		# TODO: just for test.
 		ASUS_SERVER=http://dlcdnet.asus.com/pub/ASUS/LiveUpdate/Release/Wireless
 
-		echo "wget $wget_options $ASUS_SERVER/asus_base_apps.tgz"
-		wget $wget_options $ASUS_SERVER/asus_base_apps.tgz
+		echo "wget -c $wget_options $ASUS_SERVER/asus_base_apps.tgz"
+		wget -c $wget_options $ASUS_SERVER/asus_base_apps.tgz
 		if [ "$?" != "0" ]; then
+			rm -f asus_base_apps.tgz
+			sync
+
 			cd $CURRENT_PWD
 			echo "Failed to get asus_base_apps.tgz from Internet!"
 			nvram set apps_state_error=6
@@ -99,6 +103,19 @@ if [ ! -f "$APPS_INSTALL_PATH/bin/ipkg" ] || [ ! -f "$APPS_INSTALL_PATH/lib/libu
 	cd $CURRENT_PWD
 fi
 
+APPS_MOUNTED_TYPE=`mount |grep "/dev/$APPS_DEV on " |awk '{print $5}'`
+if [ "$APPS_MOUNTED_TYPE" == "vfat" ]; then
+	app_move_to_pool.sh $APPS_DEV
+	if [ "$?" != "0" ]; then
+		# apps_state_error was already set by app_move_to_pool.sh.
+		exit 1
+	fi
+fi
+
 app_base_link.sh
+if [ "$?" != "0" ]; then
+	# apps_state_error was already set by app_base_link.sh.
+	exit 1
+fi
 
 echo "Success to build the base environment!"

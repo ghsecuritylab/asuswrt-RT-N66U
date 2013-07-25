@@ -71,7 +71,7 @@ bin_PROGRAMS = ez-ipupdate
 ez_ipupdate_SOURCES = ez-ipupdate.c conf_file.c conf_file.h md5.c md5.h cache_file.c cache_file.h error.h pid_file.c pid_file.h dprintf.h 
 ez_ipupdate_LDADD = 
 
-EXTRA_DIST = getpass.c ez-ipupdate.lsm example.conf example-pgpow.conf example-dhs.conf example-dyndns.conf example-ods.conf example-tzo.conf example-gnudip.conf example-easydns.conf example-justlinux.conf example-dyns.conf CHANGELOG mkbinary example-heipv6tb.conf
+EXTRA_DIST = getpass.c ez-ipupdate.lsm example.conf example-pgpow.conf example-dhs.conf example-dnsomatic.conf example-dyndns.conf example-ods.conf example-tzo.conf example-gnudip.conf example-easydns.conf example-justlinux.conf example-dyns.conf CHANGELOG mkbinary example-heipv6tb.conf
 
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -299,11 +299,7 @@ conf_file.o: conf_file.c config.h conf_file.h
 ez-ipupdate.o: ez-ipupdate.c config.h error.h md5.h dprintf.h \
 	conf_file.h cache_file.h pid_file.h
 
-#2007.03.15 Yau add
-#md5.o: md5.c config.h md5.h
-# for ASUS DDNS, asus_ddns.c need md5 implementation and I don't want to enable gnuip support.
-md5.o: md5.c md5.h
-	$(CC) $(CFLAGS) -DUSE_MD5 -c -o $@ $<
+md5.o: md5.c config.h md5.h
 
 pid_file.o: pid_file.c config.h error.h dprintf.h
 

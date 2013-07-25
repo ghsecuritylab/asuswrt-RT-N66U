@@ -86,7 +86,7 @@
 }
 
 .FormTitle_firefox{
-	margin-top:-105px;
+	margin-top:-100px;
 	line-height:160%;
 	font-size:12px;
 	font-family:Arial, Verdana, Arial, Helvetica, sans-serif;
@@ -155,6 +155,9 @@
 	background-color:#475a5f;
 	color:#FFCC00;
 }
+.FormTable td span#wl_nmode_x_hint{
+	margin-top:3px;
+}
 
 /* for Table (for Add List) */
 .FormTable_table{
@@ -221,7 +224,7 @@
 
 /* for NWM */
 .FormTable_NWM{
-	margin-top:10px;
+	/*margin-top:10px;*/
 	font-size:12px;
 	font-family:Arial, Helvetica, sans-serif;
 	border: 1px solid #222;
@@ -309,15 +312,16 @@
 }
 
 .input_option_lang{
-	margin-top:13px;
-	margin-left:160px;
+	margin-top:15px;
+	margin-left:280px;
 	height:25px;
-	width:130px;
 	background-color:#222;
+	*background-color:#FFF;
 	border-top-width:1px; 
 	border-bottom-width:1px; 
 	border-color:#888;
 	color:#FFFFFF;
+	*color:#000;
 	font-size:13px;
 	font-family: Lucida Console;
 }
@@ -434,17 +438,19 @@
 
 /*	Viz add	start */
 .titledownbutton{
-  	background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
-  	border:0;
-  	color: #FFFFFF;
+	text-shadow: 1px 1px 0px black;
+	font-weight: bolder;
+ 	background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
+ 	border:0;
+ 	color: #FFFFFF;
 	height:34px;
 	font-family:Verdana;
 	font-size:12px;
 	/*margin-right:5px;
 	margin-left:5px;*/
-  	padding:0 .70em 0 .70em;  
+ 	padding:0 .70em 0 .70em;  
  	width:122px;
-  	overflow:visible;
+ 	overflow:visible;
 }
 .titledownbutton:hover		/*, .button:active*/{
 	background:url(/images/New_ui/contentbt_over.png) no-repeat;
@@ -456,7 +462,10 @@
   background-position: 7px;
 	cursor:pointer;
 }
+
 .button_gen{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
   background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
   _background: transparent url(/images/New_ui/contentbt_normal_ie6.png) no-repeat scroll center top;
   border:0;
@@ -468,14 +477,46 @@
  	width:122px;
   overflow:visible;
 	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 .button_gen:hover{
+	font-weight: bolder;
 	background:url(/images/New_ui/contentbt_over.png) no-repeat;
 	height:33px;
  	width:122px;
  	padding:0 .70em 0 .70em;  
  	background-position:0px;
 	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+}
+.button_gen_dis{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+  background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
+  _background: transparent url(/images/New_ui/contentbt_normal_ie6.png) no-repeat scroll center top;
+  border:0;
+  color: #333333;
+	height:33px;
+	font-family:Verdana,Bold;
+	font-size:12px;
+  padding:0 .70em 0 .70em;  
+ 	width:122px;
+  overflow:visible;  
+	/*cursor:pointer;*/
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+}
+.button_gen_dis:hover{
+	background:url(/images/New_ui/contentbt_over.png) no-repeat;
+	height:33px;
+ 	width:122px;
+ 	padding:0 .70em 0 .70em;  
+ 	background-position:0px; 	
+	/*cursor:pointer;*/
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 .button_gen_touch{
   color: #FFFFFF;
@@ -485,28 +526,36 @@
  	padding:0 .70em 0 .70em;  
  	background-position:0px;
 	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 .button_gen_long{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
   background: transparent url(/images/New_ui/logout_bt.png) no-repeat scroll center top;
   border:0;
   color: #FFFFFF;
-	height:33px;
+	height:34px;
 	font-family:Verdana;
 	font-size:12px;
  	width:150px;
   overflow:visible;
 	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 .button_gen_long:hover	/*, .button:active*/{
   background: transparent url(/images/New_ui/logout_btover.png) no-repeat scroll center top;
   border:0;
   color: #FFFFFF;
-	height:33px;
+	height:34px;
 	font-family:Verdana;
 	font-size:12px;
  	width:150px;
   overflow:visible;
 	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 .button_gen_long_touch{
   color: #FFFFFF;
@@ -516,6 +565,34 @@
  	padding:0 .70em 0 .70em;  
  	background-position:0px;
 	cursor:pointer;
+}
+
+.button_gen_short{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+  background: transparent url(/images/New_ui/flowbt_normal.png) no-repeat scroll center top;
+  border:0;
+  color: #FFFFFF;
+	height:33px;
+	font-family:Verdana;
+	font-size:12px;
+  padding:0 .70em 0 .70em;  
+ 	width:91px;
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+}
+.button_gen_short:hover{
+	font-weight: bolder;
+	background:url(/images/New_ui/flowbt_over.png) no-repeat;
+	height:33px;
+ 	width:91px;
+ 	padding:0 .70em 0 .70em;  
+ 	background-position:0px;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
 
 .sbtn{  /*Lock 1206 modified*/
@@ -549,18 +626,6 @@ textarea{
 	font:Verdana, Arial, Helvetica, sans-serif;
 	font-size:9pt;
 	padding:5px 5px 5px 0px;
-}
-
-.domore{
-	font-size:12px;
-	font-family:Verdana, Arial, Helvetica, sans-serif;
-	background-color: #EEEEEE;
-	color: #006699;
-	float:right;
-	margin:8px 7px 0 0;
-}
-.domore option{
-	text-decoration:underline;
 }
 
 .short_btn {
@@ -656,12 +721,12 @@ textarea{
 
 #ClientList_Block{
 	border:2px outset #999;
-	background-color:#EFEFEF;
+	background-color:#576D73;
 	position:absolute;
 	margin-top:-11px;
 	margin-left:322px;
 	text-align:left;
-	width:180px;
+	width:200px;
 	height:auto;
 	overflow-y:auto;
 	z-index:200;
@@ -669,6 +734,7 @@ textarea{
 	display:none;
 }
 #ClientList_Block div{
+	background-color:#576D73;
 	height:20px;
 	line-height:20px;
 	text-decoration:none;
@@ -677,9 +743,10 @@ textarea{
 
 #ClientList_Block a{
 	background-color:#EFEFEF;
-	color:#000;
+	color:#FFF;
 	font-size:12px;
 	font-family:Arial, Helvetica, sans-serif;
+	text-decoration:none;	
 }
 #ClientList_Block div:hover, #ClientList_Block a:hover{
 	background-color:#3366FF;
@@ -693,11 +760,10 @@ textarea{
 	position:absolute;
 	margin-top:25px;
 	margin-left:1px;
-	*margin-left:-116px;
+	*margin-left:-136px;
 	text-align:left;
-	width:auto;
-	*width:175px;
-	height:auto;
+	width:250px;
+	height:400px;
 	overflow-y:auto;
 	z-index:200;
 	padding: 1px;
@@ -756,6 +822,7 @@ textarea{
 .list_table td{
 	border: 1px solid #000000;
 	border-collapse: collapse;
+	font-family: Lucida Console;
 }
 
 .list_table td.list_32_table{
@@ -844,23 +911,16 @@ textarea{
 	color:#000;
 }
 
-.formfontcontent{
-font:Arial, Helvetica, sans-serif;
-font-size:12px;
-color:#FFFFFF;
-padding-top:1px;
-}
-
 /* btns in table */
 .add_btn{
- 	background: transparent url(/images/New_ui/advancesetting/accountadd.png) no-repeat scroll center top;
+ 	background: transparent url(/images/New_ui/accountadd.png) no-repeat scroll center top;
  	border:0;
 	height:34px;
  	width:35px;
  	cursor:pointer;
 }
 .add_btn:hover, .add_btn:active{
- 	/*background: transparent url(/images/New_ui/advancesetting/UserAdd_0.png) no-repeat scroll center top;*/
+ 	/*background: transparent url(/images/New_ui/UserAdd_0.png) no-repeat scroll center top;*/
  	border:0;
 	height:34px;
  	width:35px;
@@ -868,14 +928,14 @@ padding-top:1px;
 }
 
 .remove_btn{
- 	background: transparent url(/images/New_ui/advancesetting/accountdelete.png) no-repeat scroll center top;
+ 	background: transparent url(/images/New_ui/accountdelete.png) no-repeat scroll center top;
 	border:0;
 	height:30px;
  	width:35px;
  	cursor:pointer;
 }
 .remove_btn:hover, .remove_btn:active{
- 	/*background: transparent url(/images/New_ui/advancesetting/UserDel_0.png) no-repeat scroll center top;*/
+ 	/*background: transparent url(/images/New_ui/UserDel_0.png) no-repeat scroll center top;*/
 	border:0;
 	height:30px;
  	width:35px;
@@ -891,14 +951,14 @@ padding-top:1px;
 }
 
 .edit_btn{
-  background: transparent url(/images/New_ui/advancesetting/accountedit.png) no-repeat scroll center top;
+  background: transparent url(/images/New_ui/accountedit.png) no-repeat scroll center top;
   border:0;
 	height:34px;
  	width:35px;
  	cursor:pointer;
 }
 .edit_btn:hover, .edit_btn:active{
- 	/*background: transparent url(/images/New_ui/advancesetting/UserMod_0.png) no-repeat scroll center top;*/
+ 	/*background: transparent url(/images/New_ui/UserMod_0.png) no-repeat scroll center top;*/
  	border:0;
 	height:34px;
  	width:35px;
@@ -971,14 +1031,18 @@ p{margin-top:   0;margin-bottom:   0}
       padding-right: 10px;      
       margin-right: 10px;
       text-decoration: none;
-	  width:136px;
+      text-align:center;
+      width: auto;
+      /**width: expression(document.body.clientWidth < 136? "136px" : "auto");*/
+			min-width:136px;
+			white-space:nowrap;
     }
 .titlebtn span {
       background: transparent url(images/New_ui/btnspan.png) no-repeat;
       display: block;
       padding: 5px 1px 5px 11px;
       height: 24px;
-      line-height: 22px;  
+      line-height: 22px;
     }
 .titlebtn:hover {
       background-position: right -34px;
@@ -1030,11 +1094,11 @@ color:#FFFFFF;
 }
 
 .tab:hover{
-	background-position:right -73px;/*Viz 2011.04*/
+	background-position:right -73px;
 	cursor: pointer;
 }	
 .tab:hover span{
-	background-position:left -73px;/*Viz 2011.04*/	
+	background-position:left -73px;
 	cursor: pointer;
 } 
 .tab {	
@@ -1047,20 +1111,20 @@ color:#FFFFFF;
 	text-align:center;
 	text-decoration: none;
 	font-family: Verdana;
-	max-width: 300px;	/*Viz 2011.04*/
 	z-index: -1;
 }
 .tab span {
-	background: transparent url(/images/New_ui/hightabspan.png) no-repeat;	/*Viz 2011.04*/															
+	background: transparent url(/images/New_ui/hightabspan.png) no-repeat;
 	height: 40px;
 	padding-left: 6px;
+	padding-top: 5px \9;
 	line-height: 15px;
-	line-height: 40px \9;
 	font-family: Verdana;
 	font-size: 12px;
 	vertical-align: middle;
 	display: table-cell;
 	display: inline-block \9;
+	width: auto;
 	z-index: -1;
 }
 .tabclick {	   
@@ -1073,55 +1137,55 @@ color:#FFFFFF;
 	text-align: center;
 	text-decoration: none;
 	font-family: Verdana;
-	max-width: 300px;	/*Viz 2011.04*/
 }
 .tabclick span {
-	background: transparent url(/images/New_ui/hightabclickspan.png) repeat;	/*Viz 2011.04*/
+	background: transparent url(/images/New_ui/hightabclickspan.png) repeat;
 	height: 40px;
 	padding-left: 6px;
+	padding-top: 5px \9;
 	line-height: 15px;
-	line-height: 40px \9;
 	font-family: Verdana;
 	font-size: 12px; 
 	vertical-align: middle;
 	display: table-cell;
 	display: inline-block \9;
+	width: auto;
 }	
 div.tabclick {
 	height: 40px !important;
 }
 
 .tab_NW {	
-      background: transparent url(images/New_ui/taba.png) no-repeat scroll right top;
-      color: White;
-      display: block;
-      float: left;
-      height: 28px;
-      padding-right: 8px;      
-      margin-right:2px;
-      text-decoration: none;
-      text-align:center;
-	 max-width:130px;
-    }
+	font-weight: bolder;
+	background: transparent url(images/New_ui/taba.png) no-repeat scroll right top;
+	color: White;
+	display: block;
+	float: left;
+	height: 28px;
+	padding-right: 8px;      
+	margin-right:2px;
+	text-decoration: none;
+	text-align:center;
+	max-width:130px;
+}
 .tab_NW span {
-      background: transparent url(images/New_ui/tabspan.png) no-repeat;
-
-      display: block;
-      padding: 5px 4px 5px 12px;
-      line-height: 20px;	  
-      font-family: Arial, Helvetica, sans-serif;
+	font-weight: bolder;
+	background: transparent url(images/New_ui/tabspan.png) no-repeat;
+	display: block;
+	padding: 5px 4px 5px 12px;
+	line-height: 20px;	  
+	font-family: Arial, Helvetica, sans-serif;
 	font-size: 13px;
 }
 .tab_NW:hover{
-	background-position:right -28px;
-	
+	background-position:right -28px;	
 }	
 .tab_NW:hover span{
 	background-position:left -28px;
-	
 } 
 
 .tabclick_NW {	   
+			font-weight: bolder;
       background: transparent url(images/New_ui/tabclicka.png) no-repeat scroll right top;
 			font-family: Verdana;	
       color: White;
@@ -1135,6 +1199,7 @@ div.tabclick {
 	 		max-width:130px;
     }
 .tabclick_NW span {
+		font-weight: bolder;
 	  background: transparent url(images/New_ui/tabclickspan.png) no-repeat;
 		font-family: Verdana;	 
     display: block;
@@ -1274,7 +1339,8 @@ margin-top:5px;
 }
 
 .formfonttitle{
-font:Arial, Helvetica, sans-serif;
+text-shadow: 1px 1px 0px black;
+font-family:Arial, Helvetica, sans-serif;
 font-size:16px;
 color:#FFFFFF;
 margin-left:5px;
@@ -1282,7 +1348,7 @@ margin-bottom:10px;
 font-weight: bolder;
 }
 .formfonttitle_nwm{
-font:Arial, Helvetica, sans-serif;
+font-family:Arial, Helvetica, sans-serif;
 font-size:12px;
 color:#FFFFFF;
 margin-left:5px;
@@ -1291,45 +1357,49 @@ font-weight: bolder;
 }
 
 .formfontcontent{
-font:Arial, Helvetica, sans-serif;
+font-family:Arial, Helvetica, sans-serif;
 font-size:12px;
 color:#FFFFFF;
 padding-top:1px;
 }
 
 .formfontdesc{
-font:Arial, Helvetica, sans-serif;
-font-size:12px;
-color:#FFFFFF;
-margin-left:5px;
-margin-bottom:10px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size:13px;
+	color:#FFFFFF;
+	margin-left:5px;
+	margin-bottom:10px;
 }
 
 .formlinkfont{
-font:Arial, Helvetica, sans-serif;
-font-size:12px;
-color:#FFFFFF;
-text-decoration:underline;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size:13px;
+	color:#FFFFFF;
+	text-decoration:underline;
 }
 
 .input_2{
-height:23px;
-width:104px;
-background-image:url(images/New_ui/inputbg_2.png);
-border:0px;
+	height:23px;
+	width:104px;
+	background-image:url(images/New_ui/inputbg_2.png);
+	border:0px;
 }
 
 .contentbt{
-font:Arial, Helvetica, sans-serif;
-background-image:url(images/New_ui/contentbt_normal.png);
-color:#FFFFFF;
-font-size:12px;
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	font:Arial, Helvetica, sans-serif;
+	background-image:url(images/New_ui/contentbt_normal.png);
+	color:#FFFFFF;
+	font-size:12px;
 }
 .contentbt:link{
-font:Arial, Helvetica, sans-serif;
-background-image:url(images/New_ui/contentbt_normal.png);
-color:#FFFFFF;
-font-size:12px;
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	font:Arial, Helvetica, sans-serif;
+	background-image:url(images/New_ui/contentbt_normal.png);
+	color:#FFFFFF;
+	font-size:12px;
 }
 .contentbt:hover{
 	background-image:url(images/New_ui/contentbt_over.png);
@@ -1351,6 +1421,24 @@ font-size:12px;
 	width:30px;
 	cursor: pointer;
 }
+
+.wifihwswstatuson{
+	background-image:url(/images/wifi_hw_sw.png);
+	background-repeat:no-repeat;	
+	background-position:2px 2px;
+	height:29px;
+	width:30px;
+	cursor: pointer;
+}
+.wifihwswstatusoff{
+	background-image:url(/images/wifi_hw_sw.png);
+	background-repeat:no-repeat;	
+	background-position:2px -48px;
+	height:29px;
+	width:30px;
+	cursor: pointer;
+}
+
 .guestnetworkstatuson{
 	background-image:url(/images/New_ui/multiplessidstatus.png);
 	background-repeat:no-repeat;	
@@ -1481,46 +1569,96 @@ font-size:12px;
 	background-color:#4d595d;
 }
 
-ul#navigation-1
-	{ list-style:none; font:normal 8pt verdana, arial, helvetica;}
-ul#navigation-1 li
-	{ margin:0; padding:0; display:block; float:left; position:relative; width:148px; }
-ul#navigation-1 li a:link,
-ul#navigation-1 li a:visited
-	{ padding:0px 0; display:block; text-align:center; text-decoration:none; background-image:url("/images/New_ui/dropdown_bt.png"); color:#ffffff; width:148px; height:32px;}
-ul#navigation-1 li:hover a,
-ul#navigation-1 li a:hover,
-ul#navigation-1 li a:active
-	{ padding:0px 0; display:block; text-align:center; text-decoration:none; background-image:url("/images/New_ui/dropdown_btover.png"); color:#ffffff; width:148px; height:32px;}
+/* 整體設置*/ 
+.navigation {
+	margin-left:790px;
+	*margin-left:45px;
+	margin-top:13px;
+	width:100px;
+	list-style-type:none; 
+	font:12px Arial, Helvetica, sans-serif; 
+	position:absolute;
+	z-index:80;	
+	}
+ 
+.navigation li {
+	/*float:left; */
+	width:145px;
+	*width:145px;
+	}
+ 
+/* 設置選單區塊*/
+.navigation li dl { 
+    margin:0; 
+	padding:0;
 	
-ul#navigation-1 li ul.navigation-2
-	{ margin:0; padding:1px 1px 0; list-style:none; display:none; width:146px; position:absolute; left:-1px; }
-ul#navigation-1 li:hover ul.navigation-2
-	{ display:block; }
-ul#navigation-1 li ul.navigation-2 li
-	{ width:146px; clear:left; width:146px; }
+/*	border:solid 2px #666; */	
+/*	background-color:#fff;*/
 
-ul#navigation-1 li ul.navigation-2 li a:link,
-ul#navigation-1 li ul.navigation-2 li a:visited
-	{ clear:left; background:#222; padding:4px 0; width:135px; height:20px; border:none; position:relative; z-index:1000; margin-left:5px;}
-ul#navigation-1 li ul.navigation-2 li:hover a,
-ul#navigation-1 li ul.navigation-2 li a:active,
-ul#navigation-1 li ul.navigation-2 li a:hover
-	{ clear:left; background-image:url("/images/New_ui/dropdown_highlight.gif"); padding:4px 0; width:135px; height:20px; border:none; position:relative; z-index:1000; margin-left:5px;}
+	}
+ 
+.navigation li dt a , .navigation li dd a{ 
+	display:block;
+	}
+ 
+ 
+/* 設置主選單dt */
+.navigation li dt {	
+	background-image:url('/images/New_ui/dropdown_bt.png');
+	padding-top:8px;
+	padding-right:8px;
+	text-align:center;
+	/*background-color:transparent;*/
+	font-size: 13px;
+	font-weight: bold;
+	height:24px;
+	overflow:hidden;	
+	}
+ 
+.navigation li dt:hover{
+	background-image:url('/images/New_ui/dropdown_btover.png');
+	background-color:transparent;
+}
+ 
+.navigation li dt a ,.navigation  li dt a:visited {
+	display:block; 
+    color:#fff;
+	}
+ 
+/* 設置子選單dd */
+.navigation li dd { 
+	margin:0;
+	/*padding:0;*/
+	color: #fff; 
+	background-color:#333;
+	border-bottom:solid 1px #666;
+	width:140px;
+	}
+ 
+.navigation li dd.last {
+	border-bottom:0;
+	}	
+ 
+.navigation li dd a, .navigation  li dd a:visited {
+	display:block; 
+	color:#fff; 
+	padding:4px 5px 4px 5px;
+    }
+ 
+ 
+/*隱藏子選單*/
+.navigation li dd { 
+	display:none;
+	}
+ 
+ 
+/* 滑鼠滑入顯示子選單 */
+.navigation li:hover dd, .navigation li a:hover dd { 
+	cursor:pointer;
+	display:block;
+}
 
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3
-	{ display:none; margin:0; padding:0; list-style:none; position:absolute; left:145px; top:-2px; padding:1px 1px 0 1px; background:#ffffff; z-index:900; }
-ul#navigation-1 li ul.navigation-2 li:hover ul.navigation-3
-	{ display:block; }
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3 li a:link,
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3 li a:visited
-	{ background:#b9121b; }
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3 li:hover a,
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3 li a:hover,
-ul#navigation-1 li ul.navigation-2 li ul.navigation-3 li a:active
-	{ background:#ec454e; }
-ul#navigation-1 li ul.navigation-2 li a span
-	{ position:absolute; top:0; left:132px; font-size:12pt; color:#fe676f; }
-ul#navigation-1 li ul.navigation-2 li:hover a span,
-ul#navigation-1 li ul.navigation-2 li a:hover span
-	{ position:absolute; top:0; left:132px; font-size:12pt; color:#ffffff; }
+.navigation li dd:hover{
+	text-decoration:underline;
+	background-color:#065280;
+}

@@ -68,6 +68,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_bss_enabled", "1"},		/* Service set ID (network name) */
 						/* See "default_get" below. */
 //	{ "wl_country_code", ""},		/* Country Code (default obtained from driver) */
+	{ "wl_country_rev", "", 0 },		/* Regrev Code (default obtained from driver) */
 	{ "wl_radio", "1"},			/* Enable (1) or disable (0) radio */
 	{ "wl_closed", "0"},			/* Closed (hidden) network */
 	{ "wl_ap_isolate", "0"},		/* AP isolate mode */
@@ -101,16 +102,17 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_macmode", "disabled"},		/* "allow" only, "deny" only, or "disabled"
 						 * (allow all)
 						 */
+#ifndef RTCONFIG_BCMWL6
 	{ "wl_channel", "0"},			/* Channel number */
-#ifdef MEDIA_REVIEW
-#ifndef RTCONFIG_RALINK
-	{ "wl1_channel", "48"},
-#endif
+#else
+	{ "wl_chanspec", "0"},			/* Channel specification */
 #endif
 #ifndef RTCONFIG_RALINK
 	{ "wl_reg_mode", "off"},		/* Regulatory: 802.11H(h)/802.11D(d)/off(off) */
+#if 0
 	{ "wl_dfs_preism", "60"},		/* 802.11H pre network CAC time */
 	{ "wl_dfs_postism", "60"},		/* 802.11H In Service Monitoring CAC time */
+#endif
 	/* Radar thrs params format: version thresh0_20 thresh1_20 thresh0_40 thresh1_40 */
 	{ "wl_radarthrs", "0 0x6a8 0x6c8 0x6ac 0x6c7"},
 	{ "wl_rate", "0"},			/* Rate (bps, 0 for auto) */
@@ -127,11 +129,7 @@ struct nvram_tuple router_defaults[] = {
 #else
 	{ "wl_mrate_x", "0", 0 },		/* ralink auto rate */
 #endif
-#ifndef RTCONFIG_RALINK
-	{ "wl_rateset", "12"},			/* "default" or "all" or "12" */
-#else
-	{ "wl_rateset", "default"},
-#endif
+	{ "wl_rateset", "default"},		/* "default" or "all" or "12" */
 	{ "wl_frag", "2346"},			/* Fragmentation threshold */
 	{ "wl_rts", "2347"},			/* RTS threshold */
 #ifndef RTCONFIG_RALINK
@@ -151,21 +149,29 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_antdiv", "-1"},			/* Antenna Diversity (-1|0|1|3) */
 //	{ "wl_interfmode", "2"},		/* Interference mitigation mode (2/3/4) */
 	{ "wl_infra", "1"},			/* Network Type (BSS/IBSS) */
+#ifndef RTCONFIG_BCMWL6
 	{ "wl_nbw_cap", "0"},			/* BW Cap; def 20inB and 40inA */
+#else
+	{ "wl_bw_cap", "1", 0},			/* BW Cap; 20 MHz */
 #endif
+#endif
+#ifndef RTCONFIG_BCMWL6
 	{ "wl_nctrlsb", "lower"},		/* N-CTRL SB */
+#endif
 	{ "wl_nband", "2"},
 	{ "wl0_nband", "2"},
 	{ "wl1_nband", "1"},
 #ifndef RTCONFIG_RALINK
 	{ "wl_nmcsidx", "-1"},			/* MCS Index for N - rate */
 	{ "wl_nmode", "-1"},			/* N-mode */
+	{ "wl_rifs", "auto"},
 	{ "wl_rifs_advert", "auto"},		/* RIFS mode advertisement */
 	{ "wl_nreqd", "0"},			/* Require 802.11n support */
+	{ "wl_tpc_db", "0"},
 #endif
 	{ "wl_nmode_protection", "auto"},	/* 802.11n Protection */
 #ifndef RTCONFIG_RALINK
-	{ "wl_mimo_preamble", "auto"},		/* Mimo PrEamble */
+//	{ "wl_mimo_preamble", "gfbcm"},		/* Mimo PrEamble: mm/gf/auto/gfbcm */
 #else
 	{ "wl_mimo_preamble", "mm"},
 #endif
@@ -192,14 +198,15 @@ struct nvram_tuple router_defaults[] = {
 	/* WPA parameters */
 	{ "wl_auth_mode", "none"},		/* Network authentication mode (radius|none) */
 	{ "wl_wpa_psk", ""},			/* WPA pre-shared key */
-	{ "wl_wpa_gtk_rekey", "0"},		/* GTK rotation interval */
+	{ "wl_wpa_gtk_rekey", "3600"},		/* GTK rotation interval */
 	{ "wl_radius_ipaddr", ""},		/* RADIUS server IP address */
 	{ "wl_radius_key", "" },		/* RADIUS shared secret */
 	{ "wl_radius_port", "1812"},		/* RADIUS server UDP port */
 	{ "wl_crypto", "tkip+aes"},		/* WPA data encryption */
 	{ "wl_net_reauth", "36000"},		/* Network Re-auth/PMK caching duration */
 	{ "wl_akm", ""},			/* WPA akm list */
-	
+	{ "wl_psr_mrpt", "0", 0 },		/* Default to one level repeating mode */
+#ifdef RTCONFIG_WPS
 	/* WSC parameters */
 	{ "wps_version2", "enabled"},		/* Must specified before other wps variables */
 	{ "wl_wps_mode", "enabled"},		/* enabled wps */
@@ -231,6 +238,7 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "lan1_wps_oob", "enabled"},
 	{ "lan1_wps_reg", "enabled"},
+#endif /* CONFIG_WPS */
 #ifdef __CONFIG_WFI__
 	{ "wl_wfi_enable", "0"},		/* 0: disable, 1: enable WifiInvite */
 	{ "wl_wfi_pinmode", "0"},		/* 0: auto pin, 1: manual pin */
@@ -273,27 +281,32 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_nas_dbg", "0"},			/* Enable/Disable NAS Debugging messages */
 #endif
 
+	{ "emf_enable", "0"},			/* it is common entry for all platform now */
+						/* broadcom: enable mrate, wmf_bss_enable   */
+						/* ralink: enable mrate, IgmpSnEnable	    */
 #ifdef __CONFIG_EMF__
 	/* EMF defaults */
 	{ "emf_entry", ""},			/* Static MFDB entry (mgrp:if) */
 	{ "emf_uffp_entry", ""},		/* Unreg frames forwarding ports */
 	{ "emf_rtport_entry", ""},		/* IGMP frames forwarding ports */
-	{ "emf_enable", "0"},			/* Enable EMF by default */
 #endif /* __CONFIG_EMF__ */
 
 	// ASUS used only?	
 	{ "wl_nmode_x", 		"0"	},	/* 0/1/2, auto/nonly,bgmixed*/
-	{ "wl_bw", 			"0"	},
-	{ "wl0_bw", "0"},
-	{ "wl1_bw", "1"},
+#ifdef RTCONFIG_BCMWL6
+	{ "wl_bw", 			"0"	},	/* 0/1/2/3 auto/20/40/80MHz */
+#else
+	{ "wl_bw",			"1"	},	/* 0/1/2 20, 20/40, 40MHz */
+#endif
 	{ "wl_auth_mode_x", 		"open"	},
 // open/shared/psk/wpa/radius
 	{ "wl_wpa_mode", 		"0"	},
 // 0/1/2/3/4/5 psk+psk2/psk/psk2/wpa/wpa2/wpa+wpa2
 	{ "wl_wep_x", 			"0"	},
 // WEP data encryption 0, 1, 2 : disabled/5/13
-	{ "wl_radio_date_x", "1111111", 0 	},
-	{ "wl_radio_time_x", "00002359", 0 	},
+	{ "wl_radio_date_x", "1111111"  	},
+	{ "wl_radio_time_x", "00002359"  	},
+	{ "wl_radio_time2_x", "00002359" 	},
 	{ "wl_infra",			"1"	},	// Network Type (BSS/IBSS)
 	{ "wl_phrase_x",		""	},	// Passphrase	// Add
 	{ "wl_lanaccess", 		"off"   },
@@ -302,22 +315,30 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_TxPower",			"100" 	},
 #else
 //	{ "wl_TxPower", 		"0"	},
-	{ "wl_TxPower",			"40"	},
+	{ "wl_TxPower",			"80"	},
 #endif
 
-#ifdef RTCONFIG_WIRELESSREPEATER
-	{ "wlc_list",			""},
-	{ "wlc_band",			""},
-	{ "wlc_ssid", 			""},
-	{ "wlc_wep",			""},
-	{ "wlc_key",			""},
-	{ "wlc_wep_key",		""},
-	{ "wlc_auth_mode", 		""},
-	{ "wlc_crypto", 		""},
-	{ "wlc_wpa_psk",		""},
-	{ "wlc_nbw_cap", 		""},
-	{ "wlc_ure_ssid",		""},
+#if defined (RTCONFIG_WIRELESSREPEATER) || defined (RTCONFIG_PROXYSTA)
+	{ "wlc_list",			""	},
+	{ "wlc_band",			""	},
+	{ "wlc_ssid", 			""	},
+	{ "wlc_wep",			""	},
+	{ "wlc_key",			""	},
+	{ "wlc_wep_key",		""	},
+	{ "wlc_auth_mode", 		""	},
+	{ "wlc_crypto", 		""	},
+	{ "wlc_wpa_psk",		""	},
+#ifndef RTCONFIG_BCMWL6
+	{ "wlc_nbw_cap", 		""	},
+#else
+	{ "wlc_bw_cap",			""	},
 #endif
+	{ "wlc_ure_ssid",		""	},
+#endif
+#ifdef RTCONFIG_PROXYSTA
+	{ "wlc_psta",			"0"	},
+#endif
+
 	// WPA parameters
 #ifdef RTCONFIG_RALINK
 	{ "wl_PktAggregate", "1" },	// UI configurable
@@ -380,7 +401,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_wds_timeout",		"1"		},	// WDS link detection interval defualt 1 sec*/
 
 	{ "wl_mode_x", "0"},   					// 0/1/2(ap/wds/hybrid)
-	{ "wl_wdsapply_x", "0"},
+	{ "wl_wdsapply_x", "1"},
 	{ "wl_wdslist", ""}, 					// xxxxxxxxxxxx ...
 
 
@@ -393,7 +414,59 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_radius_ipaddr",		""		},	// RADIUS server IP address
 	{ "wl_radius_key",		""		},	// RADIUS shared secret
 	{ "wl_radius_port",		"1812"		},	// RADIUS server UDP port
-	
+
+#ifdef CONFIG_BCMWL5
+#if 0
+	/* BCM WL ACI start */
+	{ "acs_ifnames", "", 0  },
+	/* Add Media router ACI nvrma parameters here */
+	{ "acs_daemon", "up", 0 },	/* Enable (up) or disable (down) ACI mitigation */
+	{ "acs_mode", "3", 0 },		/* acs mode: 0:off, 1: monitor only, 3: migration */
+	{ "acs_log", "1", 0 },			/* Turn ACI log level */
+	{ "acs_sleep_interval", "4", 0 }, 	/* Seconds to sleep between scans */
+	{ "acs_chan_dwell_thld", "5", 0 },		/* channel dwell minimum time */
+
+	/* Channels to unconditionally exclude from use */
+	{ "acs_ex_chans", "140, 124, 116, 100, 64, 56, 48, 46, 42, 40, 38, 34", 0 },
+
+	{ "acs_prf_dcs_chans", " ", 0 },	/* DCS prefered chan list (none) */
+	{ "acs_prf_ics_chans", "132, 108, 52, 157, 36", 0 },	/* Prefer ICS chan list */
+	{ "acs_ics_dfs_enable", "1", 0 },	/* Enable IVS to select DFS chan */
+	{ "acs_dcs_dfs_enable", "0", 0 },	/* Disbale DCS select DFS channel */
+
+	{ "acs_glitch_thld", "3000", 0 },	/* Glitch counts/sec for chan switch threshold */
+
+	{ "acs_per_thld", "0.5", 0 },		/* PER threshold in percentage */
+	{ "acs_pdr_thld", "20", 0 },		/* PDR threshold in percentage */
+	{ "acs_pder_sample_period_thld", "2", 0 }, /* no of loops to get one PER sample */
+	{ "acs_pder_samples_thld", "2", 0 }, /* No of PER samples to check video interference */
+	{ "acs_pder_enable", "1", 0 },	/* Enable PER/PDR detection */
+
+	{ "acs_chan_os_switch_thld ", "2", 0 },	 /* how many times to switch to one channel */
+	{ "acs_chan_os_dewell_thld", "201", 0 }, /* no of loops for chan is oscillating */
+
+	{ "acs_co_chan_thld", "2", 0 },	/* No of co-chan APs to consider channel usable */
+
+	{ "acs_dfs_ir_switch_thld", "10", 0 },	/* DFS Immediate Reentry chan switch threshold */
+	{ "acs_dfs_ir_time_thld", "30", 0 },	/* DFS Immediate Reentry time period */
+	{ "acs_dfs_dr_switch_thld", "24", 0 },	 /* DFS Immediate Reentry chan switch threshold */
+	{ "acs_dfs_dr_time_thld", "43", 0 },	/* DFS Immediate Reentry time period */
+	{ "acs_dr_enable", "1", 0 },		/* STA enable for DFS Deferred Reentry */
+
+	{ "acs_bw4020_dwell_thld", "3", 0 },	/* loop counters for 20/40 rssi check */
+	{ "acs_bw4020_min_rssi_thld", "-75", 0 },	/* min rssi to switch to BW20M */
+	{ "acs_bw2040_max_rssi_thld", "-70", 0 },	/* max rssi to swicth to BW40M */
+
+	{ "acs_lowband_lo_rssi_thld", "-67", 0 },	/* Not lowband chan select if rssi<thld */
+	{ "acs_lowband_hi_rssi_thld", "-76", 0 },	/* force to select highband if rssi<thld */
+	{ "acs_nodcs_rssi_thld", "-78", 0 },		/* No DCS if rssi<thld */
+	/* BCM WL ACI end */
+#endif
+	{ "dpsta_ifnames", "", 0  },
+	{ "dpsta_policy", "1", 0  },
+	{ "dpsta_lan_uif", "1", 0  },
+#endif
+
 	// make sure its purpose
 	// advanced-ctnf
 	{ "ct_tcp_timeout",		""},
@@ -404,6 +477,9 @@ struct nvram_tuple router_defaults[] = {
 #ifdef CONFIG_BCMWL5
 	{ "ctf_disable",		"0"		},
 	{ "ctf_disable_force", 		"0"		},
+#endif
+#ifdef RTCONFIG_BCMWL6
+	{ "pktc_disable", 		"0"		},
 #endif
 
 	// NVRAM for start_lan: 
@@ -496,7 +572,7 @@ struct nvram_tuple router_defaults[] = {
 #endif
 
 #ifdef RTCONFIG_RALINK
-#if defined (W7_LOGO) || defined (WIFI_LOGO)
+#if defined (W7_LOGO) || defined (WIFI_LOGO) || defined(RTCONFIG_DSL)
         { "hwnat", "0"},
 #else
         { "hwnat", "1"},
@@ -508,21 +584,23 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_enable", "1"},
 	// NVRAM for start_wan_if
 	/* WAN H/W parameters */
-	{ "wan_primary", "0"},		/* Primary wan connection */
-	{ "wan0_primary", "1"}, 	/* unit 0 is always primary one */
 	{ "wan_hwname", ""},		/* WAN driver name (e.g. et1) */
 	{ "wan_hwaddr", ""},		/* WAN interface MAC address */
+	{ "wan_phytype", ""},
 
 	/* WAN TCP/IP parameters */
 	{ "wan_proto", "dhcp"},		/* [static|dhcp|pppoe|pptp/l2tp|disabled] */
 	{ "wan_nat_x", "1"},
 	{ "wan_dhcpenable_x", "1"  }, 	// replace x_DHCPClient
 	{ "wan_ipaddr_x", "0.0.0.0"},	/* WAN IP address */
+	{ "wan_ipaddr", "0.0.0.0"},
 	{ "wan_netmask_x", "0.0.0.0"},	/* WAN netmask */
 	{ "wan_gateway_x", "0.0.0.0"},	/* WAN gateway */
+	{ "wan_gateway", "0.0.0.0"},
 	{ "wan_dnsenable_x", "1"},
 	{ "wan_dns1_x", ""},		/* x.x.x.x x.x.x.x ... */
 	{ "wan_dns2_x", ""},
+	{ "wan_dns", ""},
 	// { "wan_wins", ""},		/* x.x.x.x x.x.x.x ... */
 	{ "wan_heartbeat_x", ""}, 	/* VPN Server */
 	{ "wan_hostname", ""},		/* WAN hostname */
@@ -552,13 +630,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_upnp_enable", "1"}, 	// upnp igd
 	{ "wan_pppoe_relay", "0" },
 
-	// Multi WAN
-	{ "wan0_weight", "3"},
-	{ "wan1_weight", "1"},
-	{ "wan1_enable", "1"},
-	{ "wan1_primary", "0"},
-	{ "wan1_dnsenable_x", "1"},
-
 	// VPN+DHCP, a sperated nvram to control this function
 	{ "wan_vpndhcp", "1"},
 
@@ -572,22 +643,154 @@ struct nvram_tuple router_defaults[] = {
 	{ "upnp_clean_interval", "600" },
 	{ "upnp_clean_threshold", "20" },
 
+#ifdef RTCONFIG_DUALWAN // RTCONFIG_DUALWAN
+	{ "wans_mode", "fo" }, 		// off/failover/loadbance/routing(off/fo/lb/rt)
 #ifdef RTCONFIG_DSL
-	{ "wans_cap", "dsl"}, 		// dsl/dsl lan/dsl usb/lan usb
-	{ "wans_dualwan", "dsl"},
+	{ "wans_dualwan", "dsl usb"},
 #else
-	{ "wans_cap", "wan"},		// wan/wan lan/wan usb
-	{ "wans_dualwan", "wan"},
+	{ "wans_dualwan", "wan usb"},
 #endif
-	{ "wans_lanport", "0"},
-	{ "wans_primary", "0"},	
-	{ "wans_mode", "fb" }, 		// failover/loadbance/routing(fb/lb/rt)
-	{ "wans_lb_ratio", "1/1" }, 	// only support two wan simutaneously
+	{ "wans_disconn_time", "60" }, 	// when disconning, max waited time for switching.
+	{ "wans_lanport", "1"},
+	{ "wans_lb_ratio", "3:1" }, 	// only support two wan simutaneously
+	{ "wans_routing_enable", "0" },
+	{ "wans_routing_rulelist", "" },
+	{ "wan0_routing_isp_enable", "0" },
+	{ "wan0_routing_isp", "china_mobile" },
+	{ "wan1_routing_isp_enable", "0" },
+	{ "wan1_routing_isp", "china_mobile" },
+#else
+	{ "wans_disconn_time", "60" }, 	// when disconning, max waited time for switching.
+#endif // RTCONFIG_DUALWAN
 
 #ifdef RTCONFIG_DSL
-	{ "dsl_modulation", "5" },
-	{ "dsl_annex", "0" },
-	{ "dsl_config", ""}, 
+	{ "dslx_modulation", "5" }, // multiple mode
+	{ "dslx_annex", "4" }, // AIJLM
+// the following variables suppose can be removed
+	{ "dslx_nat", "1" },	
+	{ "dslx_upnp_enable", "1" },	
+	{ "dslx_link_enable", "1" },	
+	{ "dslx_DHCPClient", "1" },
+	{ "dslx_dhcp_clientid", "" },	//Required by some ISP using RFC 1483 MER.
+	{ "dslx_ipaddr", "0.0.0.0"},	/* IP address */
+	{ "dslx_netmask", "0.0.0.0"},	/* netmask */
+	{ "dslx_gateway", "0.0.0.0"},	/* gateway */
+	{ "dslx_dnsenable", "1"},
+	{ "dslx_dns1", ""},
+	{ "dslx_dns2", ""},	
+// now use switch_stb_x	
+	{ "dslx_pppoe_username", ""},
+	{ "dslx_pppoe_passwd", ""},
+	// this one is no longer to use
+	//{ "dslx_pppoe_dial_on_demand", ""},
+	{ "dslx_pppoe_idletime", "0"},
+	{ "dslx_pppoe_mtu", "1492"},
+	// this one is no longer to use	
+//	{ "dslx_pppoe_mru", ""},
+	{ "dslx_pppoe_service", ""},
+	{ "dslx_pppoe_ac", ""},
+	{ "dslx_pppoe_options", ""},	
+	{ "dslx_hwaddr", ""},
+//	
+	{ "dsl_unit", "0"}, 
+//
+	{ "dsl_enable", ""},
+	{ "dsl_vpi", ""},
+	{ "dsl_vci", ""},
+	{ "dsl_encap", ""},
+	{ "dsl_proto", ""},
+	
+	/* Paul modify 2012/7/13, set default Service Category to UBR with PCR, with PCR set to maximum allowed value 1887. *
+	 * In order to fix DL/UL throughput issue with some QoS-enabled PVC, it should not affect QoS-disabled PVC. */
+	{ "dsl_svc_cat", "1"},
+	{ "dsl_pcr", "1887"},
+	
+	{ "dsl_scr", ""},
+	{ "dsl_mbs", ""},
+// those PVC need to init first so that QIS internet/IPTV PVC setting could write to NVRAM
+	{ "dsl0_enable", "0"},
+	{ "dsl0_vpi", ""},
+	{ "dsl0_vci", ""},
+	{ "dsl0_encap", ""},
+	{ "dsl0_proto", ""},
+	{ "dsl0_svc_cat", ""},
+	{ "dsl0_pcr", ""},
+	{ "dsl0_scr", ""},
+	{ "dsl0_mbs", ""},
+//
+	{ "dsl1_enable", "0"},
+	{ "dsl1_vpi", ""},
+	{ "dsl1_vci", ""},
+	{ "dsl1_encap", ""},
+	{ "dsl1_proto", ""},
+	{ "dsl1_svc_cat", ""},
+	{ "dsl1_pcr", ""},
+	{ "dsl1_scr", ""},
+	{ "dsl1_mbs", ""},	
+//
+	{ "dsl2_enable", "0"},
+	{ "dsl2_vpi", ""},
+	{ "dsl2_vci", ""},
+	{ "dsl2_encap", ""},
+	{ "dsl2_proto", ""},
+	{ "dsl2_svc_cat", ""},
+	{ "dsl2_pcr", ""},
+	{ "dsl2_scr", ""},
+	{ "dsl2_mbs", ""},	
+//
+	{ "dsl3_enable", "0"},
+	{ "dsl3_vpi", ""},
+	{ "dsl3_vci", ""},
+	{ "dsl3_encap", ""},
+	{ "dsl3_proto", ""},
+	{ "dsl3_svc_cat", ""},
+	{ "dsl3_pcr", ""},
+	{ "dsl3_scr", ""},
+	{ "dsl3_mbs", ""},
+//
+	{ "dsl4_enable", "0"},
+	{ "dsl4_vpi", ""},
+	{ "dsl4_vci", ""},
+	{ "dsl4_encap", ""},
+	{ "dsl4_proto", ""},
+	{ "dsl4_svc_cat", ""},
+	{ "dsl4_pcr", ""},
+	{ "dsl4_scr", ""},
+	{ "dsl4_mbs", ""},
+//
+	{ "dsl5_enable", "0"},
+	{ "dsl5_vpi", ""},
+	{ "dsl5_vci", ""},
+	{ "dsl5_encap", ""},
+	{ "dsl5_proto", ""},
+	{ "dsl5_svc_cat", ""},
+	{ "dsl5_pcr", ""},
+	{ "dsl5_scr", ""},
+	{ "dsl5_mbs", ""},
+//
+	{ "dsl6_enable", "0"},
+	{ "dsl6_vpi", ""},
+	{ "dsl6_vci", ""},
+	{ "dsl6_encap", ""},
+	{ "dsl6_proto", ""},
+	{ "dsl6_svc_cat", ""},
+	{ "dsl6_pcr", ""},
+	{ "dsl6_scr", ""},
+	{ "dsl6_mbs", ""},
+//
+	{ "dsl7_enable", "0"},
+	{ "dsl7_vpi", ""},
+	{ "dsl7_vci", ""},
+	{ "dsl7_encap", ""},
+	{ "dsl7_proto", ""},
+	{ "dsl7_svc_cat", ""},
+	{ "dsl7_pcr", ""},
+	{ "dsl7_scr", ""},
+	{ "dsl7_mbs", ""},	
+// number of PVC , program generated
+	{ "dslx_config_num", "0"},
+// for debug , program generated
+	{ "dslx_debug", "0"},	
 #endif
 
 	// NVRAM for start_firewall/start_qos
@@ -622,7 +825,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vts_enable_x", "0"},
 	{ "vts_rulelist", ""},
 	{ "vts_upnplist", ""},
-	{ "vts_ftpport", "21"},
+	{ "vts_ftpport", "2021"},
 
 	// DMZ
 	{ "dmz_ip", "" },
@@ -659,8 +862,13 @@ struct nvram_tuple router_defaults[] = {
 	{ "fw_pt_l2tp", "1" },
 	{ "fw_pt_ipsec", "1" },
 #else
+#ifdef RTCONFIG_DSL /* Paul add 2012/7/20, enable L2TP and IPSec Passthrough by default for DSL model. */
+	{ "fw_pt_l2tp", "1" },
+	{ "fw_pt_ipsec", "1" },
+#else
 	{ "fw_pt_l2tp", "0" },
 	{ "fw_pt_ipsec", "0" },
+#endif
 #endif
 	{ "fw_pt_rtsp", "1" },
 	{ "fw_pt_pppoerelay", "0"},
@@ -679,7 +887,12 @@ struct nvram_tuple router_defaults[] = {
 	{ "url_enable_x_1", "0"},
 	{ "url_time_x_1", "00002359"},
 	{ "url_rulelist", "" },
-	{ "url_keywordlist", ""},
+
+	// KeywordList
+	{ "keyword_enable_x", "0"},
+	{ "keyword_date_x", "1111111"},
+	{ "keyword_time_x", "00002359"},
+	{ "keyword_rulelist", ""},
 
 	// MFList
 	{ "macfilter_enable_x", "0"},
@@ -690,6 +903,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "fw_lw_enable_x", "0"},
 	{ "filter_lw_date_x", "1111111"},
 	{ "filter_lw_time_x", "00002359"},
+	{ "filter_lw_time2_x", "00002359"},
 	{ "filter_lw_default_x", "ACCEPT"},
 	{ "filter_lw_icmp_x", ""},
 	{ "filter_lwlist", ""},
@@ -731,6 +945,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_fs_fat", "1"},
 #ifdef RTCONFIG_NTFS
 	{ "usb_fs_ntfs", "1"},
+	{ "usb_fs_ntfs_sparse", "0"},
 #ifdef RTCONFIG_NTFS3G
 	{ "usb_fs_ntfs3g", "1"},
 #endif
@@ -759,14 +974,13 @@ struct nvram_tuple router_defaults[] = {
 	{ "console_loglevel", "1"},	/* <= KERN_ALERT */
 
 #ifdef RTCONFIG_JFFS2
-	{ "jffs2_on", "0" },
+	{ "jffs2_on", "1" },
 	{ "jffs2_exec", "" },
 #endif
 
 #ifdef RTCONFIG_USB
 	{ "acc_num", "1"},
-	{ "acc_username0", "admin"},
-	{ "acc_password0", "admin"},
+	{ "acc_list", "admin>admin"},
 	{ "st_samba_mode", "1"},
 	{ "st_ftp_mode", "1"},
 	{ "enable_ftp", "0"},
@@ -777,15 +991,23 @@ struct nvram_tuple router_defaults[] = {
 	{ "ftp_lang", "EN" },
 
 #ifdef RTCONFIG_WEBDAV
-	{ "enable_webdav", "1"},
-	{ "st_webdav_mode", "1"},
+	{ "enable_webdav", "0"}, // 0: Disable, 1: enable
+	{ "st_webdav_mode", "2"}, // 0: http, 1: https, 2: both
 	{ "webdav_proxy", "0"},
-	{ "webdav_https_port", "8445"},
+	{ "webdav_aidisk", "0"},
+	{ "webdav_http_port", "8082"},
+	{ "webdav_https_port", "443"},
+	{ "acc_webdavproxy", "admin>1"}, //0: Only show USBDisk, 1: show USBDisk and Smb pc
+#endif
+
+#ifdef RTCONFIG_CLOUDSYNC
+	{ "enable_cloudsync", "0" },
+	{ "cloud_sync", ""},
 #endif
 #endif
 
 #ifdef RTCONFIG_HTTPS
-	{ "https_lanport", "443"},
+	{ "https_lanport", "8443"},
 	{ "https_crt_file", ""},
 	{ "https_crt_save", "0"},
 	{ "https_crt_gen", "1"},
@@ -796,7 +1018,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "dms_enable", "1" 	},
 	{ "dms_rescan", "1"   	},
 	{ "dms_port", "8200" 	},
-	{ "dms_dbdir", ""	},
+	{ "dms_dbdir", "/var/cache/minidlna"	},
+	{ "dms_dir", "/tmp/mnt" },
 	{ "dms_tivo", "0"	},
 	{ "dms_stdlna", "0"	},
 	{ "dms_sas", 	"0"	},
@@ -839,6 +1062,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "http_username", "admin" },
 	{ "http_passwd", "admin" },
 	{ "http_enable", "0"}, // 0: http, 1: https, 2: both
+	{ "http_client", "0"},
+	{ "http_clientlist", "0"},
 
 	{ "temp_lang", ""},
 
@@ -848,10 +1073,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "r_Setting", "0"},		// is repeater set
 	{ "w_Setting", "0"},		// is wilreess set
 
-	{ "asus_mfg", ""},		// 2008.03 James.
+	{ "asus_mfg", "0"},		// 2008.03 James.
 	{ "asus_mfg_flash", ""},	// 2008.03 James.
 	{ "btn_rst", "0"},		// 2008.03 James.
 	{ "btn_ez", "0"},		// 2008.03 James.
+	{ "btn_ez_radiotoggle", "0"},  // Turn WPS into radio toggle
 
 	 /* APCLI/STA parameters */
 	#if 0
@@ -877,16 +1103,19 @@ struct nvram_tuple router_defaults[] = {
 	{ "telnetd_enable", "0"},
 
 	{ "Dev3G", "AUTO"},
-	{ "modem_enable", "1"},
+	{ "modem_enable", "1"}, // 0: disabled, 1: WCDMA, 2: CDMA2000, 3: TD-SCDMA, 4: WiMAX.
 	{ "modem_pincode", ""},
-	{ "modem_apn", "Internet"},
+	{ "modem_apn", "internet"},
 	{ "modem_country", ""},
 	{ "modem_isp", ""},
 	{ "modem_dialnum", "*99#"},
 	{ "modem_user", ""},
 	{ "modem_pass", ""},
+	{ "modem_ttlsid", ""},
 	{ "modem_running", "0"},
-	{ "modem_mode", "1"},
+#ifdef RTCONFIG_USB_MODEM_PIN
+	{ "modem_pincode_opt", "1"},
+#endif
 
 	{ "udpxy_enable_x", "0"},
 
@@ -926,29 +1155,30 @@ struct nvram_tuple router_defaults[] = {
 #if defined(RTCONFIG_PPTPD) || defined(RTCONFIG_ACCEL_PPTPD)
 	{"pptpd_enable", 	"0"},
 	{"pptpd_broadcast", 	"disable"},
-	{"pptpd_forcemppe",	"auto"},
+	{"pptpd_chap", 		"0"},	 // 0/1/2(Auto/MS-CHAPv1/MS-CHAPv2)
+	{"pptpd_mppe", 		"0"}, 	 // 1|2|4|8(MPPE-128|MPPE-56|MPPE-40|No Encryption)
 	{"pptpd_dns1", 		""},
 	{"pptpd_dns2", 		""},
 	{"pptpd_wins1", 	""},
 	{"pptpd_wins2", 	""},
 	{"pptpd_server", 	""},
-	{"pptpd_clients", 	""},
+	{"pptpd_clients", 	"192.168.10.2-11"},
 	{"pptpd_clientlist", 	""},
 #endif
 
 #ifdef RTCONFIG_IPV6
 	// IPv6 parameters
-	{ "ipv6_service",	"disabled"	},	// disabled/staic6/dhcp6/6to4/6in4/6rd
+	{ "ipv6_service",	"disabled"	},	// disabled/staic6/dhcp6/6to4/6in4/6rd/other
 	{ "ipv6_ifdev",		"ppp"		},	
 	{ "ipv6_prefix",	""		},	// The global-scope IPv6 prefix to route/advertise
 	{ "ipv6_prefix_length",	"64"		},	// The bit length of the prefix. Used by dhcp6c. For radvd, /64 is always assumed.
 	{ "ipv6_rtr_addr",	""		},	// defaults to $ipv6_prefix::1
-#if 0
-	{ "ipv6_ipaddr",	""		},
-#endif
+	{ "ipv6_prefix_len_wan","64"		},	// used in ipv6_service other
+	{ "ipv6_ipaddr",	""		},	// used in ipv6_service other
+	{ "ipv6_gateway",	""		},	// used in ipv6_service other
 	{ "ipv6_radvd",		"1"		},	// Enable Router Advertisement (radvd)
 	{ "ipv6_accept_ra",	"1"		},	// Accept RA from WAN (0x1) / LAN (0x2)
-	{ "ipv6_dhcpph",	"1"		}, 	// Prefix Deligation
+	{ "ipv6_dhcppd",	"1"		}, 	// Prefix Deligation
 	{ "ipv6_ifname",	"six0"		},	// The interface facing the rest of the IPv6 world
 	{ "ipv6_relay",		"192.88.99.1"	},	// IPv6 Anycast Address
 	{ "ipv6_tun_v4end",	"0.0.0.0"	},	// Foreign IPv4 endpoint of SIT tunnel
@@ -969,8 +1199,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_dns3",		""		},
 #endif
 	{ "ipv6_get_dns",	""		},	// DNS IP address which get by dhcp6c
-	{ "ipv6_dnsenable",	""		},
-	{ "ipv6_debug",		"1"		},
+	{ "ipv6_dnsenable",	"1"		},
+	{ "ipv6_debug",		"0"		},
 #endif
 
 	{ "web_redirect", 	"1"		},      // Only NOLINK is redirected in default, it is overwrited in init_nvram			
@@ -981,16 +1211,29 @@ struct nvram_tuple router_defaults[] = {
 #ifdef RTCONFIG_SHP
 	{ "lfp_disable", 		"0"},
 #endif
-#ifdef RTCONFIG_TRAFFIC_METER
-	{ "traffic_meter",		"disable"},
-	{ "TM_limit",			"0"},
-	{ "TM_day_rx",			"0"},
-        { "TM_day_tx",                  "0"},
-        { "TM_month_rx",		"0"},
-        { "TM_month_tx",                "0"},
+#ifdef RTCONFIG_ISP_METER
+	{ "isp_meter",			"disable"},
+	{ "isp_limit",			"0"},
+	{ "isp_day_rx",			"0"},
+        { "isp_day_tx",                 "0"},
+        { "isp_month_rx",		"0"},
+        { "isp_month_tx",               "0"},
+	{ "isp_limit_time",		"0"},
+	{ "isp_connect_time",		"0"},
 #endif
-	{ "ate_power_on_off_enable",	"0"},
-	{ "ate_reboot_count",		"0"},
+	{ "Ate_version",	      "1.0"},
+	{ "Ate_power_on_off_ver",     "2.2"},
+	{ "Ate_power_on_off_enable",	"0"},
+	{ "Ate_reboot_count",	      "100"},
+	{ "Ate_rc_check",               "0"},
+	{ "Ate_dev_check",		"0"},
+	{ "Ate_boot_check",             "0"},
+	{ "Ate_total_fail_check",	"0"},
+	{ "Ate_dev_fail",		"0"},
+	{ "Ate_boot_fail",		"0"},
+	{ "Ate_total_fail",	       "10"},
+	{ "Ate_continue_fail",		"3"},
+	{ "dev_fail_reboot",		"3"},
 	// Wireless parameters
 	{ NULL, NULL    }
 };
@@ -1007,13 +1250,13 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "wan0_primary", "1" },
 	{ "wan1_primary", "0" },
 	{ "wan_pppoe_ifname", "" },
-	{ "wan_pppd_pid", "" },
 	{ "wan_state_t", "0" },
 	{ "wan_sbstate_t", "0" },	// record substate for each wan state
 	{ "wan_auxstate_t", "0" },	// which is maintained by wanduck
 	{ "wan_proto_t", "" },
 	{ "nat_state", "0"},
 	{ "link_wan", ""},
+	{ "link_wan1", ""},
 #ifdef RTCONFIG_IPV6
 	{ "wan_6rd_router",    ""	},
 	{ "wan_6rd_ip4size",   ""	},
@@ -1030,7 +1273,7 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "autodet_auxstate", "0"},
 	{ "invoke_later", "0"},
 
-#ifdef RTCONFIG_WIRELESSREPEATER
+#if defined (RTCONFIG_WIRELESSREPEATER) || defined (RTCONFIG_PROXYSTA)
 	// Wireless Client State
 	{ "wlc_state", "0"},
 	{ "wlc_sbstate", "0"},
@@ -1038,6 +1281,10 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "wlc_mode", "0"},
 #endif
 
+#ifdef RTCONFIG_MEDIA_SERVER
+	{ "dms_state", ""},
+ 	{ "dms_dbcwd", ""},
+#endif
 	// USB state
 	{ "usb_path1", "" },
 	{ "usb_path1_act", "" },
@@ -1046,7 +1293,9 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path1_manufacturer", "" },
 	{ "usb_path1_product", "" },
 	{ "usb_path1_serial", "" },
+	{ "usb_path1_removed", "0" },
 	{ "usb_path1_fs_path0", "" },
+#if 0
 	{ "usb_path1_fs_path1", "" },
 	{ "usb_path1_fs_path2", "" },
 	{ "usb_path1_fs_path3", "" },
@@ -1062,7 +1311,7 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path1_fs_path13", "" },
 	{ "usb_path1_fs_path14", "" },
 	{ "usb_path1_fs_path15", "" },
-	{ "usb_path1_removed", "0" },
+#endif
 
 	{ "usb_path2", "" },
 	{ "usb_path2_act", "" },
@@ -1071,7 +1320,9 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path2_manufacturer", "" },
 	{ "usb_path2_product", "" },
 	{ "usb_path2_serial", "" },
+	{ "usb_path2_removed", "0" },
 	{ "usb_path2_fs_path0", "" },
+#if 0
 	{ "usb_path2_fs_path1", "" },
 	{ "usb_path2_fs_path2", "" },
 	{ "usb_path2_fs_path3", "" },
@@ -1087,7 +1338,7 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path2_fs_path13", "" },
 	{ "usb_path2_fs_path14", "" },
 	{ "usb_path2_fs_path15", "" },
-	{ "usb_path2_removed", "0" },
+#endif
 
 	{ "usb_path3", "" },
 	{ "usb_path3_act", "" },
@@ -1096,7 +1347,9 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path3_manufacturer", "" },
 	{ "usb_path3_product", "" },
 	{ "usb_path3_serial", "" },
+	{ "usb_path3_removed", "0" },
 	{ "usb_path3_fs_path0", "" },
+#if 0
 	{ "usb_path3_fs_path1", "" },
 	{ "usb_path3_fs_path2", "" },
 	{ "usb_path3_fs_path3", "" },
@@ -1112,7 +1365,7 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "usb_path3_fs_path13", "" },
 	{ "usb_path3_fs_path14", "" },
 	{ "usb_path3_fs_path15", "" },
-	{ "usb_path3_removed", "0" },
+#endif
 
 	{ "apps_dev", "" },
 	{ "apps_mounted_path", "" },
@@ -1135,6 +1388,67 @@ struct nvram_tuple router_state_defaults[] = {
 
 	{ "ftp_ports", ""},
 
+#ifdef RTCONFIG_SWMODE_SWITCH
+	{ "swmode_switch", "0"},
+#endif
+	
+#ifdef RTCONFIG_DSL
+// name starting with 'dsl' are reserved for dsl unit
+// for temp variable please use dsltmp_xxx
+	{ "dsltmp_autodet_state", ""},
+	{ "dsltmp_autodet_vpi", "0"},	
+	{ "dsltmp_autodet_vci", "35"},
+	{ "dsltmp_autodet_encap", "0"},			
+// manually config	
+	{ "dsltmp_cfg_prctl", "0"},		
+	{ "dsltmp_cfg_vpi", "0"},	
+	{ "dsltmp_cfg_vci", "35"},		
+	{ "dsltmp_cfg_encap", "0"},			
+	{ "dsltmp_cfg_iptv_idx", ""},
+	{ "dsltmp_cfg_iptv_num_pvc", "0"},	
+	{ "dsltmp_cfg_ispname", ""},
+	{ "dsltmp_cfg_country", ""},
+// tmp variable for QIS , it will write to dsl0_xxx after finish page	
+	{ "dsltmp_qis_vpi", ""},
+	{ "dsltmp_qis_vci", ""},
+	{ "dsltmp_qis_proto", ""},
+	{ "dsltmp_qis_encap", ""},
+	{ "dsltmp_qis_pppoe_username", ""},
+	{ "dsltmp_qis_pppoe_passwd", ""},			
+	{ "dsltmp_qis_pppoe_dial_on_demand", ""},
+	{ "dsltmp_qis_pppoe_idletime", ""},
+	{ "dsltmp_qis_pppoe_mtu", ""},
+	{ "dsltmp_qis_pppoe_mru", ""},
+	{ "dsltmp_qis_pppoe_service", ""},
+	{ "dsltmp_qis_pppoe_options", ""},
+	{ "dsltmp_qis_DHCPClient", ""},
+	{ "dsltmp_qis_ipaddr", ""},
+	{ "dsltmp_qis_netmask", ""},
+	{ "dsltmp_qis_gateway", ""},	
+	{ "dsltmp_qis_dnsenable", ""},
+	{ "dsltmp_qis_dns1", ""},
+	{ "dsltmp_qis_dns2", ""},	
+	{ "dsltmp_qis_svc_cat", ""},
+	{ "dsltmp_qis_pcr", ""},	
+	{ "dsltmp_qis_scr", ""},		
+	{ "dsltmp_qis_mbs", ""},			
+	{ "dsltmp_qis_pppoe_relay", ""},			
+	{ "dsltmp_qis_hwaddr", ""},				
+	{ "dsltmp_qis_admin_passwd", ""},					
+	{ "dsltmp_qis_admin_passwd_set", "0"},
+	{ "dsltmp_qis_dsl_pvc_set", "0"},	
+// for DSL driver and tool
+	{ "dsltmp_tc_resp_to_d", ""},			
+	{ "dsltmp_adslatequit", "0"},
+	{ "dsltmp_tcbootup", "0"},	
+	{ "dsltmp_adslsyncsts", ""},	
+	{ "dsltmp_adslsyncsts_detail", ""},	
+// for web ui identify , 1=old ui, 2=asuswrt
+	{ "dsltmp_web_ui_ver", "2"},	
+#endif
+	{ "ddns_return_code", ""},
+	{ "ddns_return_code_chk", ""},
+	{ "reboot_time", "60"},	
 	{ NULL, NULL }
 };
 
@@ -1155,6 +1469,94 @@ const defaults_t if_vlan[] = {
 	{ NULL, NULL }
 };
 #endif
+
+struct nvram_tuple bcm4360ac_defaults[] = {
+	{ "pci/2/1/aa2g", "0", 0 },
+	{ "pci/2/1/aa5g", "7", 0 },
+	{ "pci/2/1/aga0", "71", 0 },
+	{ "pci/2/1/aga1", "71", 0 },
+	{ "pci/2/1/aga2", "71", 0 },
+	{ "pci/2/1/agbg0", "133", 0 },
+	{ "pci/2/1/agbg1", "133", 0 },
+	{ "pci/2/1/agbg2", "133", 0 },
+	{ "pci/2/1/antswitch", "0", 0 },
+	{ "pci/2/1/cckbw202gpo", "0", 0 },
+	{ "pci/2/1/cckbw20ul2gpo", "0", 0 },
+	{ "pci/2/1/dot11agofdmhrbw202gpo", "0", 0 },
+	{ "pci/2/1/femctrl", "3", 0 },
+	{ "pci/2/1/papdcap2g", "0", 0 },
+	{ "pci/2/1/tworangetssi2g", "0", 0 },
+	{ "pci/2/1/pdgain2g", "4", 0 },
+	{ "pci/2/1/epagain2g", "0", 0 },
+	{ "pci/2/1/tssiposslope2g", "1", 0 },
+	{ "pci/2/1/gainctrlsph", "0", 0 },
+	{ "pci/2/1/papdcap5g", "0", 0 },
+	{ "pci/2/1/tworangetssi5g", "0", 0 },
+	{ "pci/2/1/pdgain5g", "4", 0 },
+	{ "pci/2/1/epagain5g", "0", 0 },
+	{ "pci/2/1/tssiposslope5g", "1", 0 },
+	{ "pci/2/1/maxp2ga0", "76", 0 },
+	{ "pci/2/1/maxp2ga1", "76", 0 },
+	{ "pci/2/1/maxp2ga2", "76", 0 },
+	{ "pci/2/1/mcsbw202gpo", "0", 0 },
+	{ "pci/2/1/mcsbw402gpo", "0", 0 },
+	{ "pci/2/1/measpower", "0x7f", 0 },
+	{ "pci/2/1/measpower1", "0x7f", 0 },
+	{ "pci/2/1/measpower2", "0x7f", 0 },
+	{ "pci/2/1/noiselvl2ga0", "31", 0 },
+	{ "pci/2/1/noiselvl2ga1", "31", 0 },
+	{ "pci/2/1/noiselvl2ga2", "31", 0 },
+	{ "pci/2/1/noiselvl5gha0", "31", 0 },
+	{ "pci/2/1/noiselvl5gha1", "31", 0 },
+	{ "pci/2/1/noiselvl5gha2", "31", 0 },
+	{ "pci/2/1/noiselvl5gla0", "31", 0 },
+	{ "pci/2/1/noiselvl5gla1", "31", 0 },
+	{ "pci/2/1/noiselvl5gla2", "31", 0 },
+	{ "pci/2/1/noiselvl5gma0", "31", 0 },
+	{ "pci/2/1/noiselvl5gma1", "31", 0 },
+	{ "pci/2/1/noiselvl5gma2", "31", 0 },
+	{ "pci/2/1/noiselvl5gua0", "31", 0 },
+	{ "pci/2/1/noiselvl5gua1", "31", 0 },
+	{ "pci/2/1/noiselvl5gua2", "31", 0 },
+	{ "pci/2/1/ofdmlrbw202gpo", "0", 0 },
+	{ "pci/2/1/pa2ga0", "0xfe72,0x14c0,0xfac7", 0 },
+	{ "pci/2/1/pa2ga1", "0xfe80,0x1472,0xfabc", 0 },
+	{ "pci/2/1/pa2ga2", "0xfe82,0x14bf,0xfad9", 0 },
+	{ "pci/2/1/pcieingress_war", "15", 0 },
+	{ "pci/2/1/phycal_tempdelta", "255", 0 },
+	{ "pci/2/1/rawtempsense", "0x1ff", 0 },
+	{ "pci/2/1/rxchain", "7", 0 },
+	{ "pci/2/1/rxgainerr2g", "0xffff", 0 },
+	{ "pci/2/1/rxgainerr5g", "0xffff,0xffff,0xffff,0xffff", 0 },
+	{ "pci/2/1/rxgains2gelnagaina0", "0", 0 },
+	{ "pci/2/1/rxgains2gelnagaina1", "0", 0 },
+	{ "pci/2/1/rxgains2gelnagaina2", "0", 0 },
+	{ "pci/2/1/rxgains2gtrelnabypa0", "0", 0 },
+	{ "pci/2/1/rxgains2gtrelnabypa1", "0", 0 },
+	{ "pci/2/1/rxgains2gtrelnabypa2", "0", 0 },
+	{ "pci/2/1/rxgains2gtrisoa0", "0", 0 },
+	{ "pci/2/1/rxgains2gtrisoa1", "0", 0 },
+	{ "pci/2/1/rxgains2gtrisoa2", "0", 0 },
+	{ "pci/2/1/sar2g", "18", 0 },
+	{ "pci/2/1/sar5g", "15", 0 },
+	{ "pci/2/1/sromrev", "11", 0 },
+	{ "pci/2/1/subband5gver", "0x4", 0 },
+	{ "pci/2/1/tempcorrx", "0x3f", 0 },
+	{ "pci/2/1/tempoffset", "255", 0 },
+	{ "pci/2/1/temps_hysteresis", "15", 0 },
+	{ "pci/2/1/temps_period", "15", 0 },
+	{ "pci/2/1/tempsense_option", "0x3", 0 },
+	{ "pci/2/1/tempsense_slope", "0xff", 0 },
+	{ "pci/2/1/tempthresh", "255", 0 },
+	{ "pci/2/1/txchain", "7", 0 },
+	{ "pci/2/1/ledbh0", "2", 0 },
+	{ "pci/2/1/ledbh1", "5", 0 },
+	{ "pci/2/1/ledbh2", "4", 0 },
+	{ "pci/2/1/ledbh3", "11", 0 },
+	{ "pci/2/1/ledbh10", "7", 0 },
+
+	{ 0, 0, 0 }
+};
 
 /* Translates from, for example, wl0_ (or wl0.1_) to wl_. */
 /* Only single digits are currently supported */

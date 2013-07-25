@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -40,7 +40,8 @@ function validForm(){
 	}
 	
 	if($("account").value == "root" || $("account").value == "guest"){
-		alert("User's account can not be 'root' or 'guest'! Please enter a valid account.");
+		//alert("User's account can not be 'root' or 'guest'! Please enter a valid account.");
+		alert("<#USB_Application_account_alert#>");
 		$("account").focus();
 		return false;
 	}

@@ -5,6 +5,7 @@ ifeq ($(SRCBASE),)
 
 	# ..../src/
 	export SRCBASE := $(shell (cd $(TOP)/.. && pwd))
+	export SRCBASEDIR := $(shell (cd $(TOP)/.. && pwd | sed 's/.*release\///g'))
 else
 	export TOP := $(SRCBASE)/router
 endif

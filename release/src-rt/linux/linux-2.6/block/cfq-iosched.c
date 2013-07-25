@@ -1280,6 +1280,8 @@ static void cfq_init_prio_data(struct cfq_queue *cfqq)
 			/*
 			 * no prio set, place us in the middle of the BE classes
 			 */
+			if (tsk->policy == SCHED_IDLE)
+				goto set_class_idle;
 			cfqq->ioprio = task_nice_ioprio(tsk);
 			cfqq->ioprio_class = IOPRIO_CLASS_BE;
 			break;
@@ -1292,6 +1294,7 @@ static void cfq_init_prio_data(struct cfq_queue *cfqq)
 			cfqq->ioprio_class = IOPRIO_CLASS_BE;
 			break;
 		case IOPRIO_CLASS_IDLE:
+set_class_idle:
 			cfqq->ioprio_class = IOPRIO_CLASS_IDLE;
 			cfqq->ioprio = 7;
 			cfq_clear_cfqq_idle_window(cfqq);

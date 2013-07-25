@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu3#></title>
+<title><#Web_Title#> - <#menu3#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script type="text/javascript" src="/state.js"></script>
@@ -33,7 +33,7 @@ var page = parseInt('<% get_parameter("page"); %>'-'0');
 
 function initial(){
 	show_menu();
-	$("option5").innerHTML = '<img style="margin-left:10px;" border="0" width="50px" height="50px" src="images/New_ui/icon_index_5.png"><div style="margin-top:-30px; margin-left:65px"><#Menu_usb_application#></div>';
+	$("option5").innerHTML = '<table><tbody><tr><td><div id="index_img5"></div></td><td><div style="width:120px;"><#Menu_usb_application#></div></td></tr></tbody></table>';
 	$("option5").className = "m5_r";
 
 	$("statusframe").style.display = "block";
@@ -107,7 +107,7 @@ function resultOfInitialAccount(){
 		if(pools && pools.length > 0)
 			folderlist = get_sharedfolder_in_pool(pools[0]);
 		
-		submitChangePermission("admin", "3", "ftp");
+		submitChangePermission('<% nvram_get("http_username"); %>', "3", "ftp");
 	}
 }
 
@@ -181,7 +181,7 @@ function submitChangePermission(account, permission, protocol){
 		if(pools && pools.length > 0)
 			folderlist = get_sharedfolder_in_pool(pools[0]);
 		
-		submitChangePermission("admin", "3", "ftp");
+		submitChangePermission('<% nvram_get("http_username"); %>', "3", "ftp");
 	}
 	else
 		switchShareMode("ftp", "account");
@@ -307,7 +307,6 @@ function getASUSDDNS_enable(){
 			<iframe id="sub_frame" src="" width="760px" height="710px" frameborder="0" scrolling="no" style="position:relative;-webkit-border-radius:3px;-moz-border-radius:3px;border-radius:3px;"></iframe>
 		</td>
 		<td id="help_td" style="width:15px;" align="center" valign="top">
-			<form name="hint_form"></form>
 			<div id="helpicon"></div>
 			<div id="hintofPM" style="display:none;">
 				<table width="100%" cellpadding="0" cellspacing="1" class="Help" bgcolor="#999999">

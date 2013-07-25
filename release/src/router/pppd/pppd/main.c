@@ -318,13 +318,6 @@ main(argc, argv)
     struct protent *protp;
     char numbuf[16];
 
-    strlcpy(path_ipup, _PATH_IPUP, sizeof(path_ipup));
-    strlcpy(path_ipdown, _PATH_IPDOWN, sizeof(path_ipdown));
-#ifdef INET6
-    strlcpy(path_ipv6up, _PATH_IPV6UP, sizeof(path_ipv6up));
-    strlcpy(path_ipv6down, _PATH_IPV6DOWN, sizeof(path_ipv6down));
-#endif
-
     link_stats_valid = 0;
     new_phase(PHASE_INITIALIZE);
 
@@ -861,11 +854,14 @@ create_linkpidfile(pid)
 /*
  * remove_pidfile - remove our pid files
  */
-void remove_pidfiles()
+void remove_pidfiles(keep_linkpid)
+    int keep_linkpid;
 {
     if (pidfilename[0] != 0 && unlink(pidfilename) < 0 && errno != ENOENT)
 	warn("unable to delete pid file %s: %m", pidfilename);
     pidfilename[0] = 0;
+    if (keep_linkpid)
+	return;
     if (linkpidfile[0] != 0 && unlink(linkpidfile) < 0 && errno != ENOENT)
 	warn("unable to delete pid file %s: %m", linkpidfile);
     linkpidfile[0] = 0;
@@ -1233,7 +1229,7 @@ cleanup()
 	the_channel->disestablish_ppp(devfd);
     if (the_channel->cleanup)
 	(*the_channel->cleanup)();
-    remove_pidfiles();
+    remove_pidfiles(0);
 
 #ifdef USE_TDB
     if (pppdb != NULL)
@@ -1317,7 +1313,7 @@ static void check_time(void)
 	struct timeval t;
 	struct sysinfo i;
     struct callout *p;
-	
+
 	if(nochecktime)
 		return;
 
@@ -1335,7 +1331,6 @@ static void check_time(void)
 		/* system time has changed, update counters and timeouts */
 		info("System time change detected.");
 		start_time.tv_sec += new_diff - uptime_diff;
-		
     	for (p = callout; p != NULL; p = p->c_next)
 			p->c_time.tv_sec += new_diff - uptime_diff;
 	}
@@ -1440,7 +1435,7 @@ timeleft(tvp)
 {
     if (callout == NULL)
 	return NULL;
-	
+
 	check_time();
 
     gettimeofday(&timenow, NULL);

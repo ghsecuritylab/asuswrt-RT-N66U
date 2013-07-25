@@ -20,6 +20,10 @@
 #include <linux/tick.h>
 
 #include <asm/irq.h>
+
+#include <typedefs.h>
+#include <bcmdefs.h>
+
 /*
    - No shared variables, all the data are CPU local.
    - If a softirq needs serialization, let it serialize itself
@@ -90,7 +94,7 @@ static inline void __local_bh_disable(unsigned long ip)
 }
 #endif /* CONFIG_TRACE_IRQFLAGS */
 
-void local_bh_disable(void)
+void BCMFASTPATH local_bh_disable(void)
 {
 	__local_bh_disable((unsigned long)__builtin_return_address(0));
 }
@@ -130,7 +134,7 @@ void _local_bh_enable(void)
 
 EXPORT_SYMBOL(_local_bh_enable);
 
-void local_bh_enable(void)
+void BCMFASTPATH local_bh_enable(void)
 {
 #ifdef CONFIG_TRACE_IRQFLAGS
 	unsigned long flags;

@@ -1,7 +1,7 @@
 /*
  * WPS header
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,15 +9,13 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wpsheaders.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wpsheaders.h 290904 2011-10-20 15:18:57Z $
  */
 
 #ifndef _WPS_HEADERS_
 #define _WPS_HEADERS_
 
 #include <wpstypes.h>
-
-#include <slist.h>
 
 #include <wpstlvbase.h>
 

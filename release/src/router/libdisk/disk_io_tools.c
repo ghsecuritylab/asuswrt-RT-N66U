@@ -24,66 +24,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <shared.h>
+
 #include "usb_info.h"
 #include "disk_io_tools.h"
-
-extern char *read_whole_file(const char *target){
-	FILE *fp;
-	char *buffer, *new_str;
-	int i;
-	unsigned int read_bytes = 0;
-	unsigned int each_size = 1024;
-
-	if((fp = fopen(target, "r")) == NULL)
-		return NULL;
-
-	buffer = (char *)malloc(sizeof(char)*each_size);
-	if(buffer == NULL){
-		usb_dbg("No memory \"buffer\".\n");
-		fclose(fp);
-		return NULL;
-	}
-	memset(buffer, 0, each_size);
-
-	while((i = fread(buffer+read_bytes, sizeof(char), each_size, fp)) == each_size){
-		read_bytes += each_size;
-		new_str = (char *)malloc(sizeof(char)*(each_size+read_bytes));
-		if(new_str == NULL){
-			usb_dbg("No memory \"new_str\".\n");
-			free(buffer);
-			fclose(fp);
-			return NULL;
-		}
-		memset(new_str, 0, sizeof(char)*(each_size+read_bytes));
-		memcpy(new_str, buffer, read_bytes);
-
-		free(buffer);
-		buffer = new_str;
-	}
-
-	fclose(fp);
-	return buffer;
-}
-
-extern char *get_line_from_buffer(const char *buf, char *line, const int line_size){
-	int buf_len, len;
-	char *ptr;
-
-	if(buf == NULL || (buf_len = strlen(buf)) <= 0)
-		return NULL;
-
-	if((ptr = strchr(buf, '\n')) == NULL)
-		ptr = (char *)(buf+buf_len);
-
-	if((len = ptr-buf) < 0)
-		len = buf-ptr;
-	++len; // include '\n'.
-
-	memset(line, 0, line_size);
-	strncpy(line, buf, len);
-
-	return line;
-}
 
 /*extern int mkdir_if_none(char *dir){
 	DIR *dp = opendir(dir);
@@ -111,32 +55,12 @@ extern int mkdir_if_none(const char *path){
 }
 
 extern int delete_file_or_dir(char *target){
-	if(test_if_dir(target))
+	if(check_if_dir_exist(target))
 		rmdir(target);
 	else
 		unlink(target);
 
 	return 0;
-}
-
-extern int test_if_file(const char *file){
-	FILE *fp = fopen(file, "r");
-
-	if(fp == NULL)
-		return 0;
-
-	fclose(fp);
-	return 1;
-}
-
-extern int test_if_dir(const char *dir){
-	DIR *dp = opendir(dir);
-
-	if(dp == NULL)
-		return 0;
-
-	closedir(dp);
-	return 1;
 }
 
 extern int test_if_mount_point_of_pool(const char *dirname){
@@ -163,7 +87,7 @@ extern int test_if_mount_point_of_pool(const char *dirname){
 	if(mount_dir[0] == '.')
 		return 0;
 
-	if(!test_if_dir(dirname))
+	if(!check_if_dir_exist(dirname))
 		return 0;
 
 	return layer;
@@ -205,100 +129,6 @@ extern int test_mounted_disk_size_status(char *diskpath){
 		return 3;
 }
 
-extern char *get_upper_str(const char *const str, char **target){
-	int len, i;
-	char *ptr;
-
-	len = strlen(str);
-	*target = (char *)malloc(sizeof(char)*(len+1));
-	if(*target == NULL){
-		usb_dbg("No memory \"*target\".\n");
-		return NULL;
-	}
-	ptr = *target;
-	for(i = 0; i < len; ++i)
-		ptr[i] = toupper(str[i]);
-	ptr[len] = 0;
-
-	return ptr;
-}
-
-extern int upper_strcmp(const char *const str1, const char *const str2){
-	char *upper_str1, *upper_str2;
-	int ret;
-
-	if(str1 == NULL || str2 == NULL)
-		return -1;
-
-	if(get_upper_str(str1, &upper_str1) == NULL)
-		return -1;
-
-	if(get_upper_str(str2, &upper_str2) == NULL){
-		free(upper_str1);
-		return -1;
-	}
-
-	ret = strcmp(upper_str1, upper_str2);
-	free(upper_str1);
-	free(upper_str2);
-
-	return ret;
-}
-
-extern int upper_strncmp(const char *const str1, const char *const str2, int count){
-	char *upper_str1, *upper_str2;
-	int ret;
-
-	if(str1 == NULL || str2 == NULL)
-		return -1;
-
-	if(get_upper_str(str1, &upper_str1) == NULL)
-		return -1;
-
-	if(get_upper_str(str2, &upper_str2) == NULL){
-		free(upper_str1);
-		return -1;
-	}
-
-	ret = strncmp(upper_str1, upper_str2, count);
-	free(upper_str1);
-	free(upper_str2);
-
-	return ret;
-}
-
-extern char *upper_strstr(const char *const str, const char *const target){
-	char *upper_str, *upper_target;
-	char *ret;
-	int len;
-
-	if(str == NULL || target == NULL)
-		return NULL;
-
-	if(get_upper_str(str, &upper_str) == NULL)
-		return NULL;
-
-	if(get_upper_str(target, &upper_target) == NULL){
-		free(upper_str);
-		return NULL;
-	}
-
-	ret = strstr(upper_str, upper_target);
-	if(ret == NULL){
-		free(upper_str);
-		free(upper_target);
-		return NULL;
-	}
-
-	if((len = upper_str-ret) < 0)
-		len = ret-upper_str;
-
-	free(upper_str);
-	free(upper_target);
-
-	return (char *)(str+len);
-}
-
 extern void strntrim(char *str){
 	register char *start, *end;
 	int len;
@@ -325,7 +155,7 @@ extern void strntrim(char *str){
 	return;
 }
 
-extern void write_escaped_value(FILE *fp, const char *value){
+/*extern void write_escaped_value(FILE *fp, const char *value){
 	const char *follow_value;
 
 	follow_value = value;
@@ -385,4 +215,4 @@ extern void write_escaped_value(FILE *fp, const char *value){
 		}
 		++follow_value;
 	}
-}
+}//*/

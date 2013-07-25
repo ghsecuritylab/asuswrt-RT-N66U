@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -6,7 +6,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
 <meta name="svg.render.forceflash" content="false" />	
-<title>ASUS Wireless Router <#Web_Title#> - <#menu4_2#> : <#menu4_2_1#></title>
+<title><#Web_Title#> - <#traffic_monitor#> : <#menu4_2_1#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="tmmenu.css">
@@ -193,7 +193,21 @@ function switchPage(page){
 
         			<tr>
           				<td height="30" align="left" valign="middle" >
-										<p class="formfontcontent"><#traffic_monitor_desc#></p>
+										<div class="formfontcontent"><p class="formfontcontent"><#traffic_monitor_desc1#></p></div>										
+          				</td>
+        			</tr>
+        			<tr>
+          				<td align="left" valign="middle">
+										<table width="95%" border="1" align="left" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="DescTable">
+											<tr><th width="16%"></th><th width="26%"><#tm_internet#></th><th width="29%"><#tm_wired#></th><th width="29%"><#tm_wireless#></th></tr>
+											<tr><th><#tm_reception#></th><td><#tm_recp_int#></td><td><#tm_recp_wired#></td><td><#tm_recp_wireless#></td></tr>
+											<tr><th><#tm_transmission#></th><td><#tm_trans_int#></td><td><#tm_trans_wired#></td><td><#tm_trans_wireless#></td></tr>
+										</table>	
+          				</td>
+        			</tr>
+        			<tr>
+          				<td height="30" align="left" valign="middle" >
+										<div class="formfontcontent"><p class="formfontcontent"><#traffic_monitor_desc2#></p></div>										
           				</td>
         			</tr>
 
@@ -216,7 +230,7 @@ function switchPage(page){
 
   		     				<tr>
 							<td >
-				    	 	<table width="735px" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable_NWM">
+				    	 	<table width="735px" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable_NWM" style="margin-top:10px">
 						  		<tr>
 						  			<th style="text-align:center; width:160px;height:25px;"><#Network#></th>
 						  			<th style="text-align:center; width:160px;"><#Current#></th>
@@ -227,8 +241,7 @@ function switchPage(page){
 
 						  		<tr>
 						  			<td style="text-align:center; background-color:#111;">
-										<div id='rx-sel'><#Downlink#>
-										</div>
+										<div id='rx-sel'><#tm_reception#></div>										
 						  			</td>
 						  			
 						  			<td style="text-align:center;font-weight: bold; background-color:#111;"><span id='rx-current' style="color:#FF9000;"></span></td>
@@ -239,10 +252,9 @@ function switchPage(page){
 						    		
 						    		<tr>
 						    			<td style="text-align:center; background-color:#111;">
-									<div id='tx-sel'><#Uplink#>
-									</div>               			
+											<div id='tx-sel'><#tm_transmission#></div>  											             			
               							</td>   
-						  		<td style="text-align:center;font-weight: bold; background-color:#111;"><span id='tx-current' style="color:#3CF;"></span></td>
+									<td style="text-align:center;font-weight: bold; background-color:#111;"><span id='tx-current' style="color:#3CF;"></span></td>
 									<td style="text-align:center; background-color:#111;" id='tx-avg'></td>
 									<td style="text-align:center; background-color:#111;" id='tx-max'></td>
 									<td style="text-align:center; background-color:#111;" id='tx-total'></td>

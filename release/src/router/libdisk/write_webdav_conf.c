@@ -29,6 +29,24 @@
 
 #define WEBDAV_CONF "/tmp/lighttpd.conf"
 
+#define PRODUCTID "productid"
+#define WEBDAV_HTTP_PORT "webdav_http_port"
+#define WEBDAV_HTTPS_PORT "webdav_https_port"
+char* get_productid()
+{
+   nvram_get(PRODUCTID);
+}
+
+char* get_webdav_http_port()
+{
+   nvram_get(WEBDAV_HTTP_PORT);
+}
+
+char* get_webdav_https_port()
+{
+   nvram_get(WEBDAV_HTTPS_PORT);
+}
+
 int main(int argc, char *argv[]) {
 	FILE *fp;
 	int n=0, sh_num=0;
@@ -52,9 +70,9 @@ int main(int argc, char *argv[]) {
 	/* Load modules */
 	fprintf(fp, "server.modules+=(\"mod_alias\")\n");
 	fprintf(fp, "server.modules+=(\"mod_userdir\")\n");
+	fprintf(fp, "server.modules+=(\"mod_aidisk_access\")\n");
 	fprintf(fp, "server.modules+=(\"mod_webdav\")\n");
 	fprintf(fp, "server.modules+=(\"mod_smbdav\")\n");
-	fprintf(fp, "server.modules+=(\"mod_scgi\")\n");
 	fprintf(fp, "server.modules+=(\"mod_redirect\")\n");
 	fprintf(fp, "server.modules+=(\"mod_compress\")\n");
 	fprintf(fp, "server.modules+=(\"mod_usertrack\")\n");
@@ -66,13 +84,15 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Basic setting */
-	fprintf(fp, "server.port=8080\n"); // defult setting, but no use
+	fprintf(fp, "server.port=%s\n",get_webdav_http_port()); // defult setting, but no use
+//	fprintf(fp, "server.port=8999\n"); // defult setting, but no use
 //	fprintf(fp, "server.document-root=\"/mnt/\"\n");
 	fprintf(fp, "server.document-root=\"/tmp/lighttpd/www\"\n");
 	fprintf(fp, "server.upload-dirs=(\"/tmp/lighttpd/uploads\")\n");
 	fprintf(fp, "server.errorlog=\"/tmp/lighttpd/err.log\"\n");
 	fprintf(fp, "server.pid-file=\"/tmp/lighttpd/lighttpd.pid\"\n");
 	fprintf(fp, "server.arpping-interface=\"br0\"\n");
+	fprintf(fp, "server.errorfile-prefix=\"/usr/css/status-\"\n");
 	fprintf(fp, "dir-listing.activate=\"enable\"\n");
 
 	//	**** Minetype setting **** //	
@@ -81,13 +101,18 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "\".htm\" => \"text/html\",\n");
 	fprintf(fp, "\".css\" => \"text/css\",\n");
 	fprintf(fp, "\".js\" => \"text/javascript\",\n");
-	fprintf(fp, "\".txt\" => \"text/plain\",\n");
-	fprintf(fp, "\".jpg\" => \"image/jpeg\",\n");
-	fprintf(fp, "\".gif\" => \"image/gif\",\n");
-	fprintf(fp, "\".png\" => \"image/png\",\n");
-	fprintf(fp, "\".pdf\" => \"application/pdf\",\n");
-	fprintf(fp, "\".mp4\" => \"video/mp4\",\n");
-	fprintf(fp, "\".mp3\" => \"audio/mpeg\"");
+	//fprintf(fp, "\".txt\" => \"text/plain\",\n");
+	//fprintf(fp, "\".jpg\" => \"image/jpeg\",\n");
+	//fprintf(fp, "\".gif\" => \"image/gif\",\n");
+	//fprintf(fp, "\".png\" => \"image/png\",\n");
+	//fprintf(fp, "\".pdf\" => \"application/pdf\",\n");
+	//fprintf(fp, "\".mp4\" => \"video/mp4\",\n");
+	//fprintf(fp, "\".m4v\" => \"video/mp4\",\n");
+	//fprintf(fp, "\".wmv\" => \"video/wmv\",\n");
+	//fprintf(fp, "\".mp3\" => \"audio/mpeg\",\n");
+	//fprintf(fp, "\".avi\" => \"video/avi\",\n");
+	//fprintf(fp, "\".mov\" => \"video/mov\"");
+	fprintf(fp, "\"\" => \"application/x-octet-stream\"");
 	fprintf(fp, ")\n");
 
 	// **** Index file names **** //
@@ -106,9 +131,19 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "compress.filetype           = ( \"application/x-javascript\", \"text/css\", \"text/html\", \"text/plain\" )\n");
 	
 	// **** SambaDav setting
-	fprintf(fp, "$SERVER[\"socket\"]==\":8080\"{\n");
-	fprintf(fp, "	alias.url=(\"/webdav\"=>\"/mnt/\")\n");
-	fprintf(fp, "	$HTTP[\"url\"]=~\"^/smb($|/)\"{\n");
+	fprintf(fp, "$SERVER[\"socket\"]==\":%s\"{\n", get_webdav_http_port());
+//	fprintf(fp, "$SERVER[\"socket\"]==\":8999\"{\n");
+//	fprintf(fp, "	alias.url=(\"/webdav\"=>\"/mnt/\")\n");
+//	fprintf(fp, "   $HTTP[\"url\"]=~\"^/usbdisk($|/)\"{\n");
+	fprintf(fp, "   $HTTP[\"url\"]=~\"^/%s($|/)\"{\n",get_productid());
+    fprintf(fp, "       server.document-root = \"/\"\n");
+//	fprintf(fp, "       alias.url=(\"/usbdisk\"=>\"/mnt\")\n");
+	fprintf(fp, "       alias.url=(\"/%s\"=>\"/mnt\")\n", get_productid());
+    fprintf(fp, "       webdav.activate=\"enable\"\n");
+    fprintf(fp, "       webdav.is-readonly=\"disable\"\n");
+    fprintf(fp, "       webdav.sqlite-db-name=\"/tmp/lighttpd/webdav.db\"\n");
+    fprintf(fp, "   }\n");
+	fprintf(fp, "	else $HTTP[\"url\"]=~\"^/smb($|/)\"{\n");
 	fprintf(fp, "		server.document-root = \"/\"\n");
 	fprintf(fp, "		alias.url=(\"/smb\"=>\"/usr\")\n");
 	fprintf(fp, "		smbdav.auth_ntlm = (\"Microsoft-WebDAV\",\"xxBitKinex\",\"WebDrive\")\n");
@@ -133,6 +168,8 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "}\n");
 
 
+
+#if 0
 	/*** Webdav_setting ***/
 	/* default : http://192.168.1.1:8082/webdav */
 	fprintf(fp, "$SERVER[\"socket\"]==\":8082\"{\n");
@@ -241,14 +278,18 @@ int main(int argc, char *argv[]) {
 	}/* account permissions */
 WEBDAV_SETTING:
 	fprintf(fp, "}\n"); /*** Webdav_setting ***/
-
+#endif
 	/*** Webdav_SSL ***/
-	/* default : https://192.168.1.1:8445/webdav */
-	fprintf(fp, "$SERVER[\"socket\"]==\":8445\"{\n");
+	/* default : https://192.168.1.1:443/webdav */
+	fprintf(fp, "$SERVER[\"socket\"]==\":%s\"{\n",get_webdav_https_port());
 	fprintf(fp, "	ssl.pemfile=\"/tmp/lighttpd/server.pem\"\n");
 	fprintf(fp, "	ssl.engine=\"enable\"\n");
-	fprintf(fp, "	alias.url=(\"/webdav\"=>\"/mnt/\")\n"); 
-	fprintf(fp, "	$HTTP[\"url\"]=~\"^/webdav($|/)\"{\n");
+	//fprintf(fp, "	alias.url=(\"/webdav\"=>\"/mnt/\")\n"); 
+//	fprintf(fp, "	$HTTP[\"url\"]=~\"^/usbdisk($|/)\"{\n");
+	fprintf(fp, "	$HTTP[\"url\"]=~\"^/%s($|/)\"{\n", get_productid());
+    fprintf(fp, "       server.document-root = \"/\"\n");
+//	fprintf(fp, "       alias.url=(\"/usbdisk\"=>\"/mnt\")\n");	
+	fprintf(fp, "       alias.url=(\"/%s\"=>\"/mnt\")\n", get_productid());	
 	fprintf(fp, "		webdav.activate=\"enable\"\n");
 	fprintf(fp, "		webdav.is-readonly=\"disable\"\n");
 	fprintf(fp, "		webdav.sqlite-db-name=\"/tmp/lighttpd/webdav.db\"\n");
@@ -275,13 +316,15 @@ WEBDAV_SETTING:
     fprintf(fp, "	    smbdav.sqlite-db-name = \"/tmp/lighttpd/smbdav.db\" \n");
     fprintf(fp, "	    usertrack.cookie-name = \"SMBSESSID\" \n");
 	fprintf(fp, "	}\n");
-
+#if 0
 	/* account permissions */
 	if (nvram_match("st_webdav_mode", "2")){
+			fprintf(stderr,"=================================================>st mod =2");
 
 		disks_info = read_disk_data();
 		if (disks_info == NULL) {
 			usb_dbg("Couldn't get disk list when writing lighttpd.conf!\n");
+			fprintf(stderr, "=========================================================>error1");
 			goto confpage;
 		}
 
@@ -299,6 +342,7 @@ WEBDAV_SETTING:
 			//usb_dbg("Can't read the account list.\n");
 			//printf("[webdav] fail in get account list\n");
 			free_2_dimension_list(&acc_num, &account_list);
+			fprintf(stderr, "================================================================>error2");
 			goto confpage;
 		}
 
@@ -309,9 +353,14 @@ WEBDAV_SETTING:
 				
 				char **folder_list;
 				int i;
-				char tmp1[32];
+				//charles: dont init the size of tmp1, the name of share foler may exceed the buffer.
+//				char tmp1[32];
+				char *tmp1;
 				char *tmp2, *tmp_pre, *tmp_aft;
-
+				
+				int tmp1_size=0;
+				tmp1_size = strlen(follow_partition->mount_point)+1;
+				tmp1 = malloc(tmp1_size); memset(tmp1, 0, tmp1_size);
 				strcpy(tmp1, follow_partition->mount_point);
 
 				tmp2 = tmp1;
@@ -325,6 +374,8 @@ WEBDAV_SETTING:
 					//printf("[webdav] fail in get folder list\n");
 					usb_dbg("Can't read the folder list in %s.\n", follow_partition->mount_point);
 					free_2_dimension_list(&sh_num, &folder_list);
+					if(tmp1) free(tmp1);
+					fprintf(stderr,"====================================================================>get folder list error");
 					continue;
 				}
 	
@@ -333,7 +384,7 @@ WEBDAV_SETTING:
 					int i, right;
 					for (i = 0; i < acc_num; ++i) {
 						right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "webdav");
-	//printf("[webdav] (%d,%d) : right=%d, account=%s, folder=%s, mount=%s, tmp_aft=%s\n", n, i, right, account_list[i], folder_list[n], follow_partition->mount_point, tmp_aft);
+	fprintf(stderr,"[webdav] (%d,%d) : right=%d, account=%s, folder=%s, mount=%s, tmp_aft=%s\n", n, i, right, account_list[i], folder_list[n], follow_partition->mount_point, tmp_aft);
 						if(right == 0){
 							/* forbid to access the folder */
 							fprintf(fp, "	$HTTP[\"url\"]=~\"^/webdav/%s/%s($|/)\"{\n", tmp_aft, folder_list[n]);
@@ -341,19 +392,20 @@ WEBDAV_SETTING:
 							fprintf(fp, "	}\n");
 						}
 						else if (right == 1){
-							fprintf(fp, "	$HTTP[\"url\"]=~\"^/webdav/%s/%s($|/)\"{\n", tmp_aft, folder_list[n]);
+						fprintf(fp, "	$HTTP[\"url\"]=~\"^/webdav/%s/%s($|/)\"{\n", tmp_aft, folder_list[n]);
 							fprintf(fp, "		webdav.is-readonly=\"enable\"\n");
 							fprintf(fp, "	}\n");
 						}
 					}
 				}
 				free_2_dimension_list(&sh_num, &folder_list);
+				if(tmp1) free(tmp1);
 			}
 		}
 		/* folder permissions */
 		free_2_dimension_list(&acc_num, &account_list);
 	}/* account permissions */
-
+#endif
 	
 	goto confpage;
 
@@ -361,11 +413,11 @@ confpage:
 	fprintf(fp, "}\n"); /*** Webdav_SSL ***/
 
 	/* debugging */
-	fprintf(fp, "debug.log-request-header=\"enable\"\n");
-	fprintf(fp, "debug.log-response-header=\"enable\"\n");
-	fprintf(fp, "debug.log-request-handling=\"enable\"\n");
-	fprintf(fp, "debug.log-file-not-found=\"enable\"\n");
-	fprintf(fp, "debug.log-condition-handling=\"enable\"\n");
+	fprintf(fp, "debug.log-request-header=\"disable\"\n");
+	fprintf(fp, "debug.log-response-header=\"disable\"\n");
+	fprintf(fp, "debug.log-request-handling=\"disable\"\n");
+	fprintf(fp, "debug.log-file-not-found=\"disable\"\n");
+	fprintf(fp, "debug.log-condition-handling=\"disable\"\n");
 
 	fclose(fp);
 	free_disk_data(&disks_info);

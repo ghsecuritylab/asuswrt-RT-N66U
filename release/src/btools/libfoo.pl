@@ -154,9 +154,66 @@ sub fixDyn
 	fixDynDep("pppd", "pptp.so");
 	fixDynDep("pppd", "rp-pppoe.so");
 	fixDynDep("libcrypto.so.1.0.0", "libssl.so.1.0.0");
-	
-#	fixDynDep("libbcm.so", "libshared.so");
-#	fixDynDep("libbcm.so", "libc.so.0");
+## charles add
+#	    fixDynDep("libsmbclient.so.0", "libpthread.so.0");
+	fixDynDep("mod_smbdav.so", "libshared.so");
+	fixDynDep("mod_smbdav.so", "libnvram.so");
+	fixDynDep("mod_smbdav.so", "libsqlite3.so.0");
+    fixDynDep("mod_smbdav.so", "libxml2.so.2");
+	fixDynDep("mod_smbdav.so", "libsmbclient.so.0");
+	fixDynDep("mod_smbdav.so", "libpthread.so.0");
+	   fixDynDep("lighttpd", "libpthread.so.0");
+	   fixDynDep("lighttpd-arpping", "libpthread.so.0");
+	   fixDynDep("lighttpd-arpping", "libsmbclient.so.0");
+
+	fixDynDep("lighttpd", "libcrypto.so.1.0.0");
+	fixDynDep("lighttpd", "libssl.so.1.0.0");
+        fixDynDep("lighttpd", "libpcre.so.0.0.1");
+        fixDynDep("lighttpd", "mod_accesslog.so");
+        fixDynDep("lighttpd", "mod_alias.so");
+        fixDynDep("lighttpd", "mod_auth.so");
+        fixDynDep("lighttpd", "mod_cml.so");
+        fixDynDep("lighttpd", "mod_cgi.so");
+        fixDynDep("lighttpd", "mod_compress.so");
+        fixDynDep("lighttpd", "mod_dirlisting.so");
+        fixDynDep("lighttpd", "mod_proxy.so");
+        fixDynDep("lighttpd", "mod_redirect.so");
+        fixDynDep("lighttpd", "mod_rewrite.so");
+        fixDynDep("lighttpd", "mod_ssi.so");
+        fixDynDep("lighttpd", "mod_staticfile.so");
+        fixDynDep("lighttpd", "mod_status.so");
+        fixDynDep("lighttpd", "mod_trigger_b4_dl.so");
+        fixDynDep("lighttpd", "mod_userdir.so");
+        fixDynDep("lighttpd", "mod_webdav.so");
+        fixDynDep("lighttpd", "mod_usertrack.so");
+        fixDynDep("lighttpd", "mod_ssi.so");
+        fixDynDep("lighttpd", "mod_scgi.so");
+        fixDynDep("lighttpd", "mod_access.so");
+        fixDynDep("lighttpd", "mod_evasive.so");
+        fixDynDep("lighttpd", "mod_evhost.so");
+        fixDynDep("lighttpd", "mod_expire.so");
+        fixDynDep("lighttpd", "mod_extforward.so");
+        fixDynDep("lighttpd", "mod_fastcgi.so");
+        fixDynDep("lighttpd", "mod_flv_streaming.so");
+        fixDynDep("lighttpd", "mod_indexfile.so");
+        fixDynDep("lighttpd", "mod_magnet.so");
+        fixDynDep("lighttpd", "mod_mysql_vhost.so");
+        fixDynDep("lighttpd", "mod_rrdtool.so");
+        fixDynDep("lighttpd", "mod_secdownload.so");
+        fixDynDep("lighttpd", "mod_setenv.so");
+        fixDynDep("lighttpd", "mod_simple_vhost.so");
+        fixDynDep("mod_webdav.so", "libsqlite3.so.0");
+        fixDynDep("mod_webdav.so", "libxml2.so.2");
+## charles add
+		fixDynDep("lighttpd", "mod_smbdav.so");
+        fixDynDep("lighttpd", "libshared.so");
+        fixDynDep("lighttpd", "libnvram.so");
+		fixDynDep("lighttpd", "libxml2.so.2");
+		fixDynDep("libbcm.so", "libshared.so");
+		fixDynDep("libbcm.so", "libc.so.0");
+#   fixDynDep("lighttpd", "libdisk.so");
+        fixDynDep("lighttpd", "mod_smbdav_access.so");
+        fixDynDep("mod_smbdav_access.so", "libdisk.so");
 
 #!!TB - Updated Broadcom WL driver
 	fixDynDep("libbcmcrypto.so", "libc.so.0");

@@ -1,7 +1,7 @@
 /*
  * WPS AP
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,11 +9,12 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_ap.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_ap.h 295985 2011-11-13 02:57:31Z $
  */
 
 #ifndef __WPS_AP_H__
 #define __WPS_AP_H__
+
 
 #define WPS_OVERALL_TIMEOUT	140 /* 120 + 20 for VISTA testing tolerance */
 #define WPS_MSG_TIMEOUT	30
@@ -23,7 +24,7 @@
 #endif
 
 typedef struct {
-	int wps_mode;
+	int sc_mode;
 	int ess_id;
 	char ifname[IFNAMSIZ];
 	unsigned char mac_ap[6];
@@ -32,7 +33,6 @@ typedef struct {
 	unsigned char *pre_privkey;
 
 	bool config_state;
-	char default_keyMgmt[20];
 
 	void *mc;			/* state machine context */
 
@@ -60,9 +60,5 @@ typedef struct {
 uint32 wpsap_osl_eapol_send_data(char *dataBuffer, uint32 dataLen);
 char* wpsap_osl_eapol_parse_msg(char *msg, int msg_len, int *len);
 
-/* Common interface to ap wksp, WSC 2.0 */
-int wpsap_open_session(void *wps_app, int mode, unsigned char *mac, unsigned char *mac_sta,
-	char *osifname, char *enr_nonce, char *priv_key, uint8 *authorizedMacs,
-	uint32 authorizedMacs_len, bool b_reqToEnroll, bool b_nwKeyShareable);
 
 #endif /* __WPS_AP_H__ */

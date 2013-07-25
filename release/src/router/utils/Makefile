@@ -12,7 +12,7 @@
 # $Id: Makefile,v 1.41 2011-01-20 03:08:08 Exp $
 #
 
-WLU_OBJS := wlu.o wlu_cmd.o wlu_iov.o wlu_linux.o bcmutils.o bcmwifi.o wlu_client_shared.o wlu_pipe.o wlu_pipe_linux.o miniopt.o bcm_app_utils.o
+WLU_OBJS := wlu.o wlu_cmd.o wlu_iov.o wlu_linux.o bcmutils.o bcmwifi_channels.o wlu_client_shared.o wlu_pipe.o wlu_pipe_linux.o miniopt.o bcm_app_utils.o
 ifneq ($(wildcard $(SRCBASE)/wl/exe/wlu_common.c),)
 WLU_OBJS += wlu_common.o
 endif
@@ -42,11 +42,15 @@ endif
 CFLAGS += -DBCMINTERNAL -DBCMDBG
 
 #UTILS := mii-tool robocfg ttcp
+UTILS := robocfg
 #ifneq ($(CONFIG_LINUX26),y)
 #CFLAGS += -U CONFIG_NVRAM_SIZE
 #endif
 
 CFLAGS += -DLINUX -I$(SRCBASE)/wl/exe
+
+# Use newer 11ac ratespec for wl command line
+CFLAGS += -DD11AC_IOTYPES
 
 #ifdef WLCNT
 CFLAGS += -DWLCNT
@@ -62,7 +66,7 @@ endif
 ifneq ($(wildcard $(SRCBASE)/wl/exe),)
 CFLAGS += -I$(SRCBASE)/wl/exe
 UTILS += wl
-vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/shared
+vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/wl/bcmwifi/src $(SRCBASE)/shared
 endif
 
 ifeq ($(RWL),1)
@@ -76,19 +80,24 @@ endif
 
 ifneq ($(wildcard $(SRCBASE)/wl/exe),)
 UTILS += $(SERVER_SOCKET)
-vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/shared
+vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/wl/bcmwifi/src $(SRCBASE)/shared
 endif
 
 ifneq ($(wildcard $(SRCBASE)/wl/exe),)
 UTILS += $(SERVER_WIFI)
-vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/shared
+vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/wl/bcmwifi/src $(SRCBASE)/shared
 endif
 endif
 
 all: $(UTILS)
 
+ifeq ($(wildcard $(SRCBASE)/wl/exe/*.c),)
+wl:
+	-cp -f $(SRCBASE)/wl/exe/prebuilt/wl wl
+else
 wl: $(WLU_OBJS)
 	$(CC) $^ -o $@ $(LDFLAGS)
+endif
 
 ifeq ($(RWL),1)
 $(WFA_APUT_ALL): $(WFA_APUT_OBJS)

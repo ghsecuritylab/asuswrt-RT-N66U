@@ -452,7 +452,7 @@ void btn_setup_save_setting(PKT_SET_INFO_GW_QUICK *pkt)
 	char sr_num[1];
         char idx = 0, idx1 = 0;
         char start_num;
-        char end_num;
+        char end_num = 0;
 	DWORD dhcp_tmp;
 
 
@@ -1084,7 +1084,7 @@ OTS_socket_init( usockaddr* usaP )
     return listen_fd;
 }
 
-OTSFinish(int fd, int flag)
+void OTSFinish(int fd, int flag)
 {
     	shutdown(fd, 2);
     	close(fd);

@@ -1,7 +1,7 @@
 /*
  * Portability
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: portability.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: portability.h 292744 2011-10-28 07:54:57Z $
  */
 
 #ifndef _WPS_PORTAB_
@@ -42,13 +42,6 @@ extern "C" {
 
 #include "string.h"
 
-/* Synchronization functions */
-#define WpsSyncCreate(handle)
-#define WpsSyncDestroy(handle)
-#define WpsLock(h)
-#define WpsUnlock(handle)
-
-
 /* Byte swapping functions. To be implemented by application. */
 uint32 WpsHtonl(uint32 intlong);
 uint16 WpsHtons(uint16 intshort);
@@ -59,12 +52,11 @@ uint16 WpsNtohs(uint8 * intshort);
 void WpsSleep(uint32 seconds);
 void WpsSleepMs(uint32 ms);
 
-
 typedef struct {
 	char ssid[SIZE_SSID_LENGTH];
 	uint32 ssidLen;
-	char keyMgmt[SIZE_20_BYTES];
-	char nwKey[SIZE_64_BYTES];
+	char keyMgmt[SIZE_20_BYTES+1];
+	char nwKey[SIZE_64_BYTES+1];
 	uint32 nwKeyLen;
 	uint32 encrType;
 	uint16 wepIndex;

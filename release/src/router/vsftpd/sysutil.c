@@ -70,13 +70,14 @@
 #include <utime.h>
 #include <netdb.h>
 #include <bcmnvram.h>	// Jiahao
-// 2007.05 James {
+
+#include <shared.h>
+#include <shutils.h>
 #include "secbuf.h"
 #include "defs.h"
 #include <usb_info.h>
 #include <disk_io_tools.h>
 #include <disk_share.h>
-// 2007.05 James }
 
 /* Private variables to this file */
 /* Current umask() */
@@ -1012,13 +1013,13 @@ vsf_sysutil_next_dirent(const char* session_user, const char *base_dir, struct v
 	if(layer <= BASE_LAYER)
 		return DENIED_DIR;
 	else if(layer == MOUNT_LAYER){
-		if(!test_if_dir(truepath)){
+		if(!check_if_dir_exist(truepath)){
 			free(mount_path);
 			return DENIED_DIR;
 		}
 	}
 	else if(layer == SHARE_LAYER){
-		if(!test_if_dir(truepath)){
+		if(!check_if_dir_exist(truepath)){
 			free(mount_path);
 			free(share_name);
 			return DENIED_DIR;
@@ -2300,9 +2301,10 @@ test_user(char *target, char *pattern)	// added by Jiahao for WL500gP
 struct vsf_sysutil_user*	// Jiahao
 vsf_sysutil_getpwnam(const char* p_user){
 	struct passwd *result;
-	char nvram_value[256], user[256], password[256];;
 	int acc_num, i;
-	
+	char *nv, *nvp, *b;
+	char *tmp_account, *tmp_passwd;
+
 	if (strcmp(p_user, "root") == 0){
 		result = (struct passwd *)(malloc(sizeof(struct passwd)));
 		if (result == NULL)
@@ -2314,51 +2316,63 @@ vsf_sysutil_getpwnam(const char* p_user){
 		result->pw_gid = 0;
 		result->pw_gecos = "root";
 		result->pw_dir = "/";
+
 		return (struct vsf_sysutil_user *)result;
 	}
-	
+
 	if(nvram_match("st_ftp_mode", "1")){
 		if(strcmp(p_user, "anonymous") == 0){
 			result = (struct passwd *)(malloc(sizeof(struct passwd)));
-    		if (result == NULL)
-    			return NULL;
-			
-    		result->pw_name = "anonymous";
-    		result->pw_passwd = "";
-    		result->pw_uid = 0;
-    		result->pw_gid = 0;
-    		result->pw_gecos = "anonymous";
-    		result->pw_dir = POOL_MOUNT_ROOT;
-			
+	 		if (result == NULL)
+	 			return NULL;
+
+	 		result->pw_name = "anonymous";
+	 		result->pw_passwd = "";
+	 		result->pw_uid = 0;
+	 		result->pw_gid = 0;
+	 		result->pw_gecos = "anonymous";
+			result->pw_dir = POOL_MOUNT_ROOT;
+
 			return (struct vsf_sysutil_user *)result;
 		}
 	}
 	else if(nvram_match("st_ftp_mode", "2")){
 		acc_num = atoi(nvram_safe_get("acc_num"));
-		for(i = 0; i < acc_num; ++i){
-			sprintf(nvram_value, "acc_username%d", i);
-			strcpy(user, nvram_safe_get(nvram_value));	
-			sprintf(nvram_value, "acc_password%d", i);
-			strcpy(password, nvram_safe_get(nvram_value));
-			
-  			if(strcmp(p_user, user) == 0){
-    				result = (struct passwd *)(malloc(sizeof(struct passwd)));
-    				if (result == NULL)
-      					return NULL;
-				
-    				result->pw_name = (char *)p_user;
-    				result->pw_passwd = password;
-    				result->pw_uid = 1;
-    				result->pw_gid = 1;
-    				result->pw_gecos = user;
-    				result->pw_dir = POOL_MOUNT_ROOT;
-				
-				return (struct vsf_sysutil_user *)result;
+		if(acc_num < 0)
+			acc_num = 0;
+
+		nv = nvp = strdup(nvram_safe_get("acc_list"));
+		i = 0;
+		if(nv && strlen(nv) > 0){
+			while((b = strsep(&nvp, "<")) != NULL){
+				if(vstrsep(b, ">", &tmp_account, &tmp_passwd) != 2)
+					continue;
+
+				if(!strcmp(p_user, tmp_account)){
+					result = (struct passwd *)(malloc(sizeof(struct passwd)));
+					if(result == NULL)
+						return NULL;
+
+					result->pw_name = (char *)p_user;
+					result->pw_passwd = tmp_passwd;
+					result->pw_uid = 1;
+					result->pw_gid = 1;
+					result->pw_gecos = tmp_account;
+					result->pw_dir = POOL_MOUNT_ROOT;
+
+					return (struct vsf_sysutil_user *)result;
+				}
+
+				if(++i >= acc_num)
+					break;
 			}
 		}
+		if(nv)
+			free(nv);
+
 		return NULL;
 	}
-	
+
 	return NULL;
 }
 

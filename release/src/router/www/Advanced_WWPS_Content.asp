@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_1_2#></title>
+<title><#Web_Title#> - <#menu5_1_2#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script type="text/javascript" src="/state.js"></script>
@@ -42,11 +42,17 @@ var delay = 1000;
 function initial(){
 	show_menu();
 
-	if(document.form.wps_band.value == 1){
-		$("wps_band_word").innerHTML = "5GHz";
-	}
-	else if(document.form.wps_band.value == 0){
-		$("wps_band_word").innerHTML = "2.4GHz";
+	if(band5g_support == -1){	//single band
+		$("wps_band").style.display = "none";
+		
+	}else{										//Dual band
+		$("wps_band").style.display = "";
+		if(document.form.wps_band.value == 1){
+			$("wps_band_word").innerHTML = "5GHz";
+		}
+		else if(document.form.wps_band.value == 0){
+			$("wps_band_word").innerHTML = "2.4GHz";
+		}
 	}
 	
 	if(!ValidateChecksum(document.form.wps_sta_pin.value) || document.form.wps_sta_pin.value == "00000000"){
@@ -57,9 +63,6 @@ function initial(){
 		document.form.wps_method[1].checked = true;		
 		changemethod(1);
 	}
-
-	if(band5g_support == -1)
-		$("wps_band").style.display = "none";
 
 	loadXML();
 }
@@ -72,7 +75,7 @@ function SwitchBand(){
 			document.form.wps_band.value = 1;
 	}
 	else{
-		$("wps_band_hint").innerHTML = "Please turn off WPS first.";
+		$("wps_band_hint").innerHTML = "* Please turn off WPS first.";
 		return false;
 	}
 
@@ -93,9 +96,13 @@ function applyRule(){
 }
 
 function enableWPS(){
-	document.form.action_script.value = "restart_wps";
+	document.form.action_script.value = "restart_wireless";
 	document.form.action_mode.value = "apply";
 	document.form.action_wait.value = "3";
+
+	if(wl6_support != -1)
+		document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
+
 	applyRule();
 }
 
@@ -116,9 +123,10 @@ function configCommand(){
 }
 
 function resetWPS(){
+	showLoading(5);
 	FormActions("apply.cgi", "wps_reset", "", "5");
-	document.form.target = "";
-	applyRule();
+	document.form.submit();
+	setTimeout('location.href=location.href;', 5000);
 }
 
 function resetTimer()
@@ -226,11 +234,12 @@ function refresh_wpsinfo(xmldoc){
 }
 
 function show_wsc_status(wps_infos){
-	if(wps_infos[11].firstChild.nodeValue == "shared"
+	if( (wps_infos[11].firstChild.nodeValue == "open" && document.form.wl_wep_x.value != "0")
+		  || wps_infos[11].firstChild.nodeValue == "shared"
+		  || wps_infos[11].firstChild.nodeValue == "psk"
 			|| wps_infos[11].firstChild.nodeValue == "wpa"
-			|| wps_infos[11].firstChild.nodeValue == "wpa2"
 			|| wps_infos[11].firstChild.nodeValue == "radius"){
-		$("wps_enable_hint").innerHTML = "<#wsc_mode_hint1#><a href=\"Advanced_Wireless_Content.asp\"> <#menu5_1_1#></a> <#wsc_mode_hint2#>"
+		$("wps_enable_hint").innerHTML = "<#WPS_weptkip_hint#><br><#wsc_mode_hint1#><a href=\"Advanced_Wireless_Content.asp\"> <#menu5_1_1#></a> <#wsc_mode_hint2#>"
 		$("wps_state_tr").style.display = "none";
 		$("devicePIN_tr").style.display = "none";
 		$("wpsmethod_tr").style.display = "none";
@@ -291,6 +300,7 @@ function show_wsc_status(wps_infos){
 	}
 	
 	// show connecting btn
+	/*
 	if(wps_infos[0].firstChild.nodeValue == "Idle" || wps_infos[0].firstChild.nodeValue == "Configured"){
 		$("addEnrolleebtn_client").style.display = "";
 		$("WPSConnTble").style.display = "";
@@ -302,11 +312,13 @@ function show_wsc_status(wps_infos){
 		$("WPSConnTble").style.display = "none";
 		$("wpsDesc").style.display = "none";
 	}
+	*/
 
-	if(wps_infos[0].firstChild.nodeValue == "Start enrolling...")
+	if(wps_infos[0].firstChild.nodeValue == "Start WPS Process")
 		$("wps_pin_hint").style.display = "inline";
 	else
 		$("wps_pin_hint").style.display = "none";
+	
 
 	if(wps_infos[1].firstChild.nodeValue == "No")
 			$("wps_config_td").innerHTML = "No";
@@ -357,6 +369,7 @@ function changemethod(wpsmethod){
 <input type="hidden" name="wl_auth_mode_x" value="<% nvram_get("wl_auth_mode_x"); %>">
 <input type="hidden" name="wl_wep_x" value="<% nvram_get("wl_wep_x"); %>">
 <input type="hidden" name="wps_band" value="<% nvram_get("wps_band"); %>">
+<input type="hidden" name="wl_crypto" value="<% nvram_get("wl_crypto"); %>">
 
 <table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
 	<tr>
@@ -368,7 +381,7 @@ function changemethod(wpsmethod){
 	<tr>
 		  <td bgcolor="#4D595D" valign="top"  >
 		  <div>&nbsp;</div>
-		  <div class="formfonttitle"><#menu5_1#> - <#t2WPS#></div>
+		  <div class="formfonttitle"><#menu5_1#> - <#menu5_1_2#></div>
 		  <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 		  <div class="formfontdesc"><#WLANConfig11b_display6_sectiondesc#></div>
 
@@ -409,6 +422,7 @@ function changemethod(wpsmethod){
 				<td>
 						<span class="devicepin" style="color:#FFF;" id="wps_band_word"></span>&nbsp;&nbsp;
 						<input type="button" class="button_gen_long" name="switchWPSbtn" id="switchWPSbtn" value="<#Switch_band#>" class="button" onClick="SwitchBand();">
+						<br><span id="wps_band_hint"></span>
 		  	</td>
 			</tr>
 			
@@ -442,7 +456,6 @@ function changemethod(wpsmethod){
 
 			<div  class="formfontdesc" style="padding-bottom:10px;padding-top:10px;display:none;" id="wpsDesc">
 				<#WPS_add_client#>
-				<div style="color:#FFCC00"><#WPS_weptkip_hint#><div>
 			</div>
 			
 			<tr id="wpsmethod_tr">
@@ -453,7 +466,7 @@ function changemethod(wpsmethod){
 					<input type="radio" name="wps_method" onclick="changemethod(0);" value="0">Push Button
 					<input type="radio" name="wps_method" onclick="changemethod(1);" value="1">Client PIN Code
 			  	<input type="text" name="wps_sta_pin" id="wps_sta_pin" value="" size="8" maxlength="8" class="input_15_table">
-				  <div id="starBtn" style="margin-top:10px;"><input class="button_gen" type="button" style="display:none; margin-left:5px;" onClick="configCommand();" id="addEnrolleebtn_client" name="addEnrolleebtn"  value="<#wps_start_btn#>"></div>
+				  <div id="starBtn" style="margin-top:10px;"><input class="button_gen" type="button" style="margin-left:5px;" onClick="configCommand();" id="addEnrolleebtn_client" name="addEnrolleebtn"  value="<#wps_start_btn#>"></div>
 				</td>
 			</tr>
 

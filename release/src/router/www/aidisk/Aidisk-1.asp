@@ -113,9 +113,9 @@ function go_next_page(){
 </form>
 
 <div class="aidisk1_table">
-<table>	<!-- width="765" height="760" border="0" bgcolor="#4d595d" cellpadding="0"  cellspacing="0" style="padding:10px; padding-top:20px;"-->
+<table>
 <tr>
-  <td valign="top" bgcolor="#4d595d" style="padding-top:25px;"> <!-- height="780" align="center" -->
+  <td valign="top" bgcolor="#4d595d" style="padding-top:25px;">
   <table width="740" height="125" border="0">
 	<!-- start Step 0 -->  
 	<tr>
@@ -151,18 +151,18 @@ function go_next_page(){
 		  				<li> 
 		  					<span id="noWAN_link" style="display:none;"></span>
 		  					<span id="ddnslink1" style="display:none;">
-		  					<#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>">ftp://<% nvram_get("ddns_hostname_x"); %></a>
+		  					<#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#>&nbsp;<a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("ddns_hostname_x"); %></a>
 		  					</span>
 		  					<span id="ddnslink2" style="display:none;">
-		  					<#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>">ftp://<% nvram_get("ddns_hostname_x"); %></a>
+		  					<#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#>&nbsp;<a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("ddns_hostname_x"); %></a>
 		  					</span>
 		  				</li>
 		  				<li id="desc_2" style="display:none;margin-top:8px;">
 		  					<span id="ddnslink1_LAN" style="display:none;">
-		  					<#t2LAN#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>">ftp://<% nvram_get("lan_ipaddr"); %></a>
+		  					<#t2LAN#>&nbsp;<#AiDisk_linktoFTP_fromInternet#>&nbsp;<a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("lan_ipaddr"); %></a>
 		  					</span>
 		  					<span id="ddnslink2_LAN" style="display:none;">
-		  					<#t2LAN#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>">ftp://<% nvram_get("lan_ipaddr"); %></a>
+		  					<#t2LAN#>&nbsp;<#AiDisk_linktoFTP_fromInternet#>&nbsp;<a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("lan_ipaddr"); %></a>
 		  					</span>
 		  				</li>
 							<li><#AiDisk_moreconfig#></li>
@@ -176,7 +176,7 @@ function go_next_page(){
   <tr>
   	<td align="center" width="740px" height="60px">
 			<div id="gotonext">
-  			<a href="javascript:go_next_page();"><div class="titlebtn" style="margin-left:300px;_margin-left:150px;" align="center"><span id="settingBtn"><#btn_go#></span></div></a>
+  			<a href="javascript:go_next_page();"><div class="titlebtn" style="margin-left:300px;_margin-left:150px;" align="center"><span id="settingBtn" style="*width:190px;"><#btn_go#></span></div></a>
 			</div>
   	</td>
   </tr>

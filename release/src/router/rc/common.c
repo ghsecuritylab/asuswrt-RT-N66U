@@ -37,6 +37,7 @@
 #include<wlioctl.h>
 #include<sys/time.h>
 #include<sys/ioctl.h>
+#include <sys/sysinfo.h>
 #include<syslog.h>
 #include<stdarg.h>
 #include <arpa/inet.h>	// oleg patch
@@ -277,12 +278,18 @@ void init_switch_mode()
 		nvram_set("wan_nat_x", "1");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_PROXYSTA
+		nvram_set("wlc_psta", "0");
+#endif
 	}
 	else if (nvram_match("sw_mode_ex", "4"))		// Router mode
 	{
 		nvram_set("wan_nat_x", "0");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_PROXYSTA
+		nvram_set("wlc_psta", "0");
+#endif
 	}
 #ifdef RTCONFIG_WIRELESSREPEATER
 	else if (nvram_match("sw_mode_ex", "2"))		// Repeater mode
@@ -294,8 +301,15 @@ void init_switch_mode()
 		nvram_set("wl0_vifs", "wl0.1");
 		
 		nvram_set("wl0.1_hwaddr", nvram_safe_get("et0macaddr"));
+#ifdef RTCONFIG_BCMWL6
+		if (nvram_match("wl0_phytype", "v"))
+			nvram_set("wl0_bw_cap", "7");
+		else
+			nvram_set("wl0_bw_cap", "3");
+#else
 		nvram_set("wl0_nbw_cap", "1");
 		nvram_set("wl0_nbw", "40");
+#endif
 		
 		nvram_set("wl_mode", "wet");
 		nvram_set("wl0_mode", "wet");
@@ -309,6 +323,9 @@ void init_switch_mode()
 		nvram_set("wl0.1_wme", nvram_safe_get("wl_wme"));
 		nvram_set("wl0.1_wme_bss_disable", nvram_safe_get("wl_wme_bss_disable"));
 		nvram_set("wl0.1_wmf_bss_enable", nvram_safe_get("wl_wmf_bss_enable"));
+#ifdef RTCONFIG_PROXYSTA
+		nvram_set("wlc_psta", "0");
+#endif
 	}
 #endif	/* RTCONFIG_WIRELESSREPEATER */
 	else if (nvram_match("sw_mode_ex", "3"))		// AP mode
@@ -324,6 +341,9 @@ void init_switch_mode()
 		nvram_set("wan_nat_x", "1");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_PROXYSTA
+		nvram_set("wlc_psta", "0");
+#endif
 	}
 }
 
@@ -344,24 +364,25 @@ void wanmessage(char *fmt, ...)
 
 int pppstatus(void)
 {
-   FILE *fp;
-   char sline[128], buf[128], *p;
+	FILE *fp;
+	char sline[128], buf[128], *p;
 
-   if ((fp=fopen("/tmp/wanstatus.log", "r")) && fgets(sline, sizeof(sline), fp))
-   {
-	p = strstr(sline, ",");
-	strcpy(buf, p+1);
-   }
-   else
-   {
-	strcpy(buf, "unknown reason");
-   }
+	if ((fp=fopen("/tmp/wanstatus.log", "r")) && fgets(sline, sizeof(sline), fp))
+	{
+		p = strstr(sline, ",");
+		strcpy(buf, p+1);
+	}
+	else
+	{
+		strcpy(buf, "unknown reason");
+	}
 
-   if(fp) fclose(fp);
+	if(fp) fclose(fp);
 
-   if(strstr(buf, "No response from ISP.")) return WAN_STOPPED_REASON_PPP_NO_ACTIVITY;
-   else if(strstr(buf, "Failed to authenticate ourselves to peer")) return WAN_STOPPED_REASON_PPP_AUTH_FAIL;
-   else return WAN_STOPPED_REASON_NONE;
+	if(strstr(buf, "No response from ISP.")) return WAN_STOPPED_REASON_PPP_NO_ACTIVITY;
+	else if(strstr(buf, "Failed to authenticate ourselves to peer")) return WAN_STOPPED_REASON_PPP_AUTH_FAIL;
+	else if(strstr(buf, "Terminating connection due to lack of activity")) return WAN_STOPPED_REASON_PPP_LACK_ACTIVITY;
+	else return WAN_STOPPED_REASON_NONE;
 }
 
 void logmessage(char *logheader, char *fmt, ...)
@@ -377,37 +398,6 @@ void logmessage(char *logheader, char *fmt, ...)
   closelog();
   va_end(args);
 }
-
-/* Transfer Char to ASCII */
-void char_to_ascii(char *output, char *input)
-{
-	int i;
-	char *ptr;
-
-	ptr = output;
-
-	for ( i=0; i<strlen(input); i++ )
-	{
-		if ( input[i]=='"' || input[i] == '[' || input[i] == ']' ) {
-			*ptr = '\\';
-			ptr ++;
-			*ptr = input[i];
-			ptr ++;
-		}
-		else if ( input[i] >= '!' && input[i] <='~' )
-		{
-			*ptr = input[i];
-			ptr ++;
-		}
-		else
-		{
-			sprintf(ptr, "%%%.02X", input[i]);
-			ptr += strlen(ptr);
-		}
-	}
-	*(ptr) = '\0';
-}
-
 
 void usage_exit(const char *cmd, const char *help)
 {
@@ -1062,22 +1052,6 @@ const char *default_wlif(void)
 }
 */
 
-int _vstrsep(char *buf, const char *sep, ...)
-{
-	va_list ap;
-	char **p;
-	int n;
-
-	n = 0;
-	va_start(ap, sep);
-	while ((p = va_arg(ap, char **)) != NULL) {
-		if ((*p = strsep(&buf, sep)) == NULL) break;
-		++n;
-	}
-	va_end(ap);
-	return n;
-}
-
 void simple_unlock(const char *name)
 {
 	char fn[256];
@@ -1185,37 +1159,41 @@ long fappend_file(const char *path, const char *fname)
 	return r;
 }
 
-int doSystem(char *fmt, ...);
-
-int gettzoffset(char *tzstr, char *tzstr1)
+/* uclibc accepts any of following:
+ * [STD][Offset][DST], where
+ * [STD] ~ any [a-zA-Z]
+ * [DST] ~ any [a-zA-Z] */
+#define CONVERT_TZ_TO_GMT_DST
+#ifdef CONVERT_TZ_TO_GMT_DST
+int gettzoffset(char *tzstr, char *tzstr1, int size1)
 {
-	int ret=0;
 	char offstr[32];
-	char *tzptr, *offptr;
+	char *tzptr = tzstr;
+	char *offptr = offstr;
+	int ret = 0;
+	int dst = 0;
 
-	tzptr = tzstr;
-	offptr = offstr;
 	memset(offstr, 0, sizeof(offstr));
-
-	while(*tzptr)
-	{
-		if(*tzptr=='-'||*tzptr=='+'||*tzptr==':'||(*tzptr>='0'&&*tzptr<='9')) {
+	for ( ; *tzptr; tzptr++) {
+		if (*tzptr=='-'||*tzptr=='+'||*tzptr==':'||isdigit(*tzptr)) {
 			*offptr++ = *tzptr;
-			ret=1;
-		}
-		else if(ret) {
+			ret = 1;
+		} else if (ret) {
+			dst = isalpha(*tzptr);
 			break;
 		}
-		tzptr++;
 	}
 
-	if(ret) sprintf(tzstr1, "GMT%s", offstr);
+	if (ret)
+		snprintf(tzstr1, size1, "GMT%s%s", offstr, dst ? "DST" : "");
 	return ret;
 }
+#endif
 
 void time_zone_x_mapping(void)
 {
-	char tmpstr[32], tmpstr1[32];
+	FILE *fp;
+	char tmpstr[32];
 	char *ptr;
 
 	/* pre mapping */
@@ -1224,20 +1202,20 @@ void time_zone_x_mapping(void)
 	else if (nvram_match("time_zone", "RFT-9RFTDST"))
 		nvram_set("time_zone", "UCT-9_2");
 
-	strcpy(tmpstr, nvram_safe_get("time_zone"));
+	snprintf(tmpstr, sizeof(tmpstr), "%s", nvram_safe_get("time_zone"));
 	/* replace . with : */
-	if ((ptr=strchr(tmpstr, '.'))!=NULL) *ptr = ':';
+	while ((ptr=strchr(tmpstr, '.'))!=NULL) *ptr = ':';
 	/* remove *_? */
-	if ((ptr=strchr(tmpstr, '_'))!=NULL) *ptr = 0x0;
+	while ((ptr=strchr(tmpstr, '_'))!=NULL) *ptr = 0x0;
 
 	/* check time_zone_dst for daylight saving */
-	if(!nvram_get_int("time_zone_dst") && gettzoffset(tmpstr,tmpstr1)) {
-		nvram_set("time_zone_x", tmpstr1);
-	}
-	else {
+	if (nvram_get_int("time_zone_dst"))
 		sprintf(tmpstr, "%s,%s", tmpstr, nvram_safe_get("time_zone_dstoff"));
-		nvram_set("time_zone_x", tmpstr);
-	}
+#ifdef CONVERT_TZ_TO_GMT_DST
+	else	gettzoffset(tmpstr, tmpstr, sizeof(tmpstr));
+#endif
+
+	nvram_set("time_zone_x", tmpstr);
 
 #if 0
 	/* special mapping */
@@ -1249,9 +1227,11 @@ void time_zone_x_mapping(void)
 		nvram_set("time_zone_x", "UCT-9:30");
 #endif
 
-	doSystem("echo %s > /etc/TZ", nvram_safe_get("time_zone_x"));
+	if ((fp = fopen("/etc/TZ", "w")) != NULL) {
+		fprintf(fp, "%s\n", tmpstr);
+		fclose(fp);
+	}
 }
-
 
 /* Get the timezone from NVRAM and set the timezone in the kernel
  * and export the TZ variable 
@@ -1259,9 +1239,13 @@ void time_zone_x_mapping(void)
 void
 setup_timezone(void)
 {
+#ifndef RC_BUILDTIME
+#define RC_BUILDTIME	1293840000	// Jan 1 00:00:00 GMT 2011
+#endif
 	time_t now;
 	struct tm gm, local;
 	struct timezone tz;
+	struct timeval tv = { RC_BUILDTIME, 0 };
 	struct timeval *tvp = NULL;
 
 	/* Export TZ variable for the time libraries to 
@@ -1274,25 +1258,20 @@ setup_timezone(void)
 	time(&now);
 	gmtime_r(&now, &gm);
 	localtime_r(&now, &local);
+	gm.tm_isdst = local.tm_isdst;
 	tz.tz_minuteswest = (mktime(&gm) - mktime(&local)) / 60;
-	settimeofday(tvp, &tz);
 
-#ifndef RC_BUILDTIME
-#define RC_BUILDTIME	1293840000	// Jan 1 00:00:00 GMT 2011
-#endif
-#include <sys/sysinfo.h>
-
-	time(&now);
-
-	if (now < RC_BUILDTIME)
-	{
+	/* Setup sane start time */
+	if (now < RC_BUILDTIME) {
 		struct sysinfo info;
-		sysinfo(&info);
-		struct timeval tv = {RC_BUILDTIME + info.uptime, 0};
-		settimeofday(&tv, &tz);
-	}
-}
 
+		sysinfo(&info);
+		tv.tv_sec += info.uptime;
+		tvp = &tv;
+	}
+
+	settimeofday(tvp, &tz);
+}
 
 int
 is_invalid_char_for_hostname(char c)
@@ -1327,30 +1306,22 @@ is_invalid_char_for_hostname(char c)
 int
 is_valid_hostname(const char *name)
 {
-	int ret = 1, len, i;
+	int len, i;
 
 	if (!name)
 		return 0;
 
 	len = strlen(name);
-	if (len == 0)
-	{
-		ret = 0;
-		goto ENDERR;
-	}
-
-	for (i = 0; i < len ; i++)
-		if (is_invalid_char_for_hostname(name[i]))
-		{
-			ret = 0;
+	for (i = 0; i < len ; i++) {
+		if (is_invalid_char_for_hostname(name[i])) {
+			len = 0;
 			break;
 		}
-
-ENDERR:
+	}
 #if 0
-	printf("%s is %svalid for hostname\n", name, (ret == 1) ? "  " : "in");
+	printf("%s is %svalid for hostname\n", name, len ? "" : "in");
 #endif
-	return ret;
+	return len;
 }
 
 #ifdef RTCONFIG_OLD_PARENTALCTRL
@@ -1416,7 +1387,7 @@ void setup_dnsmq(int mode)
 		eval("iptables", "-t", "nat", "-I", "PREROUTING", "-p", "tcp", "-d", "10.0.0.1", "--dport", "80", "-j", "DNAT", "--to-destination", strcat_r(nvram_safe_get("lan_ipaddr"), ":80", tmp)); 
 	
 		//sprintf(v, "%x my.%s", inet_addr("10.0.0.1"), nvram_safe_get("productid"));
-		sprintf(v, "%x www.asusrouter.com", inet_addr(nvram_safe_get("lan_ipaddr")));
+		sprintf(v, "%x www.asusnetwork.net", inet_addr(nvram_safe_get("lan_ipaddr")));
 		f_write_string("/proc/net/dnsmqctrl", v, 0, 0);
 	}
 	else {

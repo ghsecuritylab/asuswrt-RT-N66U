@@ -3,34 +3,37 @@
 #
 # Copyright (C) 2002 Broadcom Corporation
 #
-# $Id: Makefile 241388 2011-02-18 03:33:22Z stakita $
+# $Id: Makefile 271576 2011-07-12 20:31:22Z $
 #
 # targets/builds
 BUILDS = nas
 
+# default build
+.PHONY: all
+all : ${BUILDS}
+
+.PHONY: ${BUILDS}
 ${BUILDS} ::
-	$(MAKE) -C $@
+	+$(MAKE) -C $@
 
 # clean up
 BUILDS-CLEAN = ${BUILDS:=-clean}
 
+.PHONY: clean
 clean : ${BUILDS-CLEAN}
 
+.PHONY: ${BUILDS-CLEAN}
 ${BUILDS-CLEAN} ::
 	$(MAKE) -C ${@:-clean=} clean
 
-# default build
-ifneq ($(wildcard ./prebuilt),)
-all:
-	-cp prebuilt/nas nas/nas 
-else
 all : ${BUILDS}
-endif
 
 # install
 BUILDS-INSTALL = ${BUILDS:=-install}
 
+.PHONY: install
 install : ${BUILDS-INSTALL}
 
+.PHONY: ${BUILDS-INSTALL}
 ${BUILDS-INSTALL} ::
-	$(MAKE) -C ${@:-install=} install
+	+$(MAKE) -C ${@:-install=} install

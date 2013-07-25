@@ -51,15 +51,13 @@ _install_package(){
 		pkg_file=
 		installed_ipk_path=
 
-		if [ "$1" == "downloadmaster" ]; then
+		if [ "$1" == "downloadmaster" ] && [ -z "$apps_from_internet" ]; then
 			app_base_library.sh $APPS_DEV
 			if [ "$?" != "0" ]; then
 				# apps_state_error was already set by app_base_library.sh.
 				return 1
 			fi
-		fi
 
-		if [ "$1" == "downloadmaster" ] && [ -z "$apps_from_internet" ]; then
 			installed_ipk_path=`ls $apps_local_space/downloadmaster*`
 		else
 			# Geting the app's file name...
@@ -86,9 +84,12 @@ _install_package(){
 				ipk_file_name=$pkg_file
 			fi
 
-			echo "wget $wget_options $pkg_server/$pkg_file -O $2/$ipk_file_name"
-			wget $wget_options $pkg_server/$pkg_file -O $2/$ipk_file_name
+			echo "wget -c $wget_options $pkg_server/$pkg_file -O $2/$ipk_file_name"
+			wget -c $wget_options $pkg_server/$pkg_file -O $2/$ipk_file_name
 			if [ "$?" != "0" ]; then
+				rm -f $2/$ipk_file_name
+				sync
+
 				nvram set apps_state_error=6
 				return 1
 			fi
@@ -195,10 +196,11 @@ fi
 
 nvram set apps_state_install=3 # INSTALLING
 link_internet=`nvram get link_internet`
-if [ "$link_internet" == "1" ]; then
+if [ "$link_internet" == "1" ] && [ -n "$apps_from_internet" ]; then
 	app_update.sh
 else
 	cp -f $apps_local_space/optware.asus $APPS_INSTALL_PATH/lib/ipkg/lists/
+	cp -f $apps_local_space/optware.oleg $APPS_INSTALL_PATH/lib/ipkg/lists/
 fi
 
 _install_package $1 $APPS_INSTALL_PATH
@@ -225,5 +227,9 @@ fi
 
 app_set_enabled.sh $1 "yes"
 
+link_internet=`nvram get link_internet`
+if [ "$link_internet" == "1" ]; then
+	app_update.sh&
+fi
 
 nvram set apps_state_install=4 # FINISHED

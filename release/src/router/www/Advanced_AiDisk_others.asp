@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_4_3#></title>
+<title><#Web_Title#> - <#menu5_4_3#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script type="text/javascript" src="/state.js"></script>
@@ -30,7 +30,7 @@ var ddns_hostname = '<% nvram_get("ddns_hostname_x"); %>';;
 
 function initial(){
 	show_menu();
-	$("option5").innerHTML = '<img style="margin-left:10px;" border="0" width="50px" height="50px" src="images/New_ui/icon_index_5.png"><div style="margin-top:-30px; margin-left:65px"><#Menu_usb_application#></div>';
+	$("option5").innerHTML = '<table><tbody><tr><td><div id="index_img5"></div></td><td><div style="width:120px;"><#Menu_usb_application#></div></td></tr></tbody></table>';
 	$("option5").className = "m5_r";
 
 	xfr();
@@ -107,11 +107,6 @@ function validForm(){
                 document.form.computer_name.select();
                 return false;
         }
-        
-        /*
-        if(!validate_range(document.form.apps_upload_max, 0, 999))
-                return false;
-        */
         
         String.prototype.Trim = function(){return this.replace(/(^\s*)|(\s*$)/g,"");}
         document.form.st_samba_workgroup.value = document.form.st_samba_workgroup.value.Trim();
@@ -196,7 +191,7 @@ function done_validating(action){
                                                 <a class="hintstyle" href="javascript:void(0);" onClick="openHint(17,1);"><#ShareNode_MaximumLoginUser_itemname#></a>
                                         </th>
                                         <td>
-                                                <input type="text" name="st_max_user" class="input_3_table" maxlength="1" value="<% nvram_get("st_max_user"); %>" onKeyPress="return is_number_sp(event, this);" onblur="validate_number_range(this, 1, 5)">
+                                                <input type="text" name="st_max_user" class="input_3_table" maxlength="1" value="<% nvram_get("st_max_user"); %>" onKeyPress="return is_number(this, event);">
                                         </td>
                                 </tr>
                                 
@@ -228,8 +223,8 @@ function done_validating(action){
                                                         <option value="TW" <% nvram_match("ftp_lang", "TW", "selected"); %>><#ShareNode_FTPLANG_optionname2#></option>
                                                         <option value="EN" <% nvram_match("ftp_lang", "EN", "selected"); %>><#ShareNode_FTPLANG_optionname1#></option>
                                                         <!-- Viz for Common N16 : RU CZ  -->	
-																												<option value="RU" <% nvram_match("ftp_lang", "RU", "selected"); %>><#LANG_RU#></option>	
-																		 										<option value="CZ" <% nvram_match("ftp_lang", "CZ", "selected"); %>><#LANG_CZ#></option>                                                        	
+																												<option value="RU" <% nvram_match("ftp_lang", "RU", "selected"); %>><#ShareNode_FTPLANG_optionname4#></option>
+																		 										<option value="CZ" <% nvram_match("ftp_lang", "CZ", "selected"); %>><#ShareNode_FTPLANG_optionname5#></option>
                                                 </select>
                                         </td>
                                 </tr>

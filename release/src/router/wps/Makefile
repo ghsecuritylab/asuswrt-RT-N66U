@@ -1,7 +1,7 @@
 #
 # Broadcom Linux Router WPS  Makefile
-# 
-# Copyright (C) 2010, Broadcom Corporation
+#
+# Copyright (C) 2011, Broadcom Corporation
 # All Rights Reserved.
 # 
 # This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -11,10 +11,13 @@
 #
 
 #
+ifneq (true,$(parallel))
+  .NOTPARALLEL:
+endif
 
 # Include linux kernel and router config
-include $(LINUXDIR)/.config
 include $(TOP)/.config
+include $(LINUXDIR)/.config
 
 # Build type
 BLDTYPE = release
@@ -44,20 +47,18 @@ endif
 # Set compile CFLAGS
 export CFLAGS += -DBCMUPNP
 export CFLAGS += -DWPS_AP_M2D
-export CFLAGS += -DWPS_ADDCLIENT_WWTP
+
+# Enable WWTP option cause the security hole described in WSC 2.0 specification section 4.3.1
+#export CFLAGS += -DWPS_ADDCLIENT_WWTP
+
 export CFLAGS += -s
 
 ifeq ($(BLDTYPE),debug)
 export CXXFLAGS += -Wall -D_REENTRANT -D_TUDEBUGTRACE -D__linux__ -DWPS_MODE_AP
-export CFLAGS += -Os -Wall -Wnested-externs  -D_REENTRANT -D_TUDEBUGTRACE -D__linux__ 
+export CFLAGS += -Wall -Wnested-externs  -D_REENTRANT -D_TUDEBUGTRACE -D__linux__
 else
 export CXXFLAGS += -Os -Wall -D_REENTRANT -D__linux__ -DWPS_MODE_AP
 export CFLAGS += -Wall -Wnested-externs -D_REENTRANT -D__linux__
-ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
-CFLAGS  += -Os
-else
-CFLAGS  += -O2
-endif
 endif
 ifeq ($(UPNP_WFA_DEVICE),1)
   export CXXFLAGS += -DUPNP_WFA_DEVICE
@@ -121,7 +122,7 @@ WPSM_OBJS = $(OBJDIR)/shared/tutrace.o $(OBJDIR)/shared/dev_config.o \
 	$(OBJDIR)/shared/slist.o $(OBJDIR)/enrollee/enr_reg_sm.o \
 	$(OBJDIR)/shared/reg_proto_utils.o $(OBJDIR)/shared/reg_proto_msg.o \
 	$(OBJDIR)/shared/tlv.o $(OBJDIR)/shared/state_machine.o \
-	$(OBJDIR)/shared/buffobj.o
+	$(OBJDIR)/shared/buffobj.o $(OBJDIR)/shared/wps_utils.o
 
 # wps common ap objects
 WPSM_AP_OBJS = $(OBJDIR)/ap/ap_api.o $(OBJDIR)/ap/ap_eap_sm.o \
@@ -132,7 +133,7 @@ endif
 
 # wps common sta enrollee objects
 WPSM_STA_OBJS = $(OBJDIR)/enrollee/enr_api.o $(OBJDIR)/sta/sta_eap_sm.o \
-	$(OBJDIR)/enrollee/enr_reg_sm.o $(OBJDIR)/registrar/reg_sm.o 
+	$(OBJDIR)/enrollee/enr_reg_sm.o $(OBJDIR)/registrar/reg_sm.o
 
 
 #
@@ -205,10 +206,10 @@ endif
 
 
 mkversion :
-	sh $(SRCBASE)/router/wps/mkversion.sh $(WPSSRC)/common/include/version.h.in $(WPSSRC)/common/include/wps_version.h "$(PROD_TAG)"
+	$(SRCBASE)/router/wps/mkversion.sh $(WPSSRC)/common/include/version.h.in $(WPSSRC)/common/include/wps_version.h "$(PROD_TAG)"
 
 # all library variants
-libs : dirs $(WPSM_LIB_FILES)
+libs : dirs objs $(WPSM_LIB_FILES)
 
 dirs :
 	mkdir -p $(OBJDIR)/ap
@@ -236,15 +237,18 @@ endif
 endif
 	@true
 
+objs: dirs
+	+$(MAKE) parallel=true $(WPSM_OBJS) $(WPSM_AP_OBJS) $(WPSM_STA_OBJS)
+
 # library rules
-$(WPSM_AP_LIB_FILE) : $(WPSM_OBJS) $(WPSM_AP_OBJS)
-	$(AR) cr $@ $^
+$(WPSM_AP_LIB_FILE) : objs
+	$(AR) cr $@ $(WPSM_OBJS) $(WPSM_AP_OBJS)
 
-$(WPSM_STA_LIB_FILE) : $(WPSM_OBJS) $(WPSM_STA_OBJS)
-	$(AR) cr $@ $^
+$(WPSM_STA_LIB_FILE) : objs
+	$(AR) cr $@ $(WPSM_OBJS) $(WPSM_STA_OBJS)
 
-$(WPSM_APSTA_LIB_FILE) : $(WPSM_OBJS) $(WPSM_AP_OBJS) $(WPSM_STA_OBJS)
-	$(AR) cr $@ $^
+$(WPSM_APSTA_LIB_FILE) : objs
+	$(AR) cr $@ $(WPSM_OBJS) $(WPSM_AP_OBJS) $(WPSM_STA_OBJS)
 
 # target
 ifeq ($(wildcard ./prebuilt),)
@@ -253,6 +257,7 @@ wps_monitor : $(WPSM_OSL_OBJS) $(WPSM_LIB_FILES)
 else
 wps_monitor :
 endif
+
 
 # object rules
 $(OBJDIR)/application/linux/%.o : $(WPSAPPSSRC)/linux/%.c
@@ -290,14 +295,12 @@ $(OBJDIR)/sta/%.o : $(WPSCOMSRC)/sta/%.c
 clean:
 	rm -rf $(OBJDIR)
 	rm -rf lib
-ifeq ($(wildcard ./prebuilt),)
 	find -name wps_monitor | xargs rm -f
-endif
 
 # install
 install: all
-	install -d $(INSTALLDIR)/bin
-	install wps_monitor $(INSTALLDIR)/bin
-	$(STRIP) $(INSTALLDIR)/bin/wps_monitor
+	install -d $(INSTALLDIR)/wps/bin
+	install wps_monitor $(INSTALLDIR)/wps/bin
+	$(STRIP) $(INSTALLDIR)/wps/bin/wps_monitor
 
-.PHONY: all clean install libs dirs
+.PHONY: all clean install libs dirs objs

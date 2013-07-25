@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,14 +8,59 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_1_3#></title>
+<title><#Web_Title#> - <#menu5_1_3#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<style>
+#pull_arrow{
+ 	float:center;
+ 	cursor:pointer;
+ 	border:2px outset #EFEFEF;
+ 	background-color:#CCC;
+ 	padding:3px 2px 4px 0px;
+}
+#WDSAPList{
+	border:1px outset #999;
+	background-color:#576D73;
+	position:absolute;
+	margin-top:24px;
+	margin-left:220px;
+	*margin-left:-150px;
+	width:255px;
+	*width:259px;
+	text-align:left;
+	height:auto;
+	overflow-y:auto;
+	z-index:200;
+	padding: 1px;
+	display:none;
+}
+#WDSAPList div{
+	background-color:#576D73;
+	height:20px;
+	line-height:20px;
+	text-decoration:none;
+	padding-left:2px;
+}
+#WDSAPList a{
+	background-color:#EFEFEF;
+	color:#FFF;
+	font-size:12px;
+	font-family:Arial, Helvetica, sans-serif;
+	text-decoration:none;	
+}
+#WDSAPList div:hover, #ClientList_Block a:hover{
+	background-color:#3366FF;
+	color:#FFFFFF;
+	cursor:default;
+}
+</style>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" language="JavaScript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/detect.js"></script>
+<script language="JavaScript" type="text/JavaScript" src="/jquery.js"></script>
 <script>
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
@@ -26,6 +71,8 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 var wl_wdslist_array = '<% nvram_get("wl_wdslist"); %>';
+var wds_aplist = "";
+var $j = jQuery.noConflict();
 
 function initial(){
 	show_menu();
@@ -49,6 +96,8 @@ function initial(){
 		$("wl_unit_field").style.display = "none";
 		$("mac_5g").style.display = "none";
 	}	
+
+	setTimeout("wds_scan();", 500);
 }
 
 function show_wl_wdslist(){
@@ -61,7 +110,7 @@ function show_wl_wdslist(){
 	else{
 		for(var i = 1; i < wl_wdslist_row.length; i++){
 			code +='<tr id="row'+i+'">';
-			code +='<td width="40%">'+ wl_wdslist_row[i] +'</td>';	
+			code +='<td width="80%">'+ wl_wdslist_row[i] +'</td>';	
 			code +='<td width="20%"><input type="button" class=\"remove_btn\" onclick=\"deleteRow(this);\" value=\"\"/></td></tr>';
 		}
 	}
@@ -96,8 +145,13 @@ function addRow(obj, upper){
 	if(obj.value==""){
 		alert("<#JS_fieldblank#>");
 		obj.focus();
-		obj.select();			
-	}else if(check_hwaddr(obj)){
+		obj.select();
+		return false;
+	}else if (!check_macaddr(obj, check_hwaddr_flag(obj))){
+		obj.focus();
+		obj.select();		
+		return false;
+	}
 		
 		//Viz check same rule
 		for(i=0; i<rule_num; i++){
@@ -113,8 +167,7 @@ function addRow(obj, upper){
 		wl_wdslist_array += obj.value;
 		obj.value = "";
 		show_wl_wdslist();
-	}else
-		return false;			
+	
 }
 
 function applyRule(){
@@ -150,6 +203,110 @@ function applyRule(){
 function done_validating(action){
 	refreshpage();
 }
+
+/*------------ Site Survey Start -----------------*/
+function wds_scan(){
+	var ajaxURL = '/wds_aplist_2g.asp';
+	if('<% nvram_get("wl_unit"); %>' == '1')
+		var ajaxURL = '/wds_aplist_5g.asp';
+
+	$j.ajax({
+		url: ajaxURL,
+		dataType: 'script',
+		
+		error: function(xhr){
+			setTimeout("wds_scan();", 1000);
+		},
+		success: function(response){
+			showLANIPList();
+		}
+	});
+}
+
+function setClientIP(num){
+	document.form.wl_wdslist_0.value = wds_aplist[num][1];
+	hideClients_Block();
+	over_var = 0;
+}
+
+function rescan(){
+	wds_aplist = "";
+	showLANIPList()
+	wds_scan();
+}
+
+function showLANIPList(){
+	var code = "";
+	var show_name = "";
+	if(wds_aplist != ""){
+		for(var i = 0; i < wds_aplist.length ; i++){
+			wds_aplist[i][0] = decodeURIComponent(wds_aplist[i][0]);
+			if(wds_aplist[i][0] && wds_aplist[i][0].length > 12)
+				show_name = wds_aplist[i][0].substring(0, 10) + "..";
+			else
+				show_name = wds_aplist[i][0];
+			
+			if(wds_aplist[i][1]){
+				code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP('+i+');"><strong>'+show_name+'</strong>';
+				if(show_name && show_name.length > 0)
+					code += '( '+wds_aplist[i][1]+')';
+				else
+					code += wds_aplist[i][1];
+				code += ' </div></a>';
+			}
+		}
+		code += '<div style="text-decoration:underline;font-weight:bolder;" onclick="rescan();"><#AP_survey#></div>';
+	}
+	else{
+		code += '<div style="width:98px"><img height="15px" style="margin-left:5px;margin-top:2px;" src="/images/InternetScan.gif"></div>';
+	}
+
+	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
+	document.getElementById("WDSAPList").innerHTML = code;
+}
+
+function pullLANIPList(obj){	
+	if(isMenuopen == 0){		
+		obj.src = "/images/arrow-top.gif"
+		document.getElementById("WDSAPList").style.display = 'block';		
+		document.form.wl_wdslist_0.focus();		
+		isMenuopen = 1;
+	}
+	else
+		hideClients_Block();
+}
+var over_var = 0;
+var isMenuopen = 0;
+
+function hideClients_Block(){
+	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('WDSAPList').style.display='none';
+	isMenuopen = 0;
+}
+
+function check_macaddr(obj,flag){ //control hint of input mac address
+	if(flag == 1){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<br><br><#LANHostConfig_ManualDHCPMacaddr_itemdesc#>";
+		$("check_mac").style.display = "";
+		return false;	
+	}else if(flag == 2){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<br><br><#IPConnection_x_illegal_mac#>";
+		$("check_mac").style.display = "";
+		return false;			
+	}else{
+		$("check_mac") ? $("check_mac").style.display="none" : true;
+		return true;
+	} 	
+}
+/*---------- Site Survey End -----------------*/
 </script>
 </head>
 
@@ -181,6 +338,7 @@ function done_validating(action){
 <input type="hidden" name="wl_channel_orig" value='<% nvram_get("wl_channel"); %>'>
 <input type="hidden" name="wl_nmode_x" value='<% nvram_get("wl_nmode_x"); %>'>
 <input type="hidden" name="wl_bw" value='<% nvram_get("wl_bw"); %>'>
+<input type="hidden" name="wl_nctrlsb_old" value='<% nvram_get("wl_nctrlsb"); %>'>
 <input type="hidden" name="wl_wdslist" value=''>
 <input type="hidden" name="wl_subunit" value="-1">
 
@@ -210,7 +368,7 @@ function done_validating(action){
 		  	<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 		  	<div class="formfontdesc"><#WLANConfig11b_display3_sectiondesc#></div>
 		  	<div style="margin-left:10px;">(2.4GHz MAC) <% nvram_get("wl0_hwaddr"); %></div>
-		  	<div id="mac_5g" style="margin-left:10px;">( 5GHz MAC) <% nvram_get("wl1_hwaddr"); %></div>
+		  	<div id="mac_5g" style="margin-left:10px;">(5GHz MAC) <% nvram_get("wl1_hwaddr"); %></div>
 			
 			<table id="MainTable1" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 			  <thead>
@@ -291,14 +449,20 @@ function done_validating(action){
 			  </thead>		
 
           		<tr>
-            		<th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,10);">
+            		<th width="80%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,10);">
 								 <#WLANConfig11b_RBRList_groupitemdesc#>
 								</th>
-								<th class="edit_table" width="20%">Edit</th>
+								<th class="edit_table" width="20%">Add / Delete</th>
           		</tr>
           		<tr>
-            		<td width="40%">
-              		<input type="text" maxlength="17" class="input_macaddr_table" name="wl_wdslist_0" onKeyPress="return is_hwaddr()">
+            		<td width="80%">
+              		<input type="text" style="margin-left:220px;float:left;" maxlength="17" class="input_macaddr_table" name="wl_wdslist_0" onKeyPress="return is_hwaddr(this,event)">
+									<img style="float:left;" id="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullLANIPList(this);" title="Select the Access Point" onmouseover="over_var=1;" onmouseout="over_var=0;">
+									<div id="WDSAPList" class="WDSAPList">
+										<div style="width:98px">
+											<img height="15px" style="margin-left:5px;margin-top:2px;" src="/images/InternetScan.gif">
+										</div>
+									</div>
               	</td>
               	<td width="20%">	
               		<input type="button" class="add_btn" onClick="addRow(document.form.wl_wdslist_0, 4);" value="">

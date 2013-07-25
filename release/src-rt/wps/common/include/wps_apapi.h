@@ -1,7 +1,7 @@
 /*
  * WPS Registratar API
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_apapi.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_apapi.h 296559 2011-11-16 02:01:13Z $
  */
 
 #ifndef _WPS_AP_API_H_
@@ -56,11 +56,10 @@ typedef enum {
 int wps_get_mode(void *mc_dev);
 int wps_processMsg(void *mc_dev, void *inBuffer, uint32 in_len, void *outBuffer, uint32 *out_len,
 	TRANSPORT_TYPE m_transportType);
-uint32 wps_start_ap_registration(void *mc_dev, EMode e_currMode, char *devPwd, uint16 devPwdId,
-	uint8 *authorizedMacs, uint32 authorizedMacs_len);
+uint32 wpsap_start_enrollment(void *mc_dev, char *ap_pin);
+uint32 wpsap_start_registration(void *mc_dev, char *sta_pin);
 unsigned char * wps_get_mac_income(void *mc_dev);
 unsigned char *wps_get_mac(void *mc_dev);
-uint32 wps_genPin(char *devPwd, int devPwd_len);
 uint8 wps_get_version2(void *mc_dev);
 
 #endif /* _WPS_AP_API_H_ */

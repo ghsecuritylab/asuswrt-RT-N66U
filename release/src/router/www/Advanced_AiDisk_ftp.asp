@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_4_2#></title>
+<title><#Web_Title#> - <#menu5_4_2#></title>
 <link rel="stylesheet" type="text/css" href="/index_style.css">
 <link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="/aidisk/AiDisk_style.css">
@@ -50,7 +50,7 @@ var ddns_enable = '<% nvram_get("ddns_enable_x"); %>';
 
 function initial(){
 	show_menu();
-	$("option5").innerHTML = '<img style="margin-left:10px;" border="0" width="50px" height="50px" src="images/New_ui/icon_index_5.png"><div style="margin-top:-30px; margin-left:65px"><#Menu_usb_application#></div>';
+	$("option5").innerHTML = '<table><tbody><tr><td><div id="index_img5"></div></td><td><div style="width:120px;"><#Menu_usb_application#></div></td></tr></tbody></table>';
 	$("option5").className = "m5_r";
 	
 	document.aidiskForm.protocol.value = PROTOCOL;
@@ -185,14 +185,16 @@ function showShareStatusControl(protocol){
 	
 	switch(status){
 		case 1:
-			$("sharebtn").value = str_off;
+			//$("sharebtn").value = str_off;
+			$("sharebtn").innerHTML = str_off;
 			$("tableMask").style.width = "0px";
 			$("accountbtn").disabled = false;
 			
 			showDDNS();
 			break;
 		case 0:
-			$("sharebtn").value = str_on;
+			//$("sharebtn").value = str_on;
+			$("sharebtn").innerHTML = str_on;
 			$("tableMask").style.width = "600px";
 			$("accountbtn").disabled = true;
 			
@@ -202,31 +204,13 @@ function showShareStatusControl(protocol){
 }
 
 function showDDNS(){
-/*	if(FTP_status == 1){
-		//$("ShareClose").style.display = "none";
-		//$("DDNSinfo").style.display = "block";
-		
-		if(ddns_enable == "1"){
-			if(AM_to_ftp == 1)
-				$("haveDDNS").style.display = "block";
-			else
-				$("haveDDNS2").style.display = "block";
-		}
-		else{
-			$("noDDNS").style.display = "block";
-		}
-	}
-	else{
-		//$("ShareClose").style.display = "block";
-		//$("DDNSinfo").style.display = "none";
-	}*/
 }
 
 function switchAccount(protocol){
 	var status;
 	var confirm_str_on, confirm_str_off;
 	
-	if(protocol != "cifs" && protocol != "ftp")
+	if(protocol != "cifs" && protocol != "ftp" && protocol != "webdav")
 		return;
 	
 	status = get_manage_type(protocol);
@@ -288,7 +272,7 @@ function showAccountControl(protocol){
 	var status;
 	var str_on, str_off;
 	
-	if(protocol != "cifs" && protocol != "ftp")
+	if(protocol != "cifs" && protocol != "ftp" && protocol != "webdav")
 		return;
 	
 	status = get_manage_type(protocol);
@@ -299,11 +283,13 @@ function showAccountControl(protocol){
 	switch(status){
 		case 1:
 			$("accountMask").style.display = "none";
-			$("accountbtn").value = str_off;
+			//$("accountbtn").value = str_off;
+			$("accountbtn").innerHTML = str_off;
 			break;
 		case 0:
 			$("accountMask").style.display = "block";
-			$("accountbtn").value = str_on;
+			//$("accountbtn").value = str_on;
+			$("accountbtn").innerHTML = str_on;
 			break;
 	}
 }
@@ -331,10 +317,13 @@ function showPermissionTitle(){
 
 var controlApplyBtn = 0;
 function showApplyBtn(){
-	if(this.controlApplyBtn == 1)
-		$("changePermissionBtn").disabled = 0;
-	else
-		$("changePermissionBtn").disabled = 1;
+	if(this.controlApplyBtn == 1){
+		$("changePermissionBtn").className = "button_gen";
+		$("changePermissionBtn").disabled = false;
+	}else{
+		$("changePermissionBtn").className = "button_gen_dis";
+		$("changePermissionBtn").disabled = true;
+	}	
 }
 
 function setSelectAccount(selectedObj){
@@ -354,16 +343,15 @@ function show_permissions_of_account(selectedObj, protocol){
 	var accountName = selectedObj.firstChild.nodeValue;
 	var poolName;
 	var permissions;
-	
+
 	for(var i = 0; i < pool_devices().length; ++i){
 		poolName = pool_devices()[i];
 		if(!this.clickedFolderBarCode[poolName])
 			continue;
-		
+
 		permissions = get_account_permissions_in_pool(accountName, poolName);
 		for(var j = 1; j < permissions.length; ++j){
 			var folderBarCode = get_folderBarCode_in_pool(poolName, permissions[j][0]);
-			
 			if(protocol == "cifs")
 				showPermissionRadio(folderBarCode, permissions[j][1]);
 			else if(protocol == "ftp")
@@ -423,7 +411,7 @@ function submitChangePermission(protocol){
 		
 		if(!this.changedPermissions[target_account])
 			continue;
-		
+
 		for(var j = 0; j < pool_devices().length; ++j){
 			if(!this.changedPermissions[target_account][pool_devices()[j]])
 				continue;
@@ -521,7 +509,7 @@ function onEvent(){
 		$("createAccountBtn").title = (accounts.length < 6)?"<#AddAccountTitle#>":"<#account_overflow#>";
 	}
 	
-	if(this.accounts.length > 0 && this.selectedAccount != null && this.selectedAccount.length > 0 && this.selectedAccount != "admin"){
+	if(this.accounts.length > 0 && this.selectedAccount != null && this.selectedAccount.length > 0 && this.accounts[0] != this.selectedAccount){
 		changeActionButton($("modifyAccountBtn"), 'User', 'Mod', 0);
 		
 		$("modifyAccountBtn").onclick = function(){
@@ -547,7 +535,7 @@ function onEvent(){
 		$("modifyAccountBtn").onmouseout = function(){};
 	}
 	
-	if(this.accounts.length > 1 && this.selectedAccount != null && this.selectedAccount.length > 0 && this.selectedAccount != "admin"){
+	if(this.accounts.length > 1 && this.selectedAccount != null && this.selectedAccount.length > 0 && this.accounts[0] != this.selectedAccount){
 		changeActionButton($("deleteAccountBtn"), 'User', 'Del', 0);
 		
 		$("deleteAccountBtn").onclick = function(){
@@ -748,10 +736,13 @@ function unload_body(){
 			<div style="margin:5px;"><img src="/images/New_ui/export/line_export.png"></div>
 
 		  <div class="formfontdesc"><#FTP_desc#></div>
-			<input id="sharebtn" type="button" value="" class="button_gen" onClick="switchAppStatus(PROTOCOL);">
-			<input id="accountbtn" type="button" value="" class="button_gen_long" onClick="switchAccount(PROTOCOL);">
-			<input id="refreshbtn" type="button" value="<#DrSurf_refresh_page#>" class="button_gen" onClick="refreshpage();">
-			<br/>
+			<!--input id="sharebtn" type="button" value="" class="button_gen" onClick="switchAppStatus(PROTOCOL);"-->
+			<a href="javascript:switchAppStatus(PROTOCOL);"><div class="titlebtn" align="center"><span id="sharebtn" style="*width:196px;"></span></div></a>
+			<!--input id="accountbtn" type="button" value="" class="button_gen_long" onClick="switchAccount(PROTOCOL);"-->
+			<a href="javascript:switchAccount(PROTOCOL);"><div class="titlebtn" align="center"><span id="accountbtn" style="*width:266px;"></span></div></a>
+			<!--input id="refreshbtn" type="button" value="<#DrSurf_refresh_page#>" class="button_gen" onClick="refreshpage();"-->
+			<a href="javascript:refreshpage();"><div class="titlebtn" align="center"><span id="refreshbtn" style="*width:136px;"><#DrSurf_refresh_page#></span></div></a>	
+			<br/><br/>
 			
 			<!-- The table of share. -->
 			<div id="shareStatus">
@@ -764,16 +755,16 @@ function unload_body(){
 		<table width="740px"  height="35" cellpadding="2" cellspacing="0" class="accountBar">
 			<tr>
 				<!-- The action buttons of accounts. -->
-    	      		<td width="25%">	
-		        		<img id="createAccountBtn" src="/images/New_ui/advancesetting/UserAdd.png" hspace="1" title="<#AddAccountTitle#>">
-					<img id="deleteAccountBtn" src="/images/New_ui/advancesetting/UserDel.png" hspace="1" title="<#DelAccountTitle#>">		        		
-					<img id="modifyAccountBtn" src="/images/New_ui/advancesetting/UserMod.png" hspace="1" title="<#ModAccountTitle#>">	
+    	    <td width="25%" style="border: 1px solid #222;">	
+		      	<img id="createAccountBtn" src="/images/New_ui/advancesetting/UserAdd.png" hspace="1" title="<#AddAccountTitle#>">
+						<img id="deleteAccountBtn" src="/images/New_ui/advancesetting/UserDel.png" hspace="1" title="<#DelAccountTitle#>">		        		
+						<img id="modifyAccountBtn" src="/images/New_ui/advancesetting/UserMod.png" hspace="1" title="<#ModAccountTitle#>">	
 		  		</td>
 				<!-- The action buttons of folders. -->
-    	  	  		<td width="75%">
-					<img id="createFolderBtn" hspace="1" title="<#AddFolderTitle#>">
-					<img id="deleteFolderBtn" hspace="1" title="<#DelFolderTitle#>">
-					<img id="modifyFolderBtn" hspace="1" title="<#ModFolderTitle#>">						
+    	  	<td width="75%">
+						<img id="createFolderBtn" hspace="1" title="<#AddFolderTitle#>">
+						<img id="deleteFolderBtn" hspace="1" title="<#DelFolderTitle#>">
+						<img id="modifyFolderBtn" hspace="1" title="<#ModFolderTitle#>">						
 		  		</td>
   			</tr>
 	  	</table>
@@ -805,8 +796,8 @@ function unload_body(){
 			  		</table>
 			 	 <!-- the tree of folders -->
   		      	<div id="e0" class="FdTemp" style="font-size:10pt; margin-top:2px;"></div>
-			  	<div style="text-align:center; margin:10px auto; border-top:1px dotted #CCC; width:95%; padding:2px;"> <!--text-align:left;-->
-			    		<input name="changePermissionBtn" id="changePermissionBtn" type="button" value="<#CTL_apply#>" class="button_gen" disabled="disabled">
+			  	<div style="text-align:center; margin:10px auto; border-top:1px dotted #CCC; width:95%; padding:2px;">
+			    		<input name="changePermissionBtn" id="changePermissionBtn" type="button" value="<#CTL_apply#>" class="button_gen_dis" disabled="disabled">
 			  	</div>
 		    		</td>
 		    		<!-- The right side table of folders.    End -->

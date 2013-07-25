@@ -1,7 +1,7 @@
 /*
  * WPS wireless related
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_wl.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_wl.h 323637 2012-03-26 10:31:40Z $
  */
 #ifndef _WPS_WL_H_
 #define _WPS_WL_H_
@@ -33,14 +33,13 @@
 #define OUITYPE_WPS				4
 #define OUITYPE_PROVISION_STATIC_WEP		5
 
-/* 
+/*
  * implemented in wps_linux.c
  */
 int wps_set_wsec(int ess_id, char *ifname, void *credential, int mode);
-#ifndef BCMUPNP
+#ifndef WPS_ROUTER
 int wps_set_wps_ie(void *bcmdev, unsigned char *p_data, int length, unsigned int cmdtype);
-#endif /* !BCMUPNP */
-void wps_setStaDevName(unsigned char *str);
+#endif /* !WPS_ROUTER */
 int wps_ioctl(char *ifname, int cmd, void *buf, int len);
 
 /* OS dependent EAP APIs */
@@ -60,7 +59,9 @@ int wps_wl_set_wps_ie(char *wl_if, unsigned char *p_data, int length, unsigned i
 int wps_wl_open_wps_window(char *ifname);
 int wps_wl_close_wps_window(char *ifname);
 int wps_wl_get_maclist(char *ifname, char *buf, int count);
-
+#ifdef BCMWPSAPSTA
+int wps_wl_bss_config(char *ifname, int enabled);
+#endif
 extern char *ether_etoa(const unsigned char *e, char *a);
 
 #endif /* _WPS_WL_H_ */

@@ -118,7 +118,7 @@
 #ifdef CONFIG_INET_GRO
 #include <typedefs.h>
 #include <bcmdefs.h>
-#endif	/* CONFIG_INET_GRO */
+#endif /* CONFIG_INET_GRO */
 
 DEFINE_SNMP_STAT(struct linux_mib, net_statistics) __read_mostly;
 
@@ -1224,7 +1224,7 @@ out:
 }
 
 #ifdef CONFIG_INET_GRO
-static struct sk_buff ** BCMFASTPATH inet_gro_receive(struct sk_buff **head,
+static struct sk_buff ** BCMFASTPATH_HOST inet_gro_receive(struct sk_buff **head,
 					 struct sk_buff *skb)
 {
 	struct net_protocol *ops;
@@ -1298,7 +1298,7 @@ out:
 	return pp;
 }
 
-static int BCMFASTPATH inet_gro_complete(struct sk_buff *skb)
+static int BCMFASTPATH_HOST inet_gro_complete(struct sk_buff *skb)
 {
 	struct net_protocol *ops;
 	struct iphdr *iph = ip_hdr(skb);
@@ -1375,8 +1375,8 @@ static struct net_protocol tcp_protocol = {
 	.gso_send_check = tcp_v4_gso_send_check,
 	.gso_segment =	tcp_tso_segment,
 #ifdef CONFIG_INET_GRO
-	.gro_receive = tcp4_gro_receive,
-	.gro_complete = tcp4_gro_complete,
+	.gro_receive =	tcp4_gro_receive,
+	.gro_complete =	tcp4_gro_complete,
 #endif /* CONFIG_INET_GRO */
 	.no_policy =	1,
 };

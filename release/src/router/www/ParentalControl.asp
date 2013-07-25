@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
-<title>ASUS Wireless Router <#Web_Title#> - <#Parental_Control#></title>
+<title><#Web_Title#> - <#Parental_Control#></title>
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
 <link rel="stylesheet" type="text/css" href="ParentalControl.css">
@@ -40,7 +40,6 @@ var client_mac = login_mac_str();
 var leases = [<% dhcp_leases(); %>];	// [[hostname, MAC, ip, lefttime], ...]
 var arps = [<% get_arp_table(); %>];		// [[ip, x, x, MAC, x, type], ...]
 var arls = [<% get_arl_table(); %>];		// [[MAC, port, x, x], ...]
-var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 var ipmonitor = [<% get_static_client(); %>];	// [[IP, MAC, DeviceName, Type, http, printer, iTune], ...]
 var networkmap_fullscan = '<% nvram_match("networkmap_fullscan", "0", "done"); %>'; //2008.07.24 Add.  1 stands for complete, 0 stands for scanning.;
 var clients_info = getclients();
@@ -64,10 +63,15 @@ var MULTIFILTER_LANTOWAN_PORT_row = MULTIFILTER_LANTOWAN_PORT.split('>');
 var MULTIFILTER_LANTOWAN_PROTO_row = MULTIFILTER_LANTOWAN_PROTO.split('>');
 var MULTIFILTER_MACFILTER_DAYTIME_row = MULTIFILTER_MACFILTER_DAYTIME.split('>');
 var _client;
+var StopTimeCount;
 
 function initial(){
 	show_menu();
 	show_footer();
+
+	if(downsize_support != -1)
+		$("guest_image").parentNode.style.display = "none";
+
 	gen_mainTable();
 	showLANIPList();
 }
@@ -94,9 +98,9 @@ function showLANIPList(){
 			show_name = client_list_col[1];
 
 		if(client_list_col[1])
-			code += '<a href="#"><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[1]+'\', \''+client_list_col[3]+'\');"><strong>'+client_list_col[2]+'</strong> ';
+			code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[1]+'\', \''+client_list_col[3]+'\');"><strong>'+client_list_col[2]+'</strong> ';
 		else
-			code += '<a href="#"><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[3]+'\', \''+client_list_col[3]+'\');"><strong>'+client_list_col[2]+'</strong> ';
+			code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[3]+'\', \''+client_list_col[3]+'\');"><strong>'+client_list_col[2]+'</strong> ';
 			if(show_name && show_name.length > 0)
 				code += '( '+show_name+')';
 			code += ' </div></a>';
@@ -131,18 +135,18 @@ function hideClients_Block(){
 function gen_mainTable(){
 	var code = "";
 	code +='<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="FormTable_table" id="mainTable_table">';
-  code +='<tr><th width="5%" height="30px" title="Select all"><input type=\"checkbox\" onclick=\"selectAll(this, 0);\" value=\"\"/></th>';
-	code +='<th width="40%">Clients Name</th>';
-	code +='<th width="25%">Clients MAC address</th>';
-	code +='<th width="10%">Time Management</th>';
-	code +='<th width="10%">Edit</th></tr>';
+  code +='<tr><th width="5%" height="30px" title="Select all"><input id="selAll" type=\"checkbox\" onclick=\"selectAll(this, 0);\" value=\"\"/></th>';
+	code +='<th width="40%"><#ParentalCtrl_username#></th>';
+	code +='<th width="25%"><#ParentalCtrl_hwaddr#></th>';
+	code +='<th width="10%"><#ParentalCtrl_time#></th>';
+	code +='<th width="10%">Add / Delete</th></tr>';
 
 	code +='<tr><td style="border-bottom:2px solid #000;" title="<#btn_Enable#>/<#btn_disable#>"><input type=\"checkbox\" id="newrule_Enable" checked></td>';
 	code +='<td style="border-bottom:2px solid #000;"><input type="text" maxlength="32" style="margin-left:10px;float:left;width:255px;" class="input_20_table" name="PC_devicename" onKeyPress="" onClick="hideClients_Block();" onblur="if(!over_var){hideClients_Block();}">';
 	code +='<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullLANIPList(this);" title="Select the device name of DHCP clients." onmouseover="over_var=1;" onmouseout="over_var=0;"></td>';
-	code +='<td style="border-bottom:2px solid #000;"><input type="text" maxlength="32" class="input_macaddr_table" name="PC_mac"></td>';
+	code +='<td style="border-bottom:2px solid #000;"><input type="text" maxlength="17" class="input_macaddr_table" name="PC_mac" onKeyPress="return is_hwaddr(this,event)"></td>';
 	code +='<td style="border-bottom:2px solid #000;">--</td>';
-	code +='<td style="border-bottom:2px solid #000;"><input class="url_btn" type="button" onClick="addRow_main()" value=""></td></tr>';
+	code +='<td style="border-bottom:2px solid #000;"><input class="url_btn" type="button" onClick="addRow_main(16)" value=""></td></tr>';
 
 	if(MULTIFILTER_DEVICENAME == "" && MULTIFILTER_MAC == "")
 		code +='<tr><td style="color:#FFCC00;" colspan="10"><#IPConnection_VSList_Norule#></td>';
@@ -150,14 +154,7 @@ function gen_mainTable(){
 		var Ctrl_enable= "";
 		for(var i=0; i<MULTIFILTER_DEVICENAME_row.length; i++){
 			code +='<tr id="row'+i+'">';
-
-				if(MULTIFILTER_ENABLE_row[i] == 1)
-						Ctrl_enable= "<#btn_Enabled#>";
-				else if(MULTIFILTER_ENABLE_row[i] == 0)
-						Ctrl_enable= "<#btn_Disabled#>";
-								
-			/*code +='<td title="'+MULTIFILTER_ENABLE_row[i]+'"><input type=\"checkbox\" onclick=\"genEnableArray_main('+i+',this);\" '+genChecked(MULTIFILTER_ENABLE_row[i])+'/></td>';*/
-			code +='<td title="'+ Ctrl_enable +'"><input type=\"checkbox\" onclick=\"genEnableArray_main('+i+',this);\" '+genChecked(MULTIFILTER_ENABLE_row[i])+'/></td>';
+			code +='<td title="'+ MULTIFILTER_ENABLE_row[i] +'"><input type=\"checkbox\" onclick=\"genEnableArray_main('+i+',this);\" '+genChecked(MULTIFILTER_ENABLE_row[i])+'/></td>';
 			code +='<td title="'+MULTIFILTER_DEVICENAME_row[i]+'">'+ MULTIFILTER_DEVICENAME_row[i] +'</td>';
 			code +='<td title="'+MULTIFILTER_MAC_row[i]+'">'+ MULTIFILTER_MAC_row[i] +'</td>';
 			code +='<td><input class=\"service_btn\" type=\"button\" onclick=\"gen_lantowanTable('+i+');" value=\"\"/></td>';
@@ -166,12 +163,15 @@ function gen_mainTable(){
 	}
  	code +='</tr></table>';
 
+	$("mainTable").style.display = "none";
 	$("mainTable").innerHTML = code;
+	$j("#mainTable").fadeIn();
+
 	$("ctrlBtn").innerHTML = '<input class="button_gen" type="button" onClick="applyRule(0);" value="<#btn_disable#>"><input class="button_gen" type="button" onClick="applyRule(1);" value="<#CTL_apply#>">';
 
 	if(document.form.MULTIFILTER_ALL.value == 0){
 		$("mainTable").style.display = "none";
-		$("ctrlBtn").innerHTML = '<input class="button_gen" type="button" onClick="applyRule(1);" value="<#CTL_Enabled#>">'
+		$("ctrlBtn").innerHTML = '<input class="button_gen" type="button" onClick="applyRule(1);" value="<#btn_Enable#>">'
 	}
 }
 
@@ -193,14 +193,15 @@ function selectAll(obj, tab){
 }
 
 function genEnableArray_main(j, obj){
+	$("selAll").checked = false;
 	MULTIFILTER_ENABLE_row = MULTIFILTER_ENABLE.split('>');
 
 	if(obj.checked){
-		obj.parentNode.title = "<#btn_Enabled#>";
+		obj.parentNode.title = "1";
 		MULTIFILTER_ENABLE_row[j] = "1";
 	}
 	else{
-		obj.parentNode.title = "<#btn_Disabled#>";
+		obj.parentNode.title = "0";
 		MULTIFILTER_ENABLE_row[j] = "0";
 	}
 
@@ -255,6 +256,9 @@ function genChecked(_flag){
 }
 
 function showclock(){
+	if(StopTimeCount == 1)
+		return false;
+
 	JS_timeObj.setTime(systime_millsec);
 	systime_millsec += 1000;
 	JS_timeObj2 = JS_timeObj.toString();	
@@ -266,9 +270,31 @@ function showclock(){
 				  JS_timeObj.getFullYear();
 	$("system_time").value = JS_timeObj2;
 	setTimeout("showclock()", 1000);
-	if(navigator.appName.indexOf("Microsoft") >= 0)
-		document.getElementById("textarea").style.width = "99%";
 	corrected_timezone();
+}
+
+function check_macaddr(obj,flag){ //control hint of input mac address
+
+	if(flag == 1){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<#LANHostConfig_ManualDHCPMacaddr_itemdesc#>";		
+		$("check_mac").style.display = "";
+		return false;
+	}else if(flag ==2){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<#IPConnection_x_illegal_mac#>";		
+		$("check_mac").style.display = "";
+		return false;		
+	}else{	
+		$("check_mac") ? $("check_mac").style.display="none" : true;
+		return true;
+	}	
 }
 
 function corrected_timezone(){
@@ -282,7 +308,7 @@ function corrected_timezone(){
 	if(StrIndex > 0){
 		if(timezone != today.toString().substring(StrIndex, StrIndex+5)){
 			$("timezone_hint").style.display = "";
-			$("timezone_hint").innerHTML = "<#LANHostConfig_x_TimeZone_itemhint#>";
+			$("timezone_hint").innerHTML = "* <#LANHostConfig_x_TimeZone_itemhint#>";
 		}
 		else
 			return;
@@ -301,7 +327,7 @@ function gen_lantowanTable(client){
 		code +='<thead><tr><td colspan="6" id="LWFilterList">Active schedule</td></tr></thead>';
 
 		code +='<tr><th width="20%"><#General_x_SystemTime_itemname#></th><td>';
-		code +='<input type="text" id="system_time" name="system_time" class="devicepin" value="" readonly="1" style="font-size:12px;width:200px;">';
+		code +='<input type="text" id="system_time" name="system_time" class="devicepin" value="" readonly="1" style="font-size:12px;width:200px;"><br>';
 		code +='<span id="timezone_hint" onclick="location.href=\'Advanced_System_Content.asp\'" style="display:none;text-decoration:underline;cursor:pointer;"></span></td></tr>';
 
 		code +='<tr>';
@@ -328,32 +354,32 @@ function gen_lantowanTable(client){
 	code +='<tr id="url_time">';
 	code +='<th width="40%" height="30px;" align="right">Allowed access time</th>';
 	code +='<td align="left" style="color:#FFF">';
-	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_starthour" onKeyPress="return is_number_sp(event, this)" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(7,2)+'>:';
-	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_startmin" onKeyPress="return is_number_sp(event, this);" onblur="validate_timerange(this, 1);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(9,2)+'>-';
-	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_endhour" onKeyPress="return is_number_sp(event, this);" onblur="validate_timerange(this, 2);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(11,2)+'>:';
-	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_endmin" onKeyPress="return is_number_sp(event, this);" onblur="validate_timerange(this, 3);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(13,2)+'>';
+	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_starthour" onKeyPress="return is_number(this,event)" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(7,2)+'>:';
+	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_startmin" onKeyPress="return is_number(this,event);" onblur="validate_timerange(this, 1);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(9,2)+'>-';
+	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_endhour" onKeyPress="return is_number(this,event);" onblur="validate_timerange(this, 2);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(11,2)+'>:';
+	code +='<input type="text" maxlength="2" class="input_3_table" name="url_time_x_endmin" onKeyPress="return is_number(this,event);" onblur="validate_timerange(this, 3);" value='+MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(13,2)+'>';
 	code +='</td></tr><tr>';
 	code +='<th width="40%" height="25px;" align="right">Allowed access date</th>';
 	code +='<td align="left" style="color:#FFF">';
-	code +='<input type="checkbox" id="url_date_x_Sun" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(0,1))+'>Sun';
-	code +='<input type="checkbox" id="url_date_x_Mon" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(1,1))+'>Mon';		
-	code +='<input type="checkbox" id="url_date_x_Tue" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(2,1))+'>Tue';
-	code +='<input type="checkbox" id="url_date_x_Wed" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(3,1))+'>Wed';
-	code +='<input type="checkbox" id="url_date_x_Thu" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(4,1))+'>Thu';
-	code +='<input type="checkbox" id="url_date_x_Fri" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(5,1))+'>Fri';
-	code +='<input type="checkbox" id="url_date_x_Sat" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(6,1))+'>Sat';
+	code +='<input type="checkbox" id="url_date_x_Sun" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(0,1))+'><#date_Sun_itemdesc#>';
+	code +='<input type="checkbox" id="url_date_x_Mon" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(1,1))+'><#date_Mon_itemdesc#>';		
+	code +='<input type="checkbox" id="url_date_x_Tue" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(2,1))+'><#date_Tue_itemdesc#>';
+	code +='<input type="checkbox" id="url_date_x_Wed" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(3,1))+'><#date_Wed_itemdesc#>';
+	code +='<input type="checkbox" id="url_date_x_Thu" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(4,1))+'><#date_Thu_itemdesc#>';
+	code +='<input type="checkbox" id="url_date_x_Fri" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(5,1))+'><#date_Fri_itemdesc#>';
+	code +='<input type="checkbox" id="url_date_x_Sat" class="input" onChange="return changeDate();" '+genChecked(MULTIFILTER_MACFILTER_DAYTIME_row[client].substr(6,1))+'><#date_Sat_itemdesc#>';
 	code +='</td></tr></table>';
 
 	code +='<table width="100%" style="margin-top:10px;display:none;" border="1" cellspacing="0" cellpadding="4" align="center" class="PC_table" id="lantowanTable_table">';
 	code +='<thead><tr><td colspan="6" id="LWFilterList">LAN to WAN Filter Table</td></tr></thead>';
-  code +='<tr><th width="5%" height="30px;"><input type=\"checkbox\" onclick=\"selectAll(this, 1);\"/></th>';
+  code +='<tr><th width="5%" height="30px;"><input id="selAll" type=\"checkbox\" onclick=\"selectAll(this, 1);\"/></th>';
 	code +='<th width="35%"><#BM_UserList1#></th>';
 	code +='<th width="30%"><#IPConnection_VServerPort_itemname#></th>';
 	code +='<th width="20%"><#IPConnection_VServerProto_itemname#></th>';
-	code +='<th width="10%">Edit</th></tr>';
+	code +='<th width="10%">Add / Delete</th></tr>';
 	code +='<tr><td style="border-bottom:2px solid #666;"><input type=\"checkbox\" id="newrule_lantowan_Enable" checked></td>';
-	code +='<td style="border-bottom:2px solid #666;"><input type="text" maxlength="32" name="lantowan_service" onKeyPress="return is_string(this)"></td>';
-	code +='<td style="border-bottom:2px solid #666;"><input type="text" maxlength="32" name="lantowan_port" onKeyPress="return is_string(this)"></td>';
+	code +='<td style="border-bottom:2px solid #666;"><input type="text" maxlength="32" name="lantowan_service" onKeyPress="return is_string(this, event)"></td>';
+	code +='<td style="border-bottom:2px solid #666;"><input type="text" maxlength="32" name="lantowan_port" onKeyPress="return is_string(this, event)"></td>';
 	code +='<td style="border-bottom:2px solid #666;"><select name="lantowan_proto" class="input"><option value="TCP">TCP</option><option value="TCP ALL">TCP ALL</option><option value="TCP SYN">TCP SYN</option><option value="TCP ACK">TCP ACK</option><option value="TCP FIN">TCP FIN</option><option value="TCP RST">TCP RST</option><option value="TCP URG">TCP URG</option><option value="TCP PSH">TCP PSH</option><option value="UDP">UDP</option></select></td>';
 	code +='<td style="border-bottom:2px solid #666;"><input class="url_btn" type="button" onClick="addRow_lantowan('+client+');" value=""></td></tr>';
 
@@ -378,8 +404,14 @@ function gen_lantowanTable(client){
 	$("mainTable").innerHTML = code;
 	$("ctrlBtn").innerHTML = '<input class="button_gen" type="button" onClick="cancel_lantowan('+client+');" value="<#CTL_Cancel#>">';
 	$("ctrlBtn").innerHTML += '<input class="button_gen" type="button" onClick="saveto_lantowan('+client+');" value="<#CTL_ok#>">';
+
+	$("mainTable").style.display = "none";
+	$j("#mainTable").fadeIn();
+
 	if(parental2_support != -1)
 		generateCalendar(client);
+
+	StopTimeCount = 0;
 	showclock();
 }
 
@@ -407,6 +439,8 @@ function regen_lantowan(){
 }
 
 function saveto_lantowan(client){
+	StopTimeCount = 1;
+
 	if(parental2_support == -1){
 		var starttime = eval(document.form.url_time_x_starthour.value + document.form.url_time_x_startmin.value);
 		var endtime = eval(document.form.url_time_x_endhour.value + document.form.url_time_x_endmin.value);
@@ -465,6 +499,8 @@ function saveto_lantowan(client){
 }
 
 function cancel_lantowan(client){
+	StopTimeCount = 1;
+
 	MULTIFILTER_LANTOWAN_ENABLE_row_tmp = MULTIFILTER_LANTOWAN_ENABLE.split('>');
 	MULTIFILTER_LANTOWAN_DESC_row_tmp = MULTIFILTER_LANTOWAN_DESC.split('>');
 	MULTIFILTER_LANTOWAN_PORT_row_tmp = MULTIFILTER_LANTOWAN_PORT.split('>');
@@ -480,7 +516,15 @@ function cancel_lantowan(client){
 	gen_mainTable();
 }
 
-function addRow_main(){
+function addRow_main(upper){
+	var rule_num = $('mainTable_table').rows.length;
+	var item_num = $('mainTable_table').rows[0].cells.length;	
+	
+	if(rule_num >= upper){
+		alert("<#JS_itemlimit1#> " + upper + " <#JS_itemlimit2#>");
+		return false;	
+	}				
+	
 	if(!validate_string(document.form.PC_devicename))
 		return false;
 	if(document.form.PC_devicename.value == ""){
@@ -498,8 +542,11 @@ function addRow_main(){
 		document.form.PC_mac.focus();
 		return false;
 	}
-	if(!check_hwaddr(document.form.PC_mac))
+	if(!check_macaddr(document.form.PC_mac, check_hwaddr_flag(document.form.PC_mac))){
+		document.form.PC_mac.focus();
+		document.form.PC_mac.select();
 		return false;	
+	}	
 
 	if(MULTIFILTER_DEVICENAME != "" || MULTIFILTER_MAC != ""){
 		MULTIFILTER_ENABLE += ">";
@@ -641,13 +688,29 @@ function deleteRow_lantowan(r, client){
 
 <body onload="initial();" onunload="unload_body();">
 <div id="TopBanner"></div>
+<div id="Loading" class="popup_bg"></div>
 
-<div id="Loading" class="popup_bg"></div>
-<!--for uniform show, useless but have exist-->
-<div id="Loading" class="popup_bg"></div>
+<!--div id="ParentalCtrlHelp" class="popup_bg" style="display:none;visibility:visible;">
+<table cellpadding="5" cellspacing="0" id="loadingBlock" class="loadingBlock" align="center" style="margin:auto;margin-top:50px;">
+<tbody>
+	<tr>
+		<td>
+			<object width="640" height="360">
+				<div onclick="document.body.style.overflow='auto';document.getElementById('ParentalCtrlHelp').style.display='none';">
+					<span style="float:right;margin-bottom:5px;">
+						<img align="right" title="Back" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
+					</span>
+				</div>
+				<param name="movie" value="http://www.youtube.com/v/IbsuvSjG0xM&feature=player_embedded&version=3"></param><param name="allowFullScreen" value="true"></param><param name="allowScriptAccess" value="always"></param>
+				<embed src="http://www.youtube.com/v/IbsuvSjG0xM&feature=player_embedded&version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="640" height="360"></embed>
+			</object>
+		</td>
+	</tr>
+</tbody>
+</table>
+</div-->
 
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>
-
 <form method="post" name="form" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="ParentalControl.asp">
@@ -706,6 +769,10 @@ function deleteRow_lantowan(r, client){
 							<li><#ParentalCtrl_Desc2#></li>
 							<li><#ParentalCtrl_Desc3#></li>
 							<li><#ParentalCtrl_Desc4#></li>
+							<li>
+								<a target="_blank" style="font-weight: bolder; cursor:pointer;text-decoration: underline;" href="http://www.youtube.com/v/IbsuvSjG0xM">Click to open tutorial video.</a>
+								<!--span onclick="location.href='#';document.body.style.overflow='hidden';document.getElementById('ParentalCtrlHelp').style.display='';">Click to open tutorial video.</span-->
+							</li>
 						</ol>		
 					</td>
 				</tr>
@@ -719,7 +786,7 @@ function deleteRow_lantowan(r, client){
 					<td valign="top" align="center">
 						<!-- client info -->
 						<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
-						<div id=VSList_Block></div>
+						<div id="VSList_Block"></div>
 						<!-- Content -->
 						<div id="mainTable"></div>
 						<br/>

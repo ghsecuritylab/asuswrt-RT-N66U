@@ -33,9 +33,20 @@ export SRCBASEDIR := $(shell pwd | sed 's/.*release\///g')
 RELEASEDIR := $(shell (cd $(SRCBASE)/.. && pwd -P))
 PATH := $(RELEASEDIR)/tools:$(PATH)
 
+ifeq ($(ASUSWRTTARGETMAKDIR),)
 include ./target.mak
-include ./platform.mak
+else
+include $(ASUSWRTTARGETMAKDIR)/target.mak
+endif
+
+ifeq ($(ASUSWRTVERSIONCONFDIR),)
 include ./version.conf
+else
+include $(ASUSWRTVERSIONCONFDIR)/version.conf
+endif
+
+include ./platform.mak
+include ./dsl.mak
 
 export PLATFORM := mipsel-uclibc
 export PLATFORMDIR := $(SRCBASE)/router/$(PLATFORM)
@@ -48,9 +59,10 @@ uppercase_N = $(shell echo $(N) | tr a-z  A-Z)
 lowercase_N = $(shell echo $(N) | tr A-Z a-z)
 uppercase_B = $(shell echo $(B) | tr a-z  A-Z)
 lowercase_B = $(shell echo $(B) | tr A-Z a-z)
-BUILD_TIME=$(shell LC_ALL=C date -u)
-BUILD_USER=$(shell whoami)
-BUILD_INFO=$(shell git log --pretty="%h" -n 1)
+BUILD_TIME := $(shell LC_ALL=C date -u)
+#BUILD_USER=$(shell whoami)
+BUILD_USER ?= $(shell whoami)
+BUILD_INFO := $(shell git log --pretty="%h" -n 1)
 
 ifeq ($(CONFIG_LINUX26),y)
 mips_rev = $(if $(filter $(MIPS32),r2),MIPSR2,MIPSR1)
@@ -125,15 +137,19 @@ ifeq ($(CONFIG_RALINK),y)
 	asustools/mkimage -A mips -O linux -T kernel -C lzma -a 80000000 -e $${ENTRY} -r $${RFSOFFSET} \
 		-n $(BUILD_NAME) -V "$(KERNEL_VER)" "$(FS_VER)" "0" "0" "0" "0" "0" "0" "0" "0" \
 		-d $(PLATFORMDIR)/zImage.img image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx
-else		
-	@$(MAKE) -C btools
-
+else
+	$(MAKE) -C ctools
 	# Create generic TRX image
-	@btools/fpkg -i lzma-loader/loader.gz -i $(LINUXDIR)/arch/mips/brcm-boards/bcm947xx/compressed/vmlinuz -a 1024 -i router/mipsel-uclibc/target.image \
-		-r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx \
-		| tee -a fpkg.log
-
-	#@cp -f image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO)_$(shell date "+%m%d%H%M").trx
+	ctools/objcopy -O binary -R .reginfo -R .note -R .comment -R .mdebug -S $(LINUXDIR)/vmlinux ctools/piggy
+	ctools/lzma_4k e ctools/piggy  ctools/vmlinuz-lzma
+	ctools/mksquashfs router/mipsel-uclibc/target ctools/target.squashfs -noappend -all-root
+ifeq ($(BCMWL6),y)
+	ctools/trx -o image/linux-lzma.trx ctools/vmlinuz-lzma ctools/target.squashfs
+else
+	ctools/trx -o image/linux-lzma.trx lzma-loader/loader.gz ctools/vmlinuz-lzma ctools/target.squashfs
+endif
+	ctools/trx_asus -i image/linux-lzma.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx
+	@rm -f image/linux-lzma.trx
 endif
 	@echo ""
 
@@ -142,7 +158,8 @@ clean:
 	@rm -f router/config_[a-z]
 	@rm -f router/busybox/config_[a-z]
 	@$(MAKE) -C router $@
-	@rm -rf router/mipsel-uclibc 
+	@rm -rf router/mipsel-uclibc
+	@$(MAKE) -C btools clean
 
 cleanimage:
 	@rm -f fpkg.log
@@ -154,6 +171,10 @@ cleanimage:
 cleantools:
 	@$(MAKE) -C $(LINUXDIR)/scripts/squashfs clean
 	@$(MAKE) -C btools clean
+ifneq ($(RTCONFIG_RALINK),y)
+	@$(MAKE) -C ctools clean
+endif
+
 
 cleankernel:
 	@cd $(LINUXDIR) && \
@@ -238,6 +259,10 @@ define RouterOptions
 		sed -i "/RTCONFIG_FANCTRL/d" $(1); \
 		echo "RTCONFIG_FANCTRL=y" >>$(1); \
 	fi; \
+	if [ "$(BCMWL6)" = "y" ]; then \
+		sed -i "/RTCONFIG_BCMWL6/d" $(1); \
+		echo "RTCONFIG_BCMWL6=y" >>$(1); \
+	fi; \
 	if [ "$(WIRELESSWAN)" = "y" ]; then \
 		sed -i "/RTCONFIG_WIRELESSWAN/d" $(1); \
 		echo "RTCONFIG_WIRELESSWAN=y" >>$(1); \
@@ -258,9 +283,27 @@ define RouterOptions
 		sed -i "/RTCONFIG_WIRELESSREPEATER/d" $(1); \
 		echo "RTCONFIG_WIRELESSREPEATER=y" >>$(1); \
 	fi; \
+	if [ "$(PROXYSTA)" = "y" ]; then \
+		sed -i "/RTCONFIG_PROXYSTA/d" $(1); \
+		echo "RTCONFIG_PROXYSTA=y" >>$(1); \
+	fi; \
+	if [ "$(LOCALE2012)" = "y" ]; then \
+		sed -i "/RTCONFIG_LOCALE2012/d" $(1); \
+		echo "RTCONFIG_LOCALE2012=y" >>$(1); \
+	fi; \
+	if [ "$(N56U_SR2)" = "y" ]; then \
+		sed -i "/RTCONFIG_N56U_SR2/d" $(1); \
+		echo "RTCONFIG_N56U_SR2=y" >>$(1); \
+	fi; \
 	if [ "$(SFP)" = "y" ]; then \
 		sed -i "/RTCONFIG_SFP/d" $(1); \
 		echo "RTCONFIG_SFP=y" >>$(1); \
+	fi; \
+	if [ "$(SFP4M)" = "y" ]; then \
+		sed -i "/RTCONFIG_SFP/d" $(1); \
+		echo "RTCONFIG_SFP=y" >>$(1); \
+		sed -i "/RTCONFIG_4M_SFP/d" $(1); \
+		echo "RTCONFIG_4M_SFP=y" >>$(1); \
 	fi; \
 	if [ "$(AUTODICT)" = "y" ]; then \
 		sed -i "/RTCONFIG_AUTODICT/d" $(1); \
@@ -270,10 +313,18 @@ define RouterOptions
 		sed -i "/RTCONFIG_LANWAN_LED/d" $(1); \
 		echo "RTCONFIG_LANWAN_LED=y" >>$(1); \
 	fi; \
-        if [ "$(ACCEL_PPTPD)" = "y" ]; then \
-                sed -i "/RTCONFIG_ACCEL_PPTPD/d" $(1); \
-                echo "RTCONFIG_ACCEL_PPTPD=y" >>$(1); \
-        fi; \
+	if [ "$(SWMODE_SWITCH)" = "y" ]; then \
+		sed -i "/RTCONFIG_SWMODE_SWITCH/d" $(1); \
+		echo "RTCONFIG_SWMODE_SWITCH=y" >>$(1); \
+	fi; \
+	if [ "$(WIRELESS_SWITCH)" = "y" ]; then \
+		sed -i "/RTCONFIG_WIRELESS_SWITCH/d" $(1); \
+		echo "RTCONFIG_WIRELESS_SWITCH=y" >>$(1); \
+	fi; \
+	if [ "$(ACCEL_PPTPD)" = "y" ]; then \
+		sed -i "/RTCONFIG_ACCEL_PPTPD/d" $(1); \
+		echo "RTCONFIG_ACCEL_PPTPD=y" >>$(1); \
+	fi; \
 	if [ "$(SHP)" = "y" ]; then \
 		sed -i "/RTCONFIG_SHP/d" $(1); \
 		echo "RTCONFIG_SHP=y" >>$(1); \
@@ -285,6 +336,10 @@ define RouterOptions
 	if [ "$(DSL)" = "y" ]; then \
 		sed -i "/RTCONFIG_DSL/d" $(1); \
 		echo "RTCONFIG_DSL=y" >>$(1); \
+	fi; \
+	if [ "$(ANNEX_B)" = "y" ]; then \
+		sed -i "/RTCONFIG_DSL_ANNEX_B/d" $(1); \
+		echo "RTCONFIG_DSL_ANNEX_B=y" >>$(1); \
 	fi; \
 	if [ "$(DUALWAN)" = "y" ]; then \
 		sed -i "/RTCONFIG_DUALWAN/d" $(1); \
@@ -311,9 +366,22 @@ define RouterOptions
 			sed -i "/RTCONFIG_MEDIA_SERVER/d" $(1); \
 			echo "RTCONFIG_MEDIA_SERVER=y" >>$(1); \
 		fi; \
+		if [ "$(CLOUDSYNC)" = "y" ]; then \
+			sed -i "/RTCONFIG_CLOUDSYNC/d" $(1); \
+			echo "RTCONFIG_CLOUDSYNC=y" >>$(1); \
+		fi; \
 		if [ "$(MODEM)" = "y" ]; then \
 			sed -i "/RTCONFIG_USB_MODEM/d" $(1); \
 			echo "RTCONFIG_USB_MODEM=y" >>$(1); \
+			if [ "$(MODEMPIN)" = "y" ]; then \
+				echo "RTCONFIG_USB_MODEM_PIN=y" >>$(1); \
+			else \
+				echo "# RTCONFIG_USB_MODEM_PIN is not set" >>$(1); \
+			fi; \
+			if [ "$(BECEEM)" = "y" ]; then \
+				sed -i "/RTCONFIG_USB_BECEEM/d" $(1); \
+				echo "RTCONFIG_USB_BECEEM=y" >>$(1); \
+			fi; \
 		fi; \
 		if [ "$(PRINTER)" = "y" ]; then \
 			sed -i "/RTCONFIG_USB_PRINTER/d" $(1); \
@@ -331,6 +399,10 @@ define RouterOptions
 			sed -i "/RTCONFIG_BRCM_USBAP/d" $(1); \
 			echo "RTCONFIG_BRCM_USBAP=y" >>$(1); \
 		fi; \
+		if [ "$(WEBDAV)" = "y" ]; then \
+			sed -i "/RTCONFIG_USB_WEBDAV/d" $(1); \
+			echo "RTCONFIG_USB_WEBDAV=y" >>$(1); \
+		fi; \
 	else \
 		sed -i "/RTCONFIG_USB\b/d" $(1); \
 		echo "# RTCONFIG_USB is not set" >>$(1); \
@@ -338,6 +410,12 @@ define RouterOptions
 	if [ "$(NO_SAMBA)" = "y" ]; then \
 		sed -i "/RTCONFIG_SAMBASRV/d" $(1); \
 		echo "# RTCONFIG_SAMBASRV is not set" >>$(1); \
+	fi; \
+	if [ "$(NO_USBSTORAGE)" = "y" ]; then \
+		sed -i "/RTCONFIG_SAMBASRV/d" $(1); \
+		echo "# RTCONFIG_SAMBASRV is not set" >>$(1); \
+		sed -i "/RTCONFIG_FTP/d" $(1); \
+		echo "# RTCONFIG_FTP is not set" >>$(1); \
 	fi; \
 	if [ "$(ZEBRA)" = "y" ]; then \
 		sed -i "/RTCONFIG_ZEBRA/d" $(1); \
@@ -391,14 +469,18 @@ define RouterOptions
 		sed -i "/RTCONFIG_APP_NETINSTALLED/d" $(1); \
 		echo "# RTCONFIG_APP_NETINSTALLED is not set" >>$(1); \
 	fi; \
-        if [ "$(DNSMASQ)" = "y" ]; then \
-                sed -i "/RTCONFIG_DNSMASQ/d" $(1); \
-                echo "RTCONFIG_DNSMASQ=y" >>$(1); \
-        fi; \
-        if [ "$(TRAFFIC_METER)" = "y" ]; then \
-                sed -i "/RTCONFIG_TRAFFIC_METER/d" $(1); \
-                echo "RTCONFIG_TRAFFIC_METER=y" >>$(1); \
-        fi; \
+	if [ "$(DNSMASQ)" = "y" ]; then \
+		sed -i "/RTCONFIG_DNSMASQ/d" $(1); \
+		echo "RTCONFIG_DNSMASQ=y" >>$(1); \
+	fi; \
+	if [ "$(ISP_METER)" = "y" ]; then \
+		sed -i "/RTCONFIG_ISP_METER/d" $(1); \
+		echo "RTCONFIG_ISP_METER=y" >>$(1); \
+	fi; \
+	if [ "$(NVRAM_64K)" = "y" ]; then \
+		sed -i "/RTCONFIG_NVRAM_64K/d" $(1); \
+		echo "RTCONFIG_NVRAM_64K=y" >>$(1); \
+	fi; \
 	)
 	$(call platformRouterOptions, $(1))
 endef
@@ -426,6 +508,22 @@ define BusyboxOptions
 		echo "CONFIG_FEATURE_SORT_BIG=y" >>$(1); \
 		sed -i "/CONFIG_FTPPUT/d" $(1); \
 		echo "CONFIG_FTPPUT=y" >>$(1); \
+		sed -i "/CONFIG_FTPGET/d" $(1); \
+		echo "CONFIG_FTPGET=y" >>$(1); \
+		sed -i "/CONFIG_TFTP/d" $(1); \
+		echo "CONFIG_TFTP=y" >>$(1); \
+		sed -i "/CONFIG_TFTPD/d" $(1); \
+		echo "# CONFIG_TFTPD is not set" >>$(1); \
+		sed -i "/CONFIG_FEATURE_TFTP_GET/d" $(1); \
+		echo "# CONFIG_FEATURE_TFTP_GET is not set" >>$(1); \
+		sed -i "/CONFIG_FEATURE_TFTP_PUT/d" $(1); \
+		echo "CONFIG_FEATURE_TFTP_PUT=y" >>$(1); \
+		sed -i "/CONFIG_FEATURE_TFTP_BLOCKSIZE/d" $(1); \
+		echo "# CONFIG_FEATURE_TFTP_BLOCKSIZE is not set" >>$(1); \
+		sed -i "/CONFIG_FEATURE_TFTP_PROGRESS_BAR/d" $(1); \
+		echo "# CONFIG_FEATURE_TFTP_PROGRESS_BAR is not set" >>$(1); \
+		sed -i "/CONFIG_TFTP_DEBUG/d" $(1); \
+		echo "# CONFIG_TFTP_DEBUG is not set" >>$(1); \
 		sed -i "/CONFIG_CLEAR/d" $(1); \
 		echo "CONFIG_CLEAR=y" >>$(1); \
 		sed -i "/CONFIG_SETCONSOLE/d" $(1); \
@@ -533,6 +631,16 @@ define BusyboxOptions
 			echo "# CONFIG_ARPING is not set" >>$(1); \
 			sed -i "/CONFIG_FEATURE_LS_COLOR\b/d" $(1); \
 			echo "# CONFIG_FEATURE_LS_COLOR is not set" >>$(1); \
+			if [ "$(SFP4M)" = "y" ]; then \
+				sed -i "/CONFIG_WGET/d" $(1); \
+				echo "# CONFIG_WGET is not set" >>$(1); \
+				sed -i "/CONFIG_FEATURE_WGET_AUTHENTICATION/d" $(1); \
+				echo "# CONFIG_FEATURE_WGET_AUTHENTICATION is not set" >>$(1); \
+				sed -i "/CONFIG_FEATURE_WGET_LONG_OPTIONS/d" $(1); \
+				echo "# CONFIG_FEATURE_WGET_LONG_OPTIONS is not set" >>$(1); \
+				sed -i "/CONFIG_FEATURE_WGET_TIMEOUT/d" $(1); \
+				echo "# CONFIG_FEATURE_WGET_TIMEOUT is not set" >>$(1); \
+			fi; \
 		else \
 			sed -i "/CONFIG_FEATURE_LS_COLOR\b/d" $(1); \
 			echo "CONFIG_FEATURE_LS_COLOR=y" >>$(1); \
@@ -565,8 +673,13 @@ define KernelConfig
 		echo "# CONFIG_MSDOS_PARTITION is not set" >>$(1); \
 		sed -i "/CONFIG_EFI_PARTITION/d" $(1); \
 		echo "# CONFIG_EFI_PARTITION is not set" >>$(1); \
+	elif [ "$(MODEM)" = "y" ]; then \
+		if [ "$(BECEEM)" = "y" ]; then \
+			sed -i "/CONFIG_USB_BECEEM/d" $(1); \
+			echo "CONFIG_USB_BECEEM=m" >>$(1); \
+		fi; \
 	fi; \
-	if [ "$(SHP)" = "y" ]; then \
+	if [ "$(SHP)" = "y" ] || [ "$(LFP)" = "y" ]; then \
 		sed -i "/CONFIG_IP_NF_LFP/d" $(1); \
 		echo "CONFIG_IP_NF_LFP=y" >>$(1); \
 	fi; \
@@ -656,6 +769,24 @@ define KernelConfig
 			echo "CONFIG_BRIDGE_EBT_IP6=m" >>$(1); \
 		fi; \
 	fi; \
+	sed -i "/CONFIG_NVRAM_64K/d" $(1); \
+	if [ "$(NVRAM_64K)" = "y" ]; then \
+		echo "CONFIG_NVRAM_64K=y" >>$(1); \
+	else \
+		echo "# CONFIG_NVRAM_64K is not set" >>$(1); \
+	fi; \
+	sed -i "/CONFIG_LOCALE2012/d" $(1); \
+	if [ "$(LOCALE2012)" = "y" ]; then \
+		echo "CONFIG_LOCALE2012=y" >>$(1); \
+	else \
+		echo "# CONFIG_LOCALE2012 is not set" >>$(1); \
+	fi; \
+	sed -i "/CONFIG_N56U_SR2/d" $(1); \
+	if [ "$(N56U_SR2)" = "y" ]; then \
+		echo "CONFIG_N56U_SR2=y" >>$(1); \
+	else \
+		echo "# CONFIG_N56U_SR2 is not set" >>$(1); \
+	fi \
 	)
 	$(call platformKernelConfig, $(1))
 endef
@@ -679,7 +810,6 @@ endif
 	@$(MAKE) setprofile
 	@$(MAKE) all
 
-
 rt-%:
 	@$(MAKE) bin $($(shell echo $@ | tr a-z A-Z))
 
@@ -687,10 +817,14 @@ RT-%:
 	@$(MAKE) bin $($@)
 
 dsl-%:
+	$(call dsl_genbintrx_prolog)
 	@$(MAKE) bin $($(shell echo $@ | tr a-z A-Z))
+	$(call dsl_genbintrx_epilog)
 
 DSL-%:
+	$(call dsl_genbintrx_prolog)
 	@$(MAKE) bin $($@)
+	$(call dsl_genbintrx_epilog)
 
 setprofile:
 	@echo ""
@@ -735,6 +869,5 @@ help:
 	
 .PHONY: all clean distclean cleanimage cleantools cleankernel prepk what setprofile libc help
 .PHONY: a b c d m Makefile allversions
-
 
 

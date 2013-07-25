@@ -1,7 +1,7 @@
 /*
  * WPS Common
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wpscommon.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wpscommon.h 295985 2011-11-13 02:57:31Z $
  */
 
 #ifndef _WPS_COMMON_
@@ -17,6 +17,7 @@
 
 #include <wpstypes.h>
 #include <portability.h>
+#include <wps_utils.h>
 
 
 /* Config methods */
@@ -52,8 +53,6 @@
 #define PRF_DIGEST_SIZE         BUF_SIZE_256_BITS
 #define KDF_KEY_BITS            640
 
-#include <wps_devinfo.h>
-
 #define WPS_RESULT_SUCCESS_RESTART			100
 #define WPS_RESULT_SUCCESS					101
 #define WPS_RESULT_PROCESS_TIMEOUT			102
@@ -63,18 +62,12 @@
 #define WPS_RESULT_REGISTRATION_PINFAIL			106
 
 typedef enum {
-	EModeUnknown = 0,
-	EModeUnconfAp = 1,
-	EModeClient = 2,
-	EModeRegistrar = 3,
-	EModeApProxy = 4,
-	EModeApProxyRegistrar = 5
-} EMode;
-
-typedef enum {
-	RECV_ID_EAP = 1,
-	RECV_ID_UPNP
-} recvid;
+	SCMODE_UNKNOWN = 0,
+	SCMODE_STA_ENROLLEE,
+	SCMODE_STA_REGISTRAR,
+	SCMODE_AP_ENROLLEE,
+	SCMODE_AP_REGISTRAR,
+} WPS_SCMODE;
 
 typedef enum {
 	WPS_INIT = 0,
@@ -88,39 +81,7 @@ typedef enum {
 	WPS_PBCOVERLAP,
 	WPS_FIND_PBC_AP,
 	WPS_ASSOCIATING
-} EWPS_STATE;
-
-typedef enum {
-	CB_QUIT = 0,
-	CB_TRUFD = 1,
-	CB_TRNFC = 2,
-	CB_TREAP = 3,
-	CB_TRWLAN_BEACON = 4,
-	CB_TRWLAN_PR_REQ = 5,
-	CB_TRWLAN_PR_RESP = 6,
-	CB_TRANS = 7,
-	CB_MAIN_PUSH_MSG = 8,
-	CB_MAIN_START_AP = 9,
-	CB_MAIN_STOP_AP = 10,
-	CB_MAIN_START_WPASUPP = 11,
-	CB_MAIN_RESET_WPASUPP = 12,
-	CB_MAIN_STOP_WPASUPP = 13,
-	CB_MAIN_PUSH_MODE = 14,
-	CB_MAIN_NEW_STA = 15,
-	CB_MAIN_NFC_DATA = 16,
-	CB_MAIN_PUSH_REG_RESULT = 17,
-	CB_MAIN_REQUEST_PWD = 18,
-	CB_TRIP = 19,
-	CB_SM = 20,
-	CB_SM_RESET = 21,
-	CB_TRUFD_INSERTED = 22,
-	CB_TRUFD_REMOVED = 23,
-	CB_TRUPNP_CP = 24,
-	CB_TRUPNP_DEV = 25,
-	CB_TRUPNP_DEV_SSR = 26,
-	CB_SSR_TIMEOUT = 27,
-	CB_VND_TIMEOUT =28 /* Brcm */
-} ECBType;
+} WPS_SCSTATE;
 
 typedef enum {
 	TRANSPORT_TYPE_UFD = 1,
@@ -133,18 +94,6 @@ typedef enum {
 	TRANSPORT_TYPE_UPNP_DEV,
 	TRANSPORT_TYPE_MAX /* insert new transport types before TRANSPORT_TYPE_MAX */
 } TRANSPORT_TYPE;
-
-typedef struct {
-	ECBType	eType;
-	uint32  dataLength;
-} S_CB_HEADER;
-
-typedef struct {
-	S_CB_HEADER cbHeader;
-	uint32 result;
-	void *encrSettings;
-	DevInfo *peerInfo;
-} S_CB_SM;
 
 #define SM_FAILURE    0
 #define SM_SUCCESS    1
@@ -159,6 +108,5 @@ typedef struct {
 extern void RAND_bytes(unsigned char *buf, int num);
 bool wps_getUpnpDevGetDeviceInfo(void *mc_dev);
 void wps_setUpnpDevGetDeviceInfo(void *mc_dev, bool value);
-
 
 #endif /* _WPS_COMMON_ */

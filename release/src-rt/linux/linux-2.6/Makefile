@@ -313,7 +313,6 @@ CFLAGS          := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
                    -fno-strict-aliasing -fno-common
 AFLAGS          := -D__ASSEMBLY__
 
-
 # Broadcom source tree
 TOPDIR  := $(shell /bin/pwd)
 SRCBASE ?= $(TOPDIR)/../..
@@ -529,16 +528,24 @@ CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
 CFLAGS += $(call cc-option,-Wno-pointer-sign,)
 
 ifneq ($(CONFIG_BCM_CTF),)
-CFLAGS += -DHNDCTF
+CFLAGS += -DHNDCTF -DCTFPOOL -DCTFMAP
 ifneq ($(CONFIG_WL_USBAP),)
 CFLAGS += -DCTFPOOL_SPINLOCK
-else
-CFLAGS += -DCTFPOOL -DCTFMAP
 endif
 endif
 
 ifdef CONFIG_PLC
 CFLAGS += -DPLC
+endif
+
+ifeq ($(CONFIG_MTD_NFLASH),y)
+CFLAGS += -DNFLASH_SUPPORT
+endif
+
+ifeq ($(CONFIG_NVRAM_64K),y) 
+ifeq ($(BUILD_NAME),RT-N66U)
+CFLAGS += -DRTN66U_NVRAM_64K_SUPPORT
+endif
 endif
 
 # Default kernel image to build when no specific target is given.

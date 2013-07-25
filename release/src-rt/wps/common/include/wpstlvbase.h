@@ -1,7 +1,7 @@
 /*
  * WPS TLV
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wpstlvbase.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wpstlvbase.h 291563 2011-10-24 11:07:22Z $
  */
 #ifndef __TLV__H
 #define __TLV__H
@@ -81,6 +81,7 @@ uint8 buffobj_NextSubId(BufferObj *b);
 
 /* TLV Base class */
 typedef struct {
+	void *next;
 	uint16 m_type;
 	uint16 m_len;
 	uint8 *m_pos;

@@ -22,7 +22,6 @@ else
 
 function initial(){
 		showtext($("disk_model_name"), model_name);
-		$("show_remove_button").style.display = "";
 }
 
 function goHspdaWizard(){

@@ -20,12 +20,14 @@ var now_flag = '<% get_parameter("flag"); %>';
 
 function QKISP_load_body(){
 //	load_alttxt_enviroment();
-	parent.document.title = "ASUS Wireless Router <#Web_Title#> - <#QKSet_ISP_head#>";
+	parent.document.title = "<#Web_Title#> - <#QKSet_ISP_head#>";
 	parent.set_step("t2");
 	hideLinkTag();
 	flash_button();
 	get_value_from_parent();
 	show_next_button();
+	
+	document.getElementById("nextButton").focus();
 }
 
 function get_value_from_parent(){
@@ -66,57 +68,103 @@ function show_next_button(){
 function showMAC(){
 	var tempMAC = "";
 	document.form.wan_hwaddr_x.value = this.client_mac;
+	document.form.wan_hwaddr_x.focus();
 }
 
-function submitForm(){
+function validForm(){
 	if(!validate_string(document.form.wan_hostname)){
 		document.form.wan_hostname.select();
 		document.form.wan_hostname.focus();
 		return false;
 	}
-	if(!check_hwaddr(document.form.wan_hwaddr_x)){
+	
+	if(!check_macaddr(document.form.wan_hwaddr_x,check_hwaddr_flag(document.form.wan_hwaddr_x))){
 		document.form.wan_hwaddr_x.select();
 		document.form.wan_hwaddr_x.focus();
 		return false;
 	}
 	
-	if(now_flag == "auto_way_static" || now_flag == "auto_way"){
-		parent.showLoading();
+	return true;
+}
+
+function submitForm(){
+	if(validForm() == true){
 		
-		document.form.wan_proto.disabled = false;
+		if(now_flag == "auto_way_static" || now_flag == "auto_way"){
+				parent.showLoading();
 		
-		document.form.wan_dhcpenable_x.disabled = false;
-		document.form.wan_ipaddr_x.disabled = false;
-		document.form.wan_netmask_x.disabled = false;
-		document.form.wan_gateway_x.disabled = false;
+				document.form.wan_proto.disabled = false;
 		
-		document.form.wan_dnsenable_x.disabled = false;
-		document.form.wan_dns1_x.disabled = false;
-		document.form.wan_dns2_x.disabled = false;
+				document.form.wan_dhcpenable_x.disabled = false;
+				document.form.wan_ipaddr_x.disabled = false;
+				document.form.wan_netmask_x.disabled = false;
+				document.form.wan_gateway_x.disabled = false;
 		
-		document.form.wan_heartbeat_x.disabled = false;
-		document.form.x_Setting.disabled = false;
+				document.form.wan_dnsenable_x.disabled = false;
+				document.form.wan_dns1_x.disabled = false;
+				document.form.wan_dns2_x.disabled = false;
 		
-		document.form.flag.value = "verify_detect";
-		document.form.next_page.value = "/QIS_wizard.htm";
+				document.form.wan_heartbeat_x.disabled = false;
+				document.form.x_Setting.disabled = false;
+		
+				document.form.flag.value = "verify_detect";
+				document.form.next_page.value = "/QIS_wizard.htm";
+				document.form.submit();
+		}
 	
-		document.form.submit();
+		parent.document.QKform.wan_hostname.value = document.form.wan_hostname.value;
+		parent.document.QKform.wan_hwaddr_x.value = document.form.wan_hwaddr_x.value;
+	
+		document.form.action = document.form.next_page.value;
+		location.href = document.form.next_page.value;
 		return true;
 	}
-	
-	parent.document.QKform.wan_hostname.value = document.form.wan_hostname.value;
-	parent.document.QKform.wan_hwaddr_x.value = document.form.wan_hwaddr_x.value;
-	
-	location.href = document.form.next_page.value;
-	return true;
+	else
+		return false;
+}
+
+function check_macaddr(obj,flag){ //control hint of input mac address
+	if(flag == 1){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<#LANHostConfig_ManualDHCPMacaddr_itemdesc#>";		
+		return false;
+	}else if(flag == 2){
+		var childsel=document.createElement("div");
+		childsel.setAttribute("id","check_mac");
+		childsel.style.color="#FFCC00";
+		obj.parentNode.appendChild(childsel);
+		$("check_mac").innerHTML="<#IPConnection_x_illegal_mac#>";
+		return false;
+	}else{
+		$("check_mac") ? $("check_mac").style.display="none" : true;
+		return true;
+	}
+}
+
+function submitenter(myfield,e)
+{	
+	var keycode;
+	if (window.event) keycode = window.event.keyCode;
+	else if (e) keycode = e.which;
+	else return true;
+
+	if (keycode == 13){
+		submitForm();
+   	return false;
+  }
+	else
+   	return true;
 }
 </script>
 </head>
 
-<body onLoad="QKISP_load_body();" onunload="">
+<body onLoad="QKISP_load_body();" onunload="" onKeyPress="submitenter(this,event)">
+<iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>	
 <div id="navtxt" class="navtext" style="position:absolute; top:50px; left:-100px; visibility:hidden; font-family:Arial, Verdana"></div>
-
-<form method="post" name="form" action="/start_apply.htm">
+<form method="post" name="form" onsubmit="return submitForm();">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="restart_wan_if">
@@ -144,7 +192,7 @@ function submitForm(){
 			<table width="730px">
 				<tr>
 					<td align="left">
-						<span class="description_down">Automatic IP connection setup</span>
+						<span class="description_down"><#QIS_auto_ip_conn_Setup#></span>
 					</td>
 					<td align="right">
 						<img onclick="parent.gotoIndex();" style="cursor:pointer;" align="right" title="Go to Home" src="/images/backtohome.png" onMouseOver="this.src='/images/backtohomeclick.png'" onMouseOut="this.src='/images/backtohome.png'">
@@ -156,38 +204,34 @@ function submitForm(){
 
 <table id="tblsetting_1" class="QISform" width="400" border=0 align="center" cellpadding="5" cellspacing="0">
 	<tr>
-	  <th width="180">
+	  <th width="185">
 			<span onmouseout="return nd();" onclick="overlib('<#PPPConnection_x_HostNameForISP_itemdesc#>');" style="cursor:help;"><#BOP_isp_host_item#><img align="right" style="cursor:pointer;margin-top:-14px\9;" src="/images/New_ui/helpicon.png"></span>
 		</th>
 	  <td class="QISformtd">
-		<input type="text" name="wan_hostname" onkeypress="return is_string(this);" class="input_32_table"  maxlength="32" value=""/>
+		<input type="text" name="wan_hostname" onkeypress="return is_string(this, event);" class="input_32_table"  maxlength="32" value=""/>
 	  </td>
 	</tr>
 	
 	<tr>
-	  <th width="180">
+	  <th width="185">
 			<span onmouseout="return nd();" onclick="overlib('<#PPPConnection_x_MacAddressForISP_itemdesc#>', FIXX, 270, FIXY, 30);" style="cursor:help;">
 				<#BOP_isp_mac_item#><img align="right" style="cursor:pointer;margin-top:-14px\9;" src="/images/New_ui/helpicon.png">
 			</span>
 		</th>
 	  <td class="QISformtd">
-		<input type="text" name="wan_hwaddr_x" onkeypress="return is_hwaddr(this);" class="input_20_table" maxlength="17" value=""/>
-		&nbsp&nbsp&nbsp<input type="button" class="button_gen_long" onclick="showMAC();" value="<#BOP_isp_MACclone#>">
+		<input type="text" name="wan_hwaddr_x" onkeypress="return is_hwaddr(this,event);" class="input_20_table" maxlength="17" value=""/>
+		&nbsp&nbsp&nbsp<input type="button" class="button_gen_long" onclick="showMAC();" value="<#BOP_isp_MACclone#>">		
 	  </td>
 	</tr>
 </table>
 <br/>
-<!--p class="QISGeneralFont" style="margin-left:70px;margin-right:70px;"><#qis_isp_desc1#></p>
-<br/>
-<p class="QISGeneralFont" style="margin-left:70px;margin-right:70px;"><#qis_isp_desc2#></p>
-<p class="QISGeneralFont" style="margin-left:70px;margin-right:70px;"><#qis_isp_desc3#></p-->
 <ul class="QISGeneralFont"><#qis_isp_desc1#><br><br>
 	<li><#qis_isp_desc2#></li>
 	<li><#qis_isp_desc3#></li>
 </ul>	
 	<div class="apply_gen" style="margin-top:30px">
-  	<input type='button' id="prevButton" class="button_gen" value="<#CTL_prev#>" onclick="gotoprev(document.form);" width="70" align="center">
-  	<input type='button' id="nextButton" class="button_gen" value="<#CTL_next#>" onclick="submitForm();" width="70" align="center">
+  	<input type="button" id="prevButton" class="button_gen" value="<#CTL_prev#>" onclick="gotoprev(document.form);" align="center">
+  	<input type="submit" id="nextButton" class="button_gen" value="<#CTL_next#>" align="center">
 	</div>
 </div>
 </form>

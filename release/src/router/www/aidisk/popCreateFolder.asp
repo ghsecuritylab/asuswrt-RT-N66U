@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -72,10 +72,19 @@ function validForm(){
 	
 	return true;
 }
+
+function NoSubmit(e){
+    e = e || window.event;  
+    var keynum = e.keyCode || e.which;
+    if(keynum === 13){        
+        return false;
+    }
+}
 </script>
 </head>
 
 <body onLoad="initial();">
+	
 <form name="createFolderForm" method="post" action="create_sharedfolder.asp" target="hidden_frame">
 <input type="hidden" name="account" id="account">
 <input type="hidden" name="pool" id="pool">
@@ -91,7 +100,7 @@ function validForm(){
     </tr>
     <tr>
       <th width="100"><#FolderName#>: </th>
-      <td height="50"><input class="input_25_table" type="text" name="folder" id="folder" style="width:220px;"></td>
+      <td height="50"><input class="input_25_table" type="text" name="folder" id="folder" style="width:220px;" onkeypress="return NoSubmit(event)"></td>
     </tr>
     <tr bgcolor="#E6E6E6">
       <th colspan="2"><input id="Submit" type="button" class="button_gen" value="<#CTL_add#>"></th>

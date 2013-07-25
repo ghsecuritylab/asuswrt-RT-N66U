@@ -6,6 +6,12 @@ CFLAGS += -I$(TOP)/openssl/include
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -DDLM -DASUS_DDNS -DASUS_EXT -DBTN_SETUP -DWEB_REDIRECT
 
+CFLAGS += -DOVERWRITE_DNS -DDEBUG_RCTEST
+
+ifeq ($(RTCONFIG_WPS),y)
+CFLAGS += -I$(SRCBASE)/wps/brcm_apps/include
+endif
+
 ifeq ($(RTCONFIG_RALINK),y)
 CFLAGS += -I$(TOP)/shared/sysdeps/ralink -I$(TOP)/wireless_tools
 endif
@@ -32,8 +38,11 @@ ifeq ($(RTCONFIG_FANCTRL),y)
 OBJS += phy_tempsense.o
 endif
 
-ifeq ($(CONFIG_RALINK),y)
-OBJS += init-ralink.o wps-ralink.o ralink.o
+ifeq ($(RTCONFIG_RALINK),y)
+OBJS += init-ralink.o wps-ralink.o ralink.o wpsfix.o
+ifeq ($(RTCONFIG_DSL),y)
+OBJS += init-ralink-dsl.o 
+endif
 else
 OBJS += init-broadcom.o wps-broadcom.o broadcom.o
 endif
@@ -83,6 +92,10 @@ ifeq ($(RTCONFIG_DSL),y)
 OBJS += dsl.o
 endif
 
+ifeq ($(RTCONFIG_IPV6),y)
+OBJS += ipv6aide.o
+endif
+
 ifeq ($(RTCONFIG_SHP),y)
 export CFLAGS += -DMEDIA_REVIEW
 endif
@@ -118,9 +131,9 @@ install: all
 	@cd $(INSTALLDIR)/sbin && ln -sf rc mtd-write
 	@cd $(INSTALLDIR)/sbin && ln -sf rc mtd-erase
 	@cd $(INSTALLDIR)/sbin && ln -sf rc mtd-unlock
-
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ots
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog
+	@cd $(INSTALLDIR)/sbin && ln -sf rc wpsfix
 ifeq ($(RTCONFIG_FANCTRL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc phy_tempsense
 endif
@@ -133,6 +146,7 @@ endif
 
 ifeq ($(RTCONFIG_IPV6),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc dhcp6c-state
+	@cd $(INSTALLDIR)/sbin && ln -sf rc ipv6aide
 endif
 
 #	ifeq ($(RTCONFIG_HEARTBEAT),y)
@@ -146,7 +160,12 @@ ifeq ($(RTCONFIG_CIFS),y)
 endif
 
 ifeq ($(RTCONFIG_RALINK),y)
+ifeq ($(RTCONFIG_DSL),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc 8367r
+	@cd $(INSTALLDIR)/sbin && ln -sf rc convert_dsl_wan_settings
+else
 	@cd $(INSTALLDIR)/sbin && ln -sf rc 8367m
+endif
 endif
 
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wanduck
@@ -159,6 +178,7 @@ ifeq ($(RTCONFIG_USB),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sg
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sr
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_tty
+	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_usbbcm
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_usb_interface
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ejusb
 endif
@@ -172,8 +192,15 @@ ifeq ($(RTCONFIG_PARENTALCTRL),y)
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wlcscan
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wlcconnect
+ifeq ($(RTCONFIG_BCMWL6),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc acsd_restart_wl
+endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc setup_dnsmq
 	@cd $(INSTALLDIR)/sbin && ln -sf rc add_multi_routes
+
+	@cd $(INSTALLDIR)/sbin && ln -sf rc free_caches
+	@cd $(INSTALLDIR)/sbin && ln -sf rc get_phy_status
+	@cd $(INSTALLDIR)/sbin && ln -sf rc get_phy_speed
 
 clean:
 	rm -f rc *.o .*.depend

@@ -54,12 +54,33 @@ void get_broadcast(char *ipaddr, char *netmask)
         //fprintf(stderr, "get_broadcast return %s\n", value);
 }
 
+char *pptp_encode(char *str, char *output)
+{
+	int i;
+	int j;
+
+	i=j=0;
+
+	while(*(str+i)) {
+		if(*(str+i)==' ' || *(str+i)=='\\' || *(str+i)=='*' || *(str+i)=='\'' || *(str+i)=='"' || *(str+i)=='#') {
+			*(output+j++)='\\';
+			*(output+j++)=*(str+i);
+		}
+		else *(output+j++) = *(str+i); 
+		i++;
+	}
+
+	*(output+j)=0;
+
+	return output;
+}
+
 void write_chap_secret(char *file)
 {
         FILE *fp;
         char *nv, *nvp, *b;
         char *username, *passwd;
-        char buf[64];
+        char namebuf[256], passwdbuf[256];
 
         fp=fopen(file, "w");
 
@@ -71,7 +92,7 @@ void write_chap_secret(char *file)
             	while ((b = strsep(&nvp, "<")) != NULL) {
                 	if((vstrsep(b, ">", &username, &passwd)!=2)) continue;
 	                if(strlen(username)==0||strlen(passwd)==0) continue;
-        	        fprintf(fp, "%s * %s *\n", username, passwd);
+        	        fprintf(fp, "%s * %s *\n", pptp_encode(username, namebuf), pptp_encode(passwd, passwdbuf));
             	}
             	free(nv);
         }
@@ -80,7 +101,7 @@ void write_chap_secret(char *file)
 
 void start_pptpd(void)
 {
-	int ret = 0, mss = 0, manual_dns = 0;
+	int ret = 0, mss = 0, manual_dns = 0, pptpd_opt = 0;
 	char *lpTemp;
 	FILE *fp;
 
@@ -104,7 +125,8 @@ void start_pptpd(void)
 	// Create options file that will be unique to pptpd to avoid interference 
 	// with pppoe and pptp
 	fp = fopen("/tmp/pptpd/options.pptpd", "w");
-	fprintf(fp, "logfile /var/log/pptpd-pppd.log\ndebug\n");
+	fprintf(fp, "logfile /var/log/pptpd-pppd.log\n");
+	//fprintf(fp, "debug dump logfd 2 nodetach\n");
 	if (nvram_match("pptpd_radius", "1"))
 		fprintf(fp, "plugin radius.so\nplugin radattr.so\n"
 			"radius-config-file /tmp/pptpd/radius/radiusclient.conf\n");
@@ -123,38 +145,28 @@ void start_pptpd(void)
 	fprintf(fp, "lock\n"
 		"name *\n"
 		"proxyarp\n"
-		"ipcp-accept-local\n"
-		"ipcp-accept-remote\n"
+//		"ipcp-accept-local\n"
+//		"ipcp-accept-remote\n"
 		"lcp-echo-failure 10\n"
 		"lcp-echo-interval 5\n"
-		"deflate 0\n" "auth\n" "-chap\n" "-mschap\n" "+mschap-v2\n");
+		"deflate 0\n" "auth\n" "-chap\n"
+		"nomppe-stateful\n");
 
-	if (nvram_match("pptpd_forcemppe", "none")) {
-		fprintf(fp, "-mppc\n");
-		fprintf(fp, "nomppe\n");
-	}
-	else {
-		fprintf(fp, "+mppc\n");
-		if (nvram_match("pptpd_forcemppe", "auto")) {
-			fprintf(fp, "+mppe-40\n");
-			fprintf(fp, "+mppe-56\n");
-			fprintf(fp, "+mppe-128\n");
-		}
-		else if (nvram_match("pptpd_forcemppe", "+mppe-40")) {
-                        fprintf(fp, "+mppe\n");
-                        fprintf(fp, "+mppe-40\n");
-			fprintf(fp, "-mppe-56\n");
-			fprintf(fp, "-mppe-128\n");
-                }
-                else if (nvram_match("pptpd_forcemppe", "+mppe-128")) {
-                        fprintf(fp, "+mppe\n");
-			fprintf(fp, "-mppe-40\n");
-			fprintf(fp, "-mppe-56\n");
-                        fprintf(fp, "+mppe-128\n");
-                }
-		fprintf(fp, "nomppe-stateful\n");
-	}
-	
+	pptpd_opt = nvram_get_int("pptpd_chap");
+	fprintf(fp, "%smschap\n", (pptpd_opt == 0 || pptpd_opt & 1) ? "+" : "-");
+	fprintf(fp, "%smschap-v2\n", (pptpd_opt == 0 || pptpd_opt & 2) ? "+" : "-");
+
+	pptpd_opt = nvram_get_int("pptpd_mppe");
+	if (pptpd_opt == 0) 
+		pptpd_opt = 1 | 4 | 8;
+	if (pptpd_opt & (1 | 2 | 4)) {
+		fprintf(fp, "%s", (pptpd_opt & 8) ? "" : "require-mppe\n");
+  		fprintf(fp, "%smppe-128\n", (pptpd_opt & 1) ? "require-" : "no");
+  		fprintf(fp, "%smppe-56\n", (pptpd_opt & 2) ? "require-" : "no");
+  		fprintf(fp, "%smppe-40\n", (pptpd_opt & 4) ? "require-" : "no");
+	} else
+  		fprintf(fp, "nomppe nomppc\n");
+
 	fprintf(fp, "ms-ignore-domain\n"
 		"chap-secrets /tmp/pptpd/chap-secrets\n"
 		"ip-up-script /tmp/pptpd/ip-up\n"
@@ -183,6 +195,9 @@ void start_pptpd(void)
 	}
 	if(!manual_dns && !nvram_match("lan_ipaddr", ""))
                 fprintf(fp, "ms-dns %s\n", nvram_safe_get("lan_ipaddr"));
+
+	// force ppp interface starting from 10
+	fprintf(fp, "minunit 10\n");
 
 	// Following is all crude and need to be revisited once testing confirms
 	// that it does work
@@ -258,7 +273,7 @@ void start_pptpd(void)
 		"echo $PPPD_PID $1 $5 $6 $PEERNAME >> /tmp/pptp_connected\n" 
 		"iptables -I FORWARD -i $1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu\n" 
 		"iptables -I INPUT -i $1 -j ACCEPT\n" "iptables -I FORWARD -i $1 -j ACCEPT\n" 
-		"iptables -t nat -I PREROUTING -i $1 -p udp -m udp --sport 9 -j DNAT --to-destinati	on %s "	// rule for wake on lan over pptp tunnel
+		"iptables -t nat -I PREROUTING -i $1 -p udp -m udp --sport 9 -j DNAT --to-destination %s "	// rule for wake on lan over pptp tunnel
 		"%s\n", bcast,
 		nvram_get("pptpd_ipup_script") ? nvram_get("pptpd_ipup_script") : "");
 	fclose(fp);

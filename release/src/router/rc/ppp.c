@@ -33,6 +33,10 @@
 #include <shutils.h>
 #include <rc.h>
 
+#ifdef RTCONFIG_IPV6
+static int wait_ppp_count = 0;
+#endif
+
 /*
 * parse ifname to retrieve unit #
 */
@@ -51,7 +55,7 @@ int ppp_ifunit(char *ifname){
 	int unit;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
 
-	for(unit = WAN_UNIT_WANPORT1; unit < WAN_UNIT_MAX; ++unit){
+	for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit){
 		snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 
 		if(nvram_match(strcat_r(prefix, "pppoe_ifname", tmp), ifname))
@@ -70,13 +74,10 @@ ipup_main(int argc, char **argv)
 {
 	FILE *fp;
 	char *wan_ifname = safe_getenv("IFNAME");
-	char *value;
+	char *value = NULL;
 	char buf[256];
-	int unit;
+	int unit, i;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
-
-	_dprintf("%s():: %s\n", __FUNCTION__, argv[0]);
-
 	char *pppd_pid = safe_getenv("PPPD_PID");
 	char *DEVICE = safe_getenv("DEVICE");
 	char *PPPLOGNAME = safe_getenv("PPPLOGNAME");
@@ -85,8 +86,9 @@ ipup_main(int argc, char **argv)
 	char *MACREMOTE = safe_getenv("MACREMOTE");
 	char *PEERNAME = safe_getenv("PEERNAME");
 
+	_dprintf("%s():: %s\n", __FUNCTION__, argv[0]);
+
 	_dprintf("%s: argc=%d.\n", __FUNCTION__, argc);
-	int i;
 	for(i = 1; i < argc; ++i)
 		_dprintf("%s: argv[%d]=%s.\n", __FUNCTION__, i, argv[i]);
 	_dprintf("%s: pppd_pid=%s.\n", __FUNCTION__, pppd_pid);
@@ -97,16 +99,11 @@ ipup_main(int argc, char **argv)
 	_dprintf("%s: MACREMOTE=%s.\n", __FUNCTION__, MACREMOTE);
 	_dprintf("%s: PEERNAME=%s.\n", __FUNCTION__, PEERNAME);
 
-#ifdef RTCONFIG_USB_MODEM
-	if(!nvram_match("modem_mode", "0")){
-		if(isSerialNode(DEVICE) || isACMNode(DEVICE))
-			unit = WAN_UNIT_USBPORT;
-		else
-			unit = WAN_UNIT_WANPORT1;
-	}
-	else
-#endif
-		unit = wan_primary_ifunit();
+	if(LINKNAME == NULL || strlen(LINKNAME) <= 0)
+		return 0;
+
+	unit = atoi(LINKNAME+3);
+_dprintf("%s: unit=%d.\n", __FUNCTION__, unit);
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 
@@ -115,7 +112,8 @@ ipup_main(int argc, char **argv)
 	if(isSerialNode(DEVICE) || isACMNode(DEVICE))
 		nvram_set(strcat_r(prefix, "ifname", tmp), DEVICE);
 #endif
-	nvram_set(strcat_r(prefix, "pppoe_ifname", tmp), wan_ifname);
+	if(strcmp(nvram_safe_get(strcat_r(prefix, "pppoe_demand", tmp)), "1") != 0)
+		nvram_set(strcat_r(prefix, "pppoe_ifname", tmp), wan_ifname);
 
 	/* Touch connection file */
 	if (!(fp = fopen(strcat_r("/tmp/ppp/link.", wan_ifname, tmp), "a"))) {
@@ -156,31 +154,31 @@ int
 ipdown_main(int argc, char **argv)
 {
 	char *wan_ifname = safe_getenv("IFNAME");
-	char *DEVICE = safe_getenv("DEVICE");
 	int unit;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *value = NULL;
+	char buf[256];
+	int pid, orig_pid;
+	char *LINKNAME = safe_getenv("LINKNAME");
 
 	_dprintf("%s():: %s\n", __FUNCTION__, argv[0]);
 
-#ifdef RTCONFIG_USB_MODEM
-	if(!nvram_match("modem_mode", "0")){
-		if(isSerialNode(DEVICE) || isACMNode(DEVICE))
-			unit = WAN_UNIT_USBPORT;
-		else
-			unit = WAN_UNIT_WANPORT1;
-	}
-	else
+	if(LINKNAME == NULL || strlen(LINKNAME) <= 0)
+		return 0;
+
+#ifdef RTCONFIG_IPV6
+        wait_ppp_count = -2;
 #endif
-		unit = wan_primary_ifunit();
+
+	unit = atoi(LINKNAME+3);
+_dprintf("%s: unit=%d.\n", __FUNCTION__, unit);
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 
 	wan_down(wan_ifname);
 
-_dprintf("%s(2):: prefix=%s.\n", __FUNCTION__, prefix);
 	// override wan_state to get real reason
 	update_wan_state(prefix, WAN_STATE_STOPPED, pppstatus());
-_dprintf("%s(3):: prefix=%s.\n", __FUNCTION__, prefix);
 
 	unlink(strcat_r("/tmp/ppp/link.", wan_ifname, tmp));
 
@@ -193,11 +191,41 @@ _dprintf("%s(3):: prefix=%s.\n", __FUNCTION__, prefix);
 #ifdef RTCONFIG_IPV6
 int ip6up_main(int argc, char **argv)
 {
+	char *wan_ifname = safe_getenv("IFNAME");
+
+	if (!wan_ifname || strlen(wan_ifname) <= 0)
+		return 0;
+
+        switch (get_ipv6_service()) {
+                case IPV6_NATIVE:
+                case IPV6_NATIVE_DHCP:
+			wait_ppp_count = 10;
+			while ((!is_intf_up(wan_ifname) || !getifaddr(wan_ifname, AF_INET6, 0))
+				&& (wait_ppp_count-- > 0))
+				sleep(1);
+			break;
+		default:
+			wait_ppp_count = 0;
+			break;
+	}
+
+	if (wait_ppp_count != -2)
+	{
+		wan6_up(wan_ifname);	
+		start_firewall(0, 0);
+	}
+
 	return 0;
 }
 
 int ip6down_main(int argc, char **argv)
 {
+	char *wan_ifname = safe_getenv("IFNAME");
+
+	wait_ppp_count = -2;
+
+	wan6_down(wan_ifname);
+
 	return 0;
 }
 #endif  // IPV6
@@ -208,25 +236,18 @@ int ip6down_main(int argc, char **argv)
 int
 authup_main(int argc, char **argv)
 {
-	char *wan_ifname = safe_getenv("IFNAME");
-	char *DEVICE = safe_getenv("DEVICE");
 	int unit;
-	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *value = NULL;
+	char buf[256];
+	char *LINKNAME = safe_getenv("LINKNAME");
 
 	_dprintf("%s():: %s\n", __FUNCTION__, argv[0]);
 
-#ifdef RTCONFIG_USB_MODEM
-	if(!nvram_match("modem_mode", "0")){
-		if(isSerialNode(DEVICE) || isACMNode(DEVICE))
-			unit = WAN_UNIT_USBPORT;
-		else
-			unit = WAN_UNIT_WANPORT1;
-	}
-	else
-#endif
-		unit = wan_primary_ifunit();
+	if(LINKNAME == NULL || strlen(LINKNAME) <= 0)
+		return 0;
 
-	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
+	unit = atoi(LINKNAME+3);
+_dprintf("%s: unit=%d.\n", __FUNCTION__, unit);
 
 	_dprintf("authup_main:: done\n");
 	return 0;
@@ -238,23 +259,19 @@ authup_main(int argc, char **argv)
 int
 authdown_main(int argc, char **argv)
 {
-	char *wan_ifname = safe_getenv("IFNAME");
-	char *DEVICE = safe_getenv("DEVICE");
 	int unit;
-	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char prefix[] = "wanXXXXXXXXXX_";
+	char *value = NULL;
+	char buf[256];
+	char *LINKNAME = safe_getenv("LINKNAME");
 
 	_dprintf("%s():: %s\n", __FUNCTION__, argv[0]);
 
-#ifdef RTCONFIG_USB_MODEM
-	if(!nvram_match("modem_mode", "0")){
-		if(isSerialNode(DEVICE) || isACMNode(DEVICE))
-			unit = WAN_UNIT_USBPORT;
-		else
-			unit = WAN_UNIT_WANPORT1;
-	}
-	else
-#endif
-		unit = wan_primary_ifunit();
+	if(LINKNAME == NULL || strlen(LINKNAME) <= 0)
+		return 0;
+
+	unit = atoi(LINKNAME+3);
+_dprintf("%s: unit=%d.\n", __FUNCTION__, unit);
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 

@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdarg.h>
-
+#include <dirent.h>
 #include <bcmnvram.h>
 #include "shutils.h"
 #include "shared.h"
@@ -145,6 +145,26 @@ check_if_dir_exist(const char *dirpath)
 		return 0;
 }
 
+int 
+check_if_dir_empty(const char *dirpath)
+{
+	DIR *dir;
+	struct dirent *dirent;
+	int found=0;
+
+	if((dir=opendir(dirpath))!=NULL) {
+		while ((dirent=readdir(dir))!=NULL) {
+			if(strcmp(dirent->d_name, ".") && strcmp(dirent->d_name, "..")) { 
+				found=1;
+				break;
+			}
+			
+		}
+		closedir(dir);
+	}
+	return found;
+}
+
 int
 check_if_file_exist(const char *filepath)
 {
@@ -166,4 +186,5 @@ check_if_file_exist(const char *filepath)
 	else
 		return 0;
 }
+
 

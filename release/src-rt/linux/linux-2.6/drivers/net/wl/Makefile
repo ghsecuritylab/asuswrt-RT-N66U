@@ -1,7 +1,7 @@
 #
 # Makefile for the Broadcom wl driver
 #
-# Copyright (C) 2010, Broadcom Corporation. All Rights Reserved.
+# Copyright (C) 2011, Broadcom Corporation. All Rights Reserved.
 # 
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,7 +15,7 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-# $Id: Makefile,v 1.13 2010-12-13 20:23:49 Exp $
+# $Id: Makefile,v 1.13 2010-12-13 20:23:49 $
 #
 
 SRCBASE := ../../../../../../$(SRCBASEDIR)
@@ -55,11 +55,12 @@ wl_suffix := $(shell echo "$(WL_SUFFIX)" | tr A-Z a-z)
 
 # For PREBUILD and postbuild w/WLSRC, compile variants in subdirs
 # Subdir names use lowercase versions of the variant suffixes
-wlsubdirs := $(addprefix wl_,$(foreach v,$(VLIST),$(shell echo "$(v)/" | tr A-Z a-z)))
+#wlsubdirs := $(addprefix wl_,$(foreach v,$(VLIST),$(shell echo "$(v)/" | tr A-Z a-z)))
+wlsubdirs := $(addprefix wl_,$(foreach v,$(VLIST),$(shell echo "$(v)" | tr A-Z a-z)))
 
 
 #subdir-y += $(wlsubdirs)
 #subdir-m += $(wlsubdirs)
 
-
+.NOTPARALLEL:
 include $(src)/wl_generic.mk

@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -8,7 +8,7 @@
 <meta name="svg.render.forceflash" content="false" />	
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - Performance tuning</title>
+<title><#Web_Title#> - Performance tuning</title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script src='svg.js' data-path="/svghtc/" data-debug="false"></script>	
@@ -36,7 +36,7 @@ var $j = jQuery.noConflict();
 var MaxTxPower_2;
 var MaxTxPower_5;
 var flag = 0;;
-var HW_MAX_LIMITATION_2 = 501;
+var HW_MAX_LIMITATION_2 = 101;
 var HW_MIN_LIMITATION_2 = 9;
 var HW_MAX_LIMITATION_5 = 251;
 var HW_MIN_LIMITATION_5 = 9;
@@ -105,18 +105,25 @@ function updateNum(_coreTmp_2, _coreTmp_5){
 }
 
 function applyRule(){
-	if(parseInt(document.form.wl0_TxPower.value) > 500){
+	if(parseInt(document.form.wl0_TxPower.value) > HW_MAX_LIMITATION_2){
 		$("TxPowerHint_2").style.display = "";
 		document.form.wl0_TxPower.focus();
 		return false;
 	}
-	if(parseInt(document.form.wl1_TxPower.value) > 250){
+
+	var wlcountry = '<% nvram_get("wl0_country_code"); %>';
+	if(wlcountry == 'US' || wlcountry == 'CN' || wlcountry == 'TW')
+		HW_MAX_LIMITATION_5 = 501;
+	else
+		HW_MAX_LIMITATION_5 = 251;
+
+	if(parseInt(document.form.wl1_TxPower.value) > HW_MAX_LIMITATION_5){
 		$("TxPowerHint_5").style.display = "";
 		document.form.wl1_TxPower.focus();
 		return false;
 	}
 
-	if(parseInt(document.form.wl0_TxPower.value) > 40 && flag < 2){
+	if(parseInt(document.form.wl0_TxPower.value) > 80 && flag < 2){
 		$("TxPowerHint_2").style.display = "";
 		document.form.wl0_TxPower.focus();
 		flag++;
@@ -125,7 +132,7 @@ function applyRule(){
 	else
 		$("TxPowerHint_2").style.display = "none";
 		
-	if(parseInt(document.form.wl1_TxPower.value) > 40 && flag < 2){
+	if(parseInt(document.form.wl1_TxPower.value) > 80 && flag < 2){
 		$("TxPowerHint_5").style.display = "";
 		document.form.wl1_TxPower.focus();
 		flag++;
@@ -136,7 +143,7 @@ function applyRule(){
 
 	if(parseInt(document.form.wl0_TxPower.value) > parseInt(document.form.wl0_TxPower_orig.value) 
 		|| parseInt(document.form.wl1_TxPower.value) > parseInt(document.form.wl1_TxPower_orig.value))
-	  FormActions("start_apply.htm", "apply", "set_wltxpower;reboot", "30");
+	  FormActions("start_apply.htm", "apply", "set_wltxpower;reboot", "<% get_default_reboot_time(); %>");
 	else{
 		if(document.form.wl0_TxPower.value != document.form.wl0_TxPower_orig.value 
 			|| document.form.wl1_TxPower.value != document.form.wl1_TxPower_orig.value)
@@ -254,7 +261,8 @@ function getCookie(c_name)
 									  <div>&nbsp;</div>
 									  <div class="formfonttitle"><#menu5_6_adv#> - Performance tuning</div>
 									  <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-									  <div class="formfontdesc"><#PerformaceTuning_desc#></div>
+									  <!--div class="formfontdesc"><#PerformaceTuning_desc#></div-->
+									  <div class="formfontdesc">Fine tune the radio power to enhance/decrease the coverage and change the cooler spin mode.Please note: If the output power is increased for long distance signal transmission, the client also need to use high power card to get the best performance.</div>
 									</td>
 								</tr>
 
@@ -324,7 +332,7 @@ function getCookie(c_name)
 												<th>2.4GHz Transmit radio power</th>
 												<td>
 													<input type="text" name="wl0_TxPower" maxlength="3" class="input_3_table" value="<% nvram_get("wl0_TxPower"); %>"> mW
-													<span id="TxPowerHint_2" style="margin-left:10px;display:none;">This value could not exceed 40</span>
+													<span id="TxPowerHint_2" style="margin-left:10px;display:none;">This value could not exceed 80</span>
 												</td>
 											</tr>
 				            
@@ -332,7 +340,7 @@ function getCookie(c_name)
 												<th>5GHz Transmit radio power</th>
 												<td>
 													<input type="text" name="wl1_TxPower" maxlength="3" class="input_3_table" value="<% nvram_get("wl1_TxPower"); %>"> mW
-													<span id="TxPowerHint_5" style="margin-left:10px;display:none;">This value could not exceed 40</span>
+													<span id="TxPowerHint_5" style="margin-left:10px;display:none;">This value could not exceed 80</span>
 												</td> 
 											</tr>
 
@@ -394,7 +402,7 @@ function getCookie(c_name)
 												<th>Spin duty cycle</th>
 												<td> 
 													<select name="fanctrl_dutycycle" class="input_option">
-														<option class="content_input_fd" value="0" <% nvram_match("fanctrl_dutycycle", "1", "selected"); %>>Auto</option>
+														<option class="content_input_fd" value="0" <% nvram_match("fanctrl_dutycycle", "1", "selected"); %>><#Auto#></option>
 														<option class="content_input_fd" value="1" <% nvram_match("fanctrl_dutycycle", "1", "selected"); %>>50%</option>
 														<option class="content_input_fd" value="2" <% nvram_match("fanctrl_dutycycle", "2", "selected"); %>>67%</option>
 														<option class="content_input_fd" value="3" <% nvram_match("fanctrl_dutycycle", "3", "selected"); %>>75%</option>

@@ -28,7 +28,16 @@ OBJS += apps.o
 ifeq ($(CONFIG_RALINK),y)
 OBJS += web-ralink.o
 else
+ifeq ($(RTCONFIG_BCMWL6),y)
+OBJS += web-broadcom-wl6.o
+else
 OBJS += web-broadcom.o
+endif
+endif
+
+ifeq ($(RTCONFIG_DSL),y)
+OBJS += web-dsl.o
+OBJS += web-dsl-upg.o
 endif
 
 LIBS = -L$(TOP)/nvram -lnvram -L$(TOP)/shared -lshared

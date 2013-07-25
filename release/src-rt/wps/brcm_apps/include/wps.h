@@ -1,7 +1,7 @@
 /*
  * WPS include
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps.h 323637 2012-03-26 10:31:40Z $
  */
 #ifndef __WPS_H__
 #define __WPS_H__
@@ -24,7 +24,7 @@ typedef struct wps_hndl {
 	int type;
 	int handle;
 	char ifname[16];
-#if defined(BCMWPSAP) && defined(__CONFIG_LIBUPNP__)
+#ifdef	WPS_UPNP_DEVICE
 	void *private;
 #endif
 } wps_hndl_t;
@@ -35,8 +35,6 @@ void wps_hndl_del(wps_hndl_t *hndl);
 char *wps_get_conf(char *name);
 char *wps_safe_get_conf(char *name);
 int wps_set_conf(char *name, char *value);
-int wps_getProcessStates();
-void wps_setProcessStates(int state);
 
 /* Include OSL portion definitions */
 #include <wps_osl.h>
@@ -62,14 +60,6 @@ void wps_setProcessStates(int state);
 #define WPSM_CHILD_MAX_WAIT_SEC		5
 
 enum {
-	WPSM_UNCONFAP = 0,		/* run wps_ap application */
-	WPSM_BUILTINREG,		/* run wps_ap application */
-	WPSM_PROXY,			/* run wps_ap application */
-	WPSM_BUILTINREG_PROXY,		/* run wps_ap application, for WPS_AP_M2D */
-	WPSM_ENROLL			/* run wps_enr application */
-} WPSM_STATE_T;
-
-enum {
 	WPS_EAP_ID_ENROLLEE = 0,
 	WPS_EAP_ID_REGISTRAR,
 	WPS_EAP_ID_NONE
@@ -83,28 +73,39 @@ enum {
 } WPS_RECEIVE_PKT_T;
 
 typedef struct {
-	int wksp; /* it may wps_ap or wps_enr */
-	int mode; /* it used both for wps_ap or wps_enr case */
+	void *wksp; /* it may wps_ap or wps_enr */
+	int sc_mode; /* it used both for wps_ap or wps_enr case */
 	int (*open)(void *, void *);
-	int (*close)(int);
-	int (*process)(int, char *, int, int);
-	int (*check_timeout)(int);
+	int (*close)(void *);
+	int (*process)(void *, char *, int, int);
+	int (*check_timeout)(void *);
 } wps_app_t;
 
 /* Macros */
-#ifdef WPS_AP_M2D
-#define WPS_SMODE2STR(smode)	((smode) == WPSM_UNCONFAP ? "unconfap" : \
-				(smode) == WPSM_BUILTINREG ? "builtinreg" : \
-				(smode) == WPSM_PROXY ? "proxy" : \
-				(smode) == WPSM_BUILTINREG_PROXY ? "builtinreg_proxy" : \
+#define WPS_SMODE2STR(smode)	((smode) == SCMODE_AP_ENROLLEE? "ap enrollee" : \
+				(smode) == SCMODE_AP_REGISTRAR ? "ap registrar" : \
 				"Error!! known mode")
-#else /* !WPS_AP_M2D */
-#define WPS_SMODE2STR(smode)	((smode) == WPSM_UNCONFAP ? "unconfap" : \
-				(smode) == WPSM_BUILTINREG ? "builtinreg" : \
-				(smode) == WPSM_PROXY ? "proxy" : \
-				"Error!! known mode")
-#endif /* WPS_AP_M2D */
 
+#define	WPS_IS_PROXY(mode)	((mode == SCMODE_AP_REGISTRAR) && \
+				strcmp(wps_ui_get_env("wps_sta_pin"), "") == 0)
+
+
+#if defined(IL_BIGENDIAN)
+#include <bcmendian.h>
+#define htod32(i) (bcmswap32(i))
+#define htod16(i) (bcmswap16(i))
+#define dtoh32(i) (bcmswap32(i))
+#define dtoh16(i) (bcmswap16(i))
+#define htodchanspec(i) htod16(i)
+#define dtohchanspec(i) dtoh16(i)
+#else
+#define htod32(i) i
+#define htod16(i) i
+#define dtoh32(i) i
+#define dtoh16(i) i
+#define htodchanspec(i) i
+#define dtohchanspec(i) i
+#endif
 
 void wps_osl_restart_wl();
 
@@ -114,7 +115,7 @@ void wps_stophandler(int sig);
 void wps_restarthandler(int sig);
 int wps_mainloop(int num, char **list);
 void wps_close_session();
-bool wps_is_wps_enr(char *wps_ifname);
+bool wps_is_wps_sta(char *wps_ifname);
 wps_app_t *get_wps_app();
 unsigned char *wps_get_uuid();
 int wps_get_ess_num();
@@ -122,6 +123,14 @@ int wps_get_ess_num();
 void wps_close_addclient_window();
 #endif
 
-
 void wps_setWPSSuccessMode(int state);
+
+/* Common interface to ap wksp, WSC 2.0 */
+int wpsap_open_session(wps_app_t *wps_app, int sc_mode, unsigned char *mac, unsigned char *mac_sta,
+	char *osifname, char *enr_nonce, char *priv_key, uint8 *authorizedMacs,
+	uint32 authorizedMacs_len, bool b_reqToEnroll, bool b_nwKeyShareable);
+
+/* Common interface to sta wksp */
+int wpssta_open_session(wps_app_t *wps_app, char*ifname);
+
 #endif /* __WPS_H__ */

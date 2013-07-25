@@ -17,6 +17,7 @@
 #ifndef _DISK_SHARE_
 #define _DISK_SHARE_
 
+#define ADMIN_ORDER 0
 #define MAX_ACCOUNT_NUM 6
 
 #define SHARE_LAYER MOUNT_LAYER+1
@@ -25,23 +26,29 @@
 #define PROTOCOL_CIFS "cifs"
 #define PROTOCOL_FTP "ftp"
 #define PROTOCOL_MEDIASERVER "dms"
-#ifdef RTCONFIG_WEBDAV
+#ifdef RTCONFIG_WEBDAV_OLD
 #define PROTOCOL_WEBDAV "webdav"
+#define MAX_PROTOCOL_NUM 4
+#else
+#define MAX_PROTOCOL_NUM 3
 #endif
 
 #define PROTOCOL_CIFS_BIT 0
 #define PROTOCOL_FTP_BIT 1
 #define PROTOCOL_MEDIASERVER_BIT 2
-#ifdef RTCONFIG_WEBDAV
+#ifdef RTCONFIG_WEBDAV_OLD
 #define PROTOCOL_WEBDAV_BIT 3
 #endif
 
 #define DEFAULT_SAMBA_RIGHT 3
 #define DEFAULT_FTP_RIGHT 3
 #define DEFAULT_DMS_RIGHT 1
-#ifdef RTCONFIG_WEBDAV
+#ifdef RTCONFIG_WEBDAV_OLD
 #define DEFAULT_WEBDAV_RIGHT 3
 #endif
+
+extern void set_file_integrity(const char *const file_name);
+extern int check_file_integrity(const char *const file_name);
 
 extern int get_account_list(int *, char ***);
 extern int get_folder_list(const char *const, int *, char ***);

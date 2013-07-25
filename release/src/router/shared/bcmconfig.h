@@ -49,7 +49,7 @@
 #undef __CONFIG_WAPI_IAS__
 #undef __CONFIG_SES__
 #undef __CONFIG_SES_CL__
-#define __CONFIG_WSCCMD__ 1
+#define __CONFIG_WPS__ 1
 #undef __CONFIG_WFI__
 #undef __CONFIG_EZC__
 #define __CONFIG_LLD2D__ 1

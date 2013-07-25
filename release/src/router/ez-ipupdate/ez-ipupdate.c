@@ -63,6 +63,10 @@
 #define DHS_REQUEST "/nic/hosts"
 #define DHS_SUCKY_TIMEOUT 5 //60
 
+#define DNSOMATIC_DEFAULT_SERVER "updates.dnsomatic.com"
+#define DNSOMATIC_DEFAULT_PORT "80"
+#define DNSOMATIC_REQUEST "/nic/update"
+
 #define DYNDNS_DEFAULT_SERVER "members.dyndns.org"
 #define DYNDNS_DEFAULT_PORT "80"
 #define DYNDNS_REQUEST "/nic/update"
@@ -111,9 +115,9 @@
 #define ZONEEDIT_DEFAULT_PORT "80"
 #define ZONEEDIT_REQUEST "/auth/dynamic.html"
 
-#define HEIPV6TB_DEFAULT_SERVER "ipv6tb.he.net"
+#define HEIPV6TB_DEFAULT_SERVER "ipv4.tunnelbroker.net"
 #define HEIPV6TB_DEFAULT_PORT "80"
-#define HEIPV6TB_REQUEST "/index.cgi"
+#define HEIPV6TB_REQUEST "/ipv4_end.php"
 
 #define DEFAULT_TIMEOUT 16 //120
 #define DEFAULT_UPDATE_PERIOD 120
@@ -344,9 +348,11 @@ int EASYDNS_PARTNER_check_info(void);
 static char *EASYDNS_PARTNER_fields_used[] = { "server", "partner", "user", "address", "wildcard", "host", NULL };
 
 #ifdef USE_MD5
+#ifdef GNUDIP
 int GNUDIP_update_entry(void);
 int GNUDIP_check_info(void);
 static char *GNUDIP_fields_used[] = { "server", "user", "host", "address", NULL };
+#endif
 #endif
 
 #ifdef CONFIG_PGP
@@ -369,10 +375,10 @@ int ZONEEDIT_update_entry(void);
 int ZONEEDIT_check_info(void);
 static char *ZONEEDIT_fields_used[] = { "server", "user", "address", "mx", "host", NULL };
 
-#ifdef CONFIG_HEIP
+#ifdef USE_MD5
 int HEIPV6TB_update_entry(void);
 int HEIPV6TB_check_info(void);
-static char *HEIPV6TB_fields_used[] = { "server", "user", NULL };
+static char *HEIPV6TB_fields_used[] = { "server", "user", "address", "host", NULL };
 #endif
 
 struct service_t services[] = {
@@ -513,6 +519,7 @@ struct service_t services[] = {
     EASYDNS_PARTNER_REQUEST
   },
 #ifdef USE_MD5
+#ifdef GNUDIP
   { "gnudip",
     { "gnudip", 0, 0, },
     NULL,
@@ -523,6 +530,7 @@ struct service_t services[] = {
     GNUDIP_DEFAULT_PORT,
     GNUDIP_REQUEST
   },
+#endif
 #endif
 
 #ifdef CONFIG_PGP
@@ -569,7 +577,7 @@ struct service_t services[] = {
     ZONEEDIT_DEFAULT_PORT,
     ZONEEDIT_REQUEST
   },
-#ifdef CONFIG_HEIP
+#ifdef USE_MD5
   { "heipv6tb",
     { "heipv6tb", 0, 0, },
     NULL,
@@ -581,6 +589,16 @@ struct service_t services[] = {
     HEIPV6TB_REQUEST
   },
 #endif
+  { "dnsomatic",
+    { "dnsomatic", 0, 0, },
+    DYNDNS_init,
+    DYNDNS_update_entry,
+    DYNDNS_check_info,
+    DYNDNS_fields_used,
+    DNSOMATIC_DEFAULT_SERVER,
+    DNSOMATIC_DEFAULT_PORT,
+    DNSOMATIC_REQUEST
+  },
 };
 
 static struct service_t *service = NULL;
@@ -896,7 +914,7 @@ void show_message(char *fmt, ...)
     sprintf(buf, "message incomplete because your OS sucks: %s\n", fmt);
 #endif
 
-    syslog(LOG_NOTICE, buf);
+    syslog(LOG_NOTICE, "%s", buf);
   }
   else
   {
@@ -922,7 +940,7 @@ void show_message(char *fmt, ...)
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
   openlog("ddns update", 0, 0);
-  syslog(0, buf);
+  syslog(0, "%s", buf);
   closelog();
   va_end(args);
 }
@@ -2116,6 +2134,7 @@ int DYNDNS_update_entry(void)
 
   dprintf((stderr, "server output: %s\n", buf));
 fprintf(stderr, "server output: %s\n", buf);
+show_message("server output: %s\n", buf);
 
   if(sscanf(buf, " HTTP/1.%*c %3d", &ret) != 1)
   {
@@ -3456,6 +3475,7 @@ int EASYDNS_PARTNER_update_entry(void)
 
 
 #ifdef USE_MD5
+#ifdef GNUDIP
 int GNUDIP_check_info(void)
 {
   char buf[BUFSIZ+1];
@@ -3624,6 +3644,7 @@ int GNUDIP_update_entry(void)
 
   return(UPDATERES_OK);
 }
+#endif
 #endif
 
 #ifdef CONFIG_PGP
@@ -4240,7 +4261,7 @@ int ZONEEDIT_update_entry(void)
   return(UPDATERES_OK);
 }
 
-#ifdef CONFIG_HEIP
+#ifdef USE_MD5
 int HEIPV6TB_check_info(void)
 {
   char buf[BUFSIZ+1];
@@ -4256,6 +4277,13 @@ int HEIPV6TB_check_info(void)
     get_input("interface", buf, sizeof(buf));
     option_handler(CMD_interface, buf);
   }
+
+  if((host == NULL) || (*host == '\0'))
+  {
+    show_message("you must provide global tunnel id in 'host' param\n");
+    return(-1);
+  }
+
   warn_fields(service->fields_used);
 
   return 0;
@@ -4263,8 +4291,9 @@ int HEIPV6TB_check_info(void)
 
 int HEIPV6TB_update_entry(void)
 {
+  unsigned char digestbuf[MD5_DIGEST_BYTES];
   char *buf = update_entry_buf;
-  char *bp = buf;
+  char *bp;
   int bytes;
   int btot;
   int ret;
@@ -4280,13 +4309,22 @@ int HEIPV6TB_update_entry(void)
     return(UPDATERES_ERROR);
   }
 
-  snprintf(buf, BUFFER_SIZE, "GET %s?menu=%s&", request, "edit_tunnel_address");
+  // use the auth buffer
+  md5_buffer(password, strlen(password), digestbuf);
+  for(bytes = 0, bp = auth; bytes < MD5_DIGEST_BYTES; bytes++)
+  {
+    bp += sprintf(bp, "%02x", digestbuf[bytes]);
+  }
+
+  snprintf(buf, BUFFER_SIZE, "GET %s?", request);
   output(buf);
-  snprintf(buf, BUFFER_SIZE, "aname=%s&", user_name);
+  snprintf(buf, BUFFER_SIZE, "ip=%s&", (address && *address) ? address : "AUTO");
   output(buf);
-  snprintf(buf, BUFFER_SIZE, "auth=%s&", password);
+  snprintf(buf, BUFFER_SIZE, "apikey=%s&", user_name);
   output(buf);
-  snprintf(buf, BUFFER_SIZE, "ipv4b=%s", address);
+  snprintf(buf, BUFFER_SIZE, "pass=%s&", auth);
+  output(buf);
+  snprintf(buf, BUFFER_SIZE, "tid=%s&", host);
   output(buf);
   snprintf(buf, BUFFER_SIZE, " HTTP/1.0\015\012");
   output(buf);
@@ -4311,6 +4349,7 @@ int HEIPV6TB_update_entry(void)
   buf[btot] = '\0';
 
   dprintf((stderr, "server output: %s\n", buf));
+
   if(sscanf(buf, " HTTP/1.%*c %3d", &ret) != 1)
   {
     ret = -1;
@@ -4318,8 +4357,6 @@ int HEIPV6TB_update_entry(void)
 
   switch(ret)
   {
-    char *p;
-
     case -1:
       if(!(options & OPT_QUIET))
       {
@@ -4327,12 +4364,36 @@ int HEIPV6TB_update_entry(void)
       }
       return(UPDATERES_ERROR);
       break;
+
     case 200:
       if(!(options & OPT_QUIET))
       {
-        show_message("request successful\n");
+        // reuse the auth buffer
+        *auth = '\0';
+        if ((bp = strstr(buf, "+OK:")) != NULL)
+          sscanf(bp, "+OK%255[^\r\n]", auth);
+        else if ((bp = strstr(buf, "-ERROR:")) != NULL)
+          sscanf(bp, "-ERROR%255[^\r\n]", auth);
+      }
+      if(strstr(buf, "+OK:") != NULL ||
+         strstr(buf, "endpoint updated") != NULL ||
+         strstr(buf, "tunnel is already") != NULL)
+      {
+        if(!(options & OPT_QUIET))
+        {
+          show_message("request successful%s\n", auth);
+        }
+      }
+      else
+      {
+        if(!(options & OPT_QUIET))
+        {
+          show_message("bad request%s\n", auth);
+        }
+        return(UPDATERES_ERROR);
       }
       break;
+
     default:
       if(!(options & OPT_QUIET))
       {
@@ -4617,16 +4678,18 @@ int main(int argc, char **argv)
 #ifdef ASUS_DDNS
         if (g_asus_ddns_mode != 0)      {
                 nvram_set ("ddns_return_code", "ddns_query");
+		nvram_set ("ddns_return_code_chk", "ddns_query");
                 nvram_unset ("ddns_suggest_name");
                 nvram_unset ("ddns_old_name");
                 if (asus_private() == -1) {
 			nvram_set ("ddns_return_code", "connect_fail");
+			nvram_set ("ddns_return_code_chk", "connect_fail");
                         goto exit_main;
 		}
         }
         if (g_asus_ddns_mode == 1)      {
-                asus_reg_domain ();
-                goto exit_main;
+              retval = asus_reg_domain ();
+              goto asusddns_update;
         } else if (g_asus_ddns_mode == 2)       {
                 // override update_entry() method
                 service->update_entry = asus_update_entry;
@@ -4731,7 +4794,6 @@ int main(int argc, char **argv)
         last_sig = 0;
       }
 #endif
-printf("Get IF addr\n");
       if(get_if_addr(sock, interface, &sin2) == 0)
       {
         ifresolve_warned = 0;
@@ -4977,6 +5039,7 @@ printf("Get IF addr\n");
         if(i+1 != ntrys) { sleep(10 + 10*i); }
       }
 
+asusddns_update:
       // write cache file
       if(retval == 0 && cache_file)
       {
@@ -5038,11 +5101,10 @@ printf("Get IF addr\n");
       show_message("no update needed at this time\n");
     }
   }
-
 //2007.03.14 Yau add
 #ifdef ASUS_DDNS
-exit_main:
-#endif  // ASUS_DDNS
+  exit_main:
+#endif
 
 #ifdef IF_LOOKUP
   if(sock > 0) { close(sock); }

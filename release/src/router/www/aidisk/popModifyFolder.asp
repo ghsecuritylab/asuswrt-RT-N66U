@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -65,6 +65,14 @@ function validForm(){
 	
 	return true;
 }
+
+function NoSubmit(e){
+    e = e || window.event;  
+    var keynum = e.keyCode || e.which;
+    if(keynum === 13){        
+        return false;
+    }
+}
 </script>
 </head>
 
@@ -92,7 +100,7 @@ function validForm(){
       </tr>
       <tr>
         <th><#NewFolderName#>: </th>
-        <td><input class="input_15_table" type="text" name="new_folder" id="new_folder"></td>
+        <td><input class="input_25_table" type="text" name="new_folder" id="new_folder" onkeypress="return NoSubmit(event)"></td>
       </tr>
       <tr bgcolor="#E6E6E6">
         <th colspan="2" align="right"><input id="Submit" type="button" class="button_gen" value="<#CTL_modify#>"></th>

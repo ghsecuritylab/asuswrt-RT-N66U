@@ -30,9 +30,12 @@ a:active {
 <script type="text/javascript" src="/state.js"></script>
 <script>
 var diskOrder = parent.getSelectedDiskOrder();
+var _DMDiskNum = (pool_devices().getIndexByValue('<% nvram_get("apps_dev"); %>') < foreign_disk_total_mounted_number()[0])? 0 : 1;
+
 var all_accessable_size = parent.simpleNum2(parent.computeallpools(diskOrder, "size")-parent.computeallpools(diskOrder, "size_in_use"));
 var all_total_size = parent.simpleNum2(parent.computeallpools(diskOrder, "size"));
 var mountedNum = parent.getDiskMountedNum(diskOrder);
+var ddns_result = '<% nvram_get("ddns_return_code_chk");%>'; //Boyau
 
 <% get_AiDisk_status(); %>
 
@@ -43,17 +46,20 @@ var accounts = [<% get_all_accounts(); %>];
 var ddns_enable = '<% nvram_get("ddns_enable_x"); %>';
 var ddns_server = '<% nvram_get("ddns_server_x"); %>';
 var ddns_hostname = '<% nvram_get("ddns_hostname_x"); %>';
-var apps_array = <% apps_info(); %>;
+var apps_array = <% apps_info("asus"); %>;
 var apps_dev = "<% nvram_get("apps_dev"); %>";
 
 function initial(){
 	flash_button();
 	showtext($("disk_model_name"), parent.getDiskModelName(diskOrder));
 	showtext($("disk_total_size"), parent.getDiskTotalSize(diskOrder));
-	
+
 	if(parent.media_support == -1)
 		$("mediaserver_hyperlink").style.display = "none";
 	
+	if(WebDav_support == -1)
+		$("clouddiskstr").style.display = "none";
+
 	if(mountedNum > 0){
 		showtext($("disk_total_size"), all_total_size+" GB");		
 		showtext($("disk_avail_size"), all_accessable_size+" GB");		
@@ -73,9 +79,10 @@ function initial(){
 
 	for(var i = 0; i < apps_array.length; i++){
 		if(apps_array[i][0] == "downloadmaster" && apps_array[i][4] == "yes" && apps_array[i][3] == "yes"){
-			if((parent.foreign_disk_total_mounted_number()[0] == 1 && diskOrder == 0) ||
-				 (parent.foreign_disk_total_mounted_number()[0] == 2 && diskOrder == 1) )
-				$("dmLink").style.display = "";			
+			if(_DMDiskNum == diskOrder || foreign_disks().length == 1) {
+				$("dmLink").style.display = "";
+				break;
+			}
 		}
 	}
 }
@@ -84,7 +91,13 @@ function showdisklink(){
 	// access the disk from WAN
 	if(sw_mode != "3" && FTP_status == 1 && ddns_enable == 1 && ddns_server.length > 0 && ddns_hostname.length > 0){
 		if(FTP_mode == 1){
-			$("ddnslink1").style.display = "";
+			if((ddns_result.indexOf(",200") >= 0) || //Boyau
+   			 (ddns_result.indexOf(",220") >= 0) || 
+   			 (ddns_result.indexOf(",230") >= 0) )
+   				$("ddnslink1").style.display = "";
+			else
+   				$("desc_1").style.display = "none";
+
 			$("desc_2").style.display = "";
 			$("ddnslink1_LAN").style.display = "";
 		}
@@ -92,7 +105,6 @@ function showdisklink(){
 			$("ddnslink2").style.display = "";
 			$("desc_2").style.display = "";
 			$("ddnslink2_LAN").style.display = "";
-			
 			$("selected_account_link").href = 'ftp://'+accounts[0]+'@<% nvram_get("ddns_hostname_x"); %>';
 			showtext($("selected_account_str"), 'ftp://'+accounts[0]+'@<% nvram_get("ddns_hostname_x"); %>');
 			$("selected_account_link_LAN").href = 'ftp://'+accounts[0]+'@<% nvram_get("lan_ipaddr"); %>';
@@ -125,17 +137,14 @@ function showdisklink(){
 }
 
 function goUPnP(){
-	parent.showLoading();
 	parent.location.href = "/mediaserver.asp";
 }
 
 function gotoAidisk(){
-	parent.showLoading();
 	parent.location.href = "/aidisk.asp";
 }
 
 function gotoDM(){
-	parent.showLoading();
 	parent.location.href = "http://" + location.host + ":8081";
 }
 
@@ -249,27 +258,22 @@ function DMhint(){
 </div>
 <div id="mounted_item2" style="padding:5px 0px 5px 25px;">
 <ul style="font-size:11px; font-family:Arial; padding:0px; margin:0px; list-style:outside; line-height:150%;">
-	<!--li><#linktodisk#>
-	  <span id="ie_link" style="display:none;"><a href="\\<% nvram_get("computer_name"); %>"></a></span>
-	  <span id="notie_link" style="display:none;"><a href="ftp://<% nvram_get("computer_name"); %>">ftp://<% nvram_get("computer_name"); %></a></span>
-	  <span id="noLAN_link" style="display:none;"></span>
-	</li-->
-	<li>
-	  <span id="ddnslink1" style="display:none;"><#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>">ftp://<% nvram_get("ddns_hostname_x"); %></a></span>
-	  <span id="ddnslink2" style="display:none;"><#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><a id="selected_account_link" href="" onclick="alert('<#AiDiskWelcome_desp1#>');" target="_blank"><span id="selected_account_str"></span></a></span>
-	  <span id="ddnslink3" style="display:none;"><#AiDisk_linktoFTP_fromInternet#><a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("lan_ipaddr"); %></a></span>
+	<li id="desc_1">
+	  <span id="ddnslink1" style="display:none;"><#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><br><a target="_blank" href="ftp://<% nvram_get("ddns_hostname_x"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("ddns_hostname_x"); %></a></span>
+	  <span id="ddnslink2" style="display:none;"><#Internet#>&nbsp;<#AiDisk_linktoFTP_fromInternet#><br><a id="selected_account_link" href="" onclick="alert('<#AiDiskWelcome_desp1#>');" target="_blank"><span id="selected_account_str"></span></a></span>
+	  <span id="ddnslink3" style="display:none;"><#AiDisk_linktoFTP_fromInternet#><br><a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("lan_ipaddr"); %></a></span>
 		<span id="noWAN_link" style="display:none;"></span>
 	</li>
 	<li id="desc_2" style="display:none;">
-		<span id="ddnslink1_LAN" style="display:none;"><#linktodisk#>
+		<span id="ddnslink1_LAN" style="display:none;"><#linktodisk#><br>
 	  	<a target="_blank" href="ftp://<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">ftp://<% nvram_get("lan_ipaddr"); %></a>
 	  </span>
-	  <span id="ddnslink2_LAN" style="display:none;"><#linktodisk#>
+	  <span id="ddnslink2_LAN" style="display:none;"><#linktodisk#><br>
 	  	<a id="selected_account_link_LAN" href="" target="_blank" style="text-decoration: underline; font-family:Lucida Console;"><span id="selected_account_str_LAN"></span></a>
 	  </span>
 	</li>
 	<li id="desc_3" style="display:none;">
-		<span id="ddnslink3_LAN" style="display:none;"><#menu5_4_1#>：
+		<span id="ddnslink3_LAN" style="display:none;"><#menu5_4_1#><span id="clouddiskstr"> / Cloud Disk</span>:<br>
 			<a target="_blank" href="\\<% nvram_get("lan_ipaddr"); %>" style="text-decoration: underline; font-family:Lucida Console;">\\<% nvram_get("lan_ipaddr"); %></a>
 		</span>		
 	</li>

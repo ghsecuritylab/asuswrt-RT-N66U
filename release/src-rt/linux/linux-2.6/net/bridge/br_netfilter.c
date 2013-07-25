@@ -142,23 +142,6 @@ static inline struct nf_bridge_info *nf_bridge_alloc(struct sk_buff *skb)
 	return skb->nf_bridge;
 }
 
-static inline struct nf_bridge_info *nf_bridge_unshare(struct sk_buff *skb)
-{
-	struct nf_bridge_info *nf_bridge = skb->nf_bridge;
-
-	if (atomic_read(&nf_bridge->use) > 1) {
-		struct nf_bridge_info *tmp = nf_bridge_alloc(skb);
-
-		if (tmp) {
-			memcpy(tmp, nf_bridge, sizeof(struct nf_bridge_info));
-			atomic_set(&tmp->use, 1);
-			nf_bridge_put(nf_bridge);
-		}
-		nf_bridge = tmp;
-	}
-	return nf_bridge;
-}
-
 static inline void nf_bridge_push_encap_header(struct sk_buff *skb)
 {
 	unsigned int len = nf_bridge_encap_header_len(skb);
@@ -200,7 +183,7 @@ int nf_bridge_copy_header(struct sk_buff *skb)
 	int err;
 	int header_size = ETH_HLEN + nf_bridge_encap_header_len(skb);
 
-	err = skb_cow_head(skb, header_size);
+	err = skb_cow(skb, header_size);
 	if (err)
 		return err;
 
@@ -526,11 +509,8 @@ static unsigned int br_nf_pre_routing(unsigned int hook, struct sk_buff **pskb,
 				      int (*okfn)(struct sk_buff *))
 {
 	struct iphdr *iph;
+	__u32 len;
 	struct sk_buff *skb = *pskb;
-	__u32 len = nf_bridge_encap_header_len(skb);
-
-	if (unlikely(!pskb_may_pull(skb, len)))
-		goto out;
 
 	if (skb->protocol == htons(ETH_P_IPV6) || IS_VLAN_IPV6(skb) ||
 	    IS_PPPOE_IPV6(skb)) {
@@ -538,6 +518,8 @@ static unsigned int br_nf_pre_routing(unsigned int hook, struct sk_buff **pskb,
 		if (!brnf_call_ip6tables)
 			return NF_ACCEPT;
 #endif
+		if ((skb = skb_share_check(*pskb, GFP_ATOMIC)) == NULL)
+			goto out;
 		nf_bridge_pull_encap_header_rcsum(skb);
 		return br_nf_pre_routing_ipv6(hook, skb, in, out, okfn);
 	}
@@ -550,6 +532,8 @@ static unsigned int br_nf_pre_routing(unsigned int hook, struct sk_buff **pskb,
 	    !IS_PPPOE_IP(skb))
 		return NF_ACCEPT;
 
+	if ((skb = skb_share_check(*pskb, GFP_ATOMIC)) == NULL)
+		goto out;
 	nf_bridge_pull_encap_header_rcsum(skb);
 
 	if (!pskb_may_pull(skb, sizeof(struct iphdr)))
@@ -652,11 +636,6 @@ static unsigned int br_nf_forward_ip(unsigned int hook, struct sk_buff **pskb,
 	if (!skb->nf_bridge)
 		return NF_ACCEPT;
 
-	/* Need exclusive nf_bridge_info since we might have multiple
-	 * different physoutdevs. */
-	if (!nf_bridge_unshare(skb))
-		return NF_DROP;
-
 	parent = bridge_parent(out);
 	if (!parent)
 		return NF_DROP;
@@ -739,11 +718,6 @@ static unsigned int br_nf_local_out(unsigned int hook, struct sk_buff **pskb,
 
 	if (!skb->nf_bridge)
 		return NF_ACCEPT;
-
-	/* Need exclusive nf_bridge_info since we might have multiple
-	 * different physoutdevs. */
-	if (!nf_bridge_unshare(skb))
-		return NF_DROP;
 
 	nf_bridge = skb->nf_bridge;
 	if (!(nf_bridge->mask & BRNF_BRIDGED_DNAT))

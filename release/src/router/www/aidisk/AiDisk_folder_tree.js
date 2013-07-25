@@ -1,4 +1,4 @@
-var list_share_or_folder = 1; // 0: share, 1: folder.
+﻿var list_share_or_folder = 1; // 0: share, 1: folder.
 var isLoading = 0;
 var FromObject = "0";
 var Items = -1;
@@ -115,8 +115,6 @@ function GetTree(layer_order, v){
 }
 
 function get_layer_items(new_layer_order, motion){
-	disableCheckChangedStatus();
-	
 	if(list_share_or_folder == 1)
 		document.aidiskForm.action = "/aidisk/getfolderarray.asp";
 	else
@@ -349,12 +347,20 @@ function get_manage_type(proto){
 		else
 			return 0;
 	}
-	else{ // FTP
+	else if(proto == "ftp"){ // SMB
 		if(this.AM_to_ftp == 2)
 			return 1;
 		else
 			return 0;
 	}
+	else if(proto == "webdav"){ // WEBDAV
+		if(this.AM_to_webdav == 2)
+			return 1;
+		else
+			return 0;
+	}
+	else
+		alert("<#ALERT_OF_ERROR_Input2#>");
 }
 
 function getPoolDevice(barCode){
@@ -382,6 +388,8 @@ function showPermissionRadio(barCode, permission){
 		if(permission == 3)
 			code += ' checked';
 		else if(PROTOCOL == "cifs" && permission == 2)
+			code += ' checked';
+		else if(PROTOCOL == "webdav" && permission == 2)
 			code += ' checked';
 		
 		if(PoolStatus != "rw"
@@ -423,7 +431,7 @@ function showPermissionRadio(barCode, permission){
 	
 	code += '>';
 	
-	if(PROTOCOL == "cifs")
+	if(PROTOCOL == "cifs" || PROTOCOL == "webdav")
 		code += '<span>&nbsp;&nbsp;&nbsp;</span>\n';
 	
 	code += '<input type="radio" name="g'+barCode+'" value="0"';
@@ -437,7 +445,6 @@ function showPermissionRadio(barCode, permission){
 		code += ' disabled';
 	
 	code += '>';
-	
 	$("f"+barCode).innerHTML = code;
 }
 

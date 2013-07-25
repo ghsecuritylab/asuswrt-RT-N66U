@@ -26,11 +26,6 @@ function initial(){
 <body onload="initial()">
 <form name="formname" method="POST">
 <table width="500" border="0" align="center" cellpadding="10" cellspacing="0" class="erTable">
-<thead>
-  <tr>
-    <td height="52" background="images/er_top.gif"></td>
-  </tr>
-</thead> 
   <tr>
     <th align="left" valign="top" background="images/er_bg.gif">
 		<div class="drword_Nologin">
@@ -41,9 +36,6 @@ function initial(){
 		<div style="height:70px; "></div>
 	  	</th>
   </tr>
-  <tr>
-    <td height="22" background="images/er_bottom.gif"><span></span></td>
-  </tr>			
 </table>
 </form>
 </body>

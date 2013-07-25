@@ -334,7 +334,9 @@ help_out(struct sk_buff **pskb, unsigned char *rb_ptr, unsigned int datalen,
 		be_loport = htons(expinfo.loport);
 
 		nf_conntrack_expect_init(exp, ct->tuplehash[!dir].tuple.src.l3num,
-			&ct->tuplehash[!dir].tuple.src.u3, &ct->tuplehash[!dir].tuple.dst.u3,
+			/* media stream source can be different from the RTSP server address */
+			// &ct->tuplehash[!dir].tuple.src.u3, &ct->tuplehash[!dir].tuple.dst.u3,
+			NULL, &ct->tuplehash[!dir].tuple.dst.u3,
 			IPPROTO_UDP, NULL, &be_loport);
 
 		exp->master = ct;
@@ -344,7 +346,7 @@ help_out(struct sk_buff **pskb, unsigned char *rb_ptr, unsigned int datalen,
 
 		if (expinfo.pbtype == pb_range) {
 			DEBUGP("Changing expectation mask to handle multiple ports\n");
-			exp->mask.src.u.udp.port  = 0xfffe;
+			//exp->mask.src.u.udp.port  = 0xfffe;
 		}
 
 		DEBUGP("expect_related %u.%u.%u.%u:%u-%u.%u.%u.%u:%u\n",
@@ -446,6 +448,8 @@ fini(void)
 {
 	int i;
 	for (i = 0; i < num_ports; i++) {
+		if (rtsp_helpers[i].me == NULL)
+			continue;
 		DEBUGP("unregistering port %d\n", ports[i]);
 		nf_conntrack_helper_unregister(&rtsp_helpers[i]);
 	}

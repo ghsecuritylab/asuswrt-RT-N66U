@@ -35,6 +35,7 @@ typedef u_int8_t __u8;
 #include <linux/sockios.h>
 #include <linux/ethtool.h>
 #include <ctype.h>
+#include <wlutils.h>
 
 //This define only used for switch 53125
 #define SWITCH_PORT_0_UP	0x0001
@@ -50,45 +51,147 @@ typedef u_int8_t __u8;
 #define SWITCH_PORT_4_GIGA      0x0200
 //End
 
+//Defined for switch 5325
+#define SWITCH_ACCESS_CMD SIOCGETCROBORD
+#define SWITCH_ACCESS_PAGE "0x1"
+#define SWITCH_ACCESS_REG_LINKSTATUS "0x0"
+#define SWITCH_ACCESS_REG_LINKSPEED "0x4"
+
+/* hardware-dependent */
+#define ETH_WAN_PORT "4"
+#define ETH_LAN1_PORT "3"
+#define ETH_LAN2_PORT "2"
+#define ETH_LAN3_PORT "1"
+#define ETH_LAN4_PORT "0"
+
+/* RT-N53 */
+/* WAN Port=4 */
+#define MASK_PHYPORT 0x0010
+
+#define ETH_WAN_PORT_UP 0x0010
+#define ETH_LAN1_PORT_UP 0x0001
+#define ETH_LAN2_PORT_UP 0x0002
+#define ETH_LAN3_PORT_UP 0x0004
+#define ETH_LAN4_PORT_UP 0x0008
+
+#define ETH_WAN_PORT_GIGA 0x0200
+#define ETH_LAN1_PORT_GIGA 0x0002
+#define ETH_LAN2_PORT_GIGA 0x0008
+#define ETH_LAN3_PORT_GIGA 0x0020
+#define ETH_LAN4_PORT_GIGA 0x0080
+
+#define ETH_PHY_REG_LAN_ADDR "0x1e"
+#define ETH_PHY_REG_LAN_DISCONN_VALUE "0x80a8"
+#define ETH_PHY_REG_LAN_CONN_VALUE "0x80a0"
+//End
 char cmd[32];
 
 int 
 setCommit(void)
 {
+	FILE *fp;
+	char line[32];
+	eval("rm", "-f", "/var/log/commit_ret");
         eval("nvram", "set", "asuscfecommit=");
         eval("nvram", "commit");
-	puts("1");
+	sleep(1);
+	if((fp = fopen("/var/log/commit_ret", "r"))!=NULL) {
+		while(fgets(line, sizeof(line), fp)){
+			if(strstr(line, "OK")) {
+				puts("1");
+				return 1;
+			}
+		}
+	}
+	
+	puts("0");
+
 	return 1;
 }
 
 int
 setMAC_2G(const char *mac)
 {
+	char cmd_l[64];
+	int model;
+
 	if( mac==NULL || !isValidMacAddr(mac) )
 		return 0;
 
-        eval("killall", "wsc");
-        memset(cmd, 0, 32);
-        sprintf(cmd, "asuscfeet0macaddr=%s", mac);
-        eval("nvram", "set", cmd );
-        sprintf(cmd, "asuscfepci/1/1/macaddr=%s", mac);
-	eval("nvram", "set", cmd );
-        puts(nvram_safe_get("et0macaddr"));
-        return 1;
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	eval("killall", "wsc");
+
+	switch(model) {
+		case MODEL_RTN12:
+		case MODEL_RTN12B1:
+		case MODEL_RTN12C1:
+		case MODEL_RTN53:
+		case MODEL_RTN15U:
+		case MODEL_RTN10U:
+		case MODEL_RTN10D:
+		case MODEL_RTN16:
+		{
+			memset(cmd_l, 0, 64);
+			sprintf(cmd_l, "asuscfeet0macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			sprintf(cmd_l, "asuscfesb/1/macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			puts(nvram_safe_get("et0macaddr"));
+ 			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			memset(cmd_l, 0, 64);
+			sprintf(cmd_l, "asuscfeet0macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			sprintf(cmd_l, "asuscfepci/1/1/macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			puts(nvram_safe_get("et0macaddr"));
+ 			break;
+		}
+	}
+	return 1;
 }
 
 int
 setMAC_5G(const char *mac)
 {
-        if( mac==NULL || !isValidMacAddr(mac) )
-                return 0;
+	char cmd_l[64];
+	int model;
 
-        eval("killall", "wsc");
-        memset(cmd, 0, 32);
-        sprintf(cmd, "asuscfepci/2/1/macaddr=%s", mac);
-        eval("nvram", "set", cmd );
-        puts(nvram_safe_get("pci/2/1/macaddr"));
-        return 1;
+	if( mac==NULL || !isValidMacAddr(mac) )
+		return 0;
+
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	eval("killall", "wsc");
+
+	switch(model) {
+		case MODEL_RTN53:
+		{
+			memset(cmd_l, 0, 64);
+			sprintf(cmd_l, "asuscfe0:macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			puts(nvram_safe_get("0:macaddr"));
+ 			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			memset(cmd_l, 0, 64);
+			sprintf(cmd_l, "asuscfepci/2/1/macaddr=%s", mac);
+			eval("nvram", "set", cmd_l );
+			puts(nvram_safe_get("pci/2/1/macaddr"));
+ 			break;
+		}
+	}
+	return 1;
 }
 
 int
@@ -122,28 +225,79 @@ setCountryCode_5G(const char *cc)
 int
 setRegrev_2G(const char *regrev)
 {
+	int model;
+
 	if( regrev==NULL || !isValidRegrev(regrev) )
 		return 0;
 
-        eval("killall", "wsc");
-        memset(cmd, 0, 32);
-        sprintf(cmd, "asuscfepci/1/1/regrev=%s", regrev);
-        eval("nvram", "set", cmd );
-	puts(nvram_safe_get("pci/1/1/regrev"));
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	eval("killall", "wsc");
+
+	switch(model) {
+		case MODEL_RTN12:
+		case MODEL_RTN12B1:
+		case MODEL_RTN12C1:
+		case MODEL_RTN53:
+		case MODEL_RTN15U:
+		case MODEL_RTN10U:
+		case MODEL_RTN10D:
+		case MODEL_RTN16:
+		{
+			memset(cmd, 0, 32);
+			sprintf(cmd, "asuscfesb/1/regrev=%s", regrev);
+			eval("nvram", "set", cmd );
+			puts(nvram_safe_get("sb/1/regrev"));
+			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			memset(cmd, 0, 32);
+			sprintf(cmd, "asuscfepci/1/1/regrev=%s", regrev);
+			eval("nvram", "set", cmd );
+			puts(nvram_safe_get("pci/1/1/regrev"));
+			break;
+		}
+	}
 	return 1;
 }
 
 int
 setRegrev_5G(const char *regrev)
 {
-        if( regrev==NULL || !isValidRegrev(regrev) )
-                return 0;
+	int model;
 
-        eval("killall", "wsc");
-        memset(cmd, 0, 32);
-        sprintf(cmd, "asuscfepci/2/1/regrev=%s", regrev);
-        eval("nvram", "set", cmd );
-        puts(nvram_safe_get("pci/2/1/regrev"));
+	if( regrev==NULL || !isValidRegrev(regrev) )
+		return 0;
+
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	eval("killall", "wsc");
+
+	switch(model) {
+		case MODEL_RTN53:
+		{
+			memset(cmd, 0, 32);
+			sprintf(cmd, "asuscfe0:regrev=%s", regrev);
+			eval("nvram", "set", cmd );
+			puts(nvram_safe_get("0:regrev"));
+			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			memset(cmd, 0, 32);
+			sprintf(cmd, "asuscfepci/2/1/regrev=%s", regrev);
+			eval("nvram", "set", cmd );
+			puts(nvram_safe_get("pci/2/1/regrev"));
+			break;
+		}
+	}
 	return 1;
 }
 
@@ -169,13 +323,22 @@ setPIN(const char *pin)
 int
 set40M_Channel_2G(char *channel)
 {
+	char str[8];
+
         if( channel==NULL || !isValidChannel(1, channel) )
                 return 0;
 
-	nvram_set( "wl0_channel", channel);
-	nvram_set( "wl0_nbw_cap", "1");
-	nvram_set( "wl0_nctrlsb", "lower");
-	nvram_set( "wl0_obss_coex", "0");
+#ifdef RTCONFIG_BCMWL6
+	if (atoi(channel) >= 5) sprintf(str, "%su", channel);
+	else sprintf(str, "%sl", channel);
+	nvram_set("wl0_chanspec", str);
+	nvram_set("wl0_bw_cap", "3");
+#else
+	nvram_set("wl0_channel", channel);
+	nvram_set("wl0_nbw_cap", "1");
+	nvram_set("wl0_nctrlsb", "lower");
+#endif
+	nvram_set("wl0_obss_coex", "0");
 	eval("wlconf", "eth1", "down" );
 	eval("wlconf", "eth1", "up" );
 	eval("wlconf", "eth1", "start" );
@@ -186,16 +349,60 @@ set40M_Channel_2G(char *channel)
 int
 set40M_Channel_5G(char *channel)
 {
+	char str[8];
+	int ch = 0;
+
         if( channel==NULL || !isValidChannel(0, channel) )
                 return 0;
 
-        nvram_set( "wl1_channel", channel);
-        nvram_set( "wl1_nbw_cap", "1");
-        nvram_set( "wl1_nctrlsb", "lower");
-        nvram_set( "wl1_obss_coex", "0");
-        eval( "wlconf", "eth2", "down" );
-        eval( "wlconf", "eth2", "up" );
-        eval( "wlconf", "eth2", "start" );
+#ifdef RTCONFIG_BCMWL6
+	ch = atoi(channel);
+	sprintf(str, "0");
+	if (ch==40||ch==48||ch==56||ch==64||ch==104||ch==112||ch==120||ch==128||ch==136||ch==153||ch==161)
+		sprintf(str, "%su", channel);
+	else if (ch==36||ch==44||ch==52||ch==60||ch==100||ch==108||ch==116||ch==124||ch==132||ch==149||ch==157)
+        	sprintf(str, "%sl", channel);
+        nvram_set("wl1_chanspec", str);
+	nvram_set("wl1_bw_cap", "3");
+#else
+        nvram_set("wl1_channel", channel);
+        nvram_set("wl1_nbw_cap", "1");
+        nvram_set("wl1_nctrlsb", "lower");
+#endif
+        nvram_set("wl1_obss_coex", "0");
+        eval("wlconf", "eth2", "down" );
+        eval("wlconf", "eth2", "up" );
+        eval("wlconf", "eth2", "start" );
+	puts("1");
+        return 1;
+}
+
+int
+set80M_Channel_5G(char *channel)
+{
+	char str[8];
+	int ch = 0;
+
+        if( channel==NULL || !isValidChannel(0, channel) )
+                return 0;
+
+#ifdef RTCONFIG_BCMWL6
+	ch = atoi(channel);
+	sprintf(str, "0");
+	if (ch==36||ch==40||ch==44||ch==48||ch==52||ch==56||ch==60||ch==64||
+		ch==100||ch==104||ch==108||ch==112||ch==149||ch==153||ch==157||ch==161)
+        	sprintf(str, "%s/80", channel);
+        nvram_set("wl1_chanspec", str);
+	nvram_set("wl1_bw_cap", "7");
+#else
+        nvram_set("wl1_channel", channel);
+        nvram_set("wl1_nbw_cap", "1");
+        nvram_set("wl1_nctrlsb", "lower");
+#endif
+        nvram_set("wl1_obss_coex", "0");
+        eval("wlconf", "eth2", "down" );
+        eval("wlconf", "eth2", "up" );
+        eval("wlconf", "eth2", "start" );
 	puts("1");
         return 1;
 }
@@ -267,14 +474,19 @@ et_find(int s, struct ifreq *ifr)
         fclose(fp);
 }
 
+/*
 int
-GetPhyStatus(void)
+Get53125Status(void)
 {
         char switch_link_status[]="GGGGG";
         struct ifreq ifr;
         int vecarg[5];
         int s;
 	char output[25];
+        int model;
+
+        // generate nvram nvram according to system setting
+        model = get_model();
 
         if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
                 syserr("socket");
@@ -282,7 +494,7 @@ GetPhyStatus(void)
         et_find(s, &ifr);
 
         if (!*ifr.ifr_name) {
-                 //printf("et interface not found\n");
+                 printf("et interface not found\n");
                  return 0;
         }
 
@@ -326,26 +538,220 @@ GetPhyStatus(void)
                         memcpy(&switch_link_status[4], "X", 1);
         }
 
-	sprintf(output, "W0=%c;L1=%c;L2=%c;L3=%c;L4=%c", switch_link_status[0],
-		switch_link_status[1], switch_link_status[2],
-		switch_link_status[3], switch_link_status[4]);
+        switch(model) {
+                case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+                {
+			sprintf(output, "W0=%c;L1=%c;L2=%c;L3=%c;L4=%c", switch_link_status[0],
+				switch_link_status[1], switch_link_status[2],
+				switch_link_status[3], switch_link_status[4]);
+			break;
+		}
+	}
 	puts(output);
 
         return 1;
 }
 
+int
+Get5325Status(void)
+{
+	char phy_status[26], phy_port[2], tmp_status[6];
+	struct ifreq ifr;
+	int vecarg[5];
+	int s, i;
+
+	memset(phy_status, 0, 26);
+	memset(phy_port, 0, 2);
+	memset(tmp_status, 0, 6);
+	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+		syserr("[rc] GetPhyStatus socket error");
+
+	et_find(s, &ifr);
+
+	if (!*ifr.ifr_name) {
+		fprintf(stderr, "[rc] %s et interface not found\n", __FUNCTION__);
+		return 0;
+	}
+
+	//Get Wan Port Status
+	vecarg[0] = strtoul(ETH_WAN_PORT, NULL, 0) << 16;;
+	vecarg[0] |= strtoul("0x01", NULL, 0) & 0xffff;
+
+	ifr.ifr_data = (caddr_t) vecarg;
+	if (ioctl(s, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0)
+		syserr("etcphyrd");
+	else {
+		if(vecarg[1] == 30729)
+			strcpy(phy_status, "W0=X;");
+		else
+			strcpy(phy_status, "W0=M;");
+	}
+
+	//Get Lan port status
+	for( i=1; i<=4; i++ ) {
+		if( i == 1 )
+			vecarg[0] = strtoul(ETH_LAN1_PORT, NULL, 0) << 16;
+		else if( i == 2 )
+			vecarg[0] = strtoul(ETH_LAN2_PORT, NULL, 0) << 16;
+		else if( i == 3 )
+			vecarg[0] = strtoul(ETH_LAN3_PORT, NULL, 0) << 16;
+		else if( i == 4 )
+			vecarg[0] = strtoul(ETH_LAN4_PORT, NULL, 0) << 16;
+		else{
+			fprintf(stderr, "[rc] error: ETH PORT is not defined\n");
+		}
+			
+		vecarg[0] |= strtoul("0x01", NULL, 0) & 0xffff;
+
+		ifr.ifr_data = (caddr_t) vecarg;
+		if (ioctl(s, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0){
+			syserr("etcphyrd");
+		}else {
+			if(vecarg[1] == 30729)
+				sprintf(tmp_status, "L%d=X;", i);
+			else
+				sprintf(tmp_status, "L%d=M;", i);
+		}
+		strcat(phy_status, tmp_status);
+	}
+	puts(phy_status);
+	return 1;
+}
+
+int 
+GetPhyStatus(void)
+{
+        int model;
+
+        // generate nvram nvram according to system setting
+        model = get_model();
+
+	switch(model) {
+                case MODEL_RTN12:
+                case MODEL_RTN12B1:
+                case MODEL_RTN12C1:
+		case MODEL_RTN53:
+		{
+			return Get5325Status();
+			break;
+		}
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			return Get53125Status();
+			break;
+		}
+	}
+	return 0;
+}
+*/
+
+int
+GetPhyStatus(void)
+{
+	int ports[5];
+        int i, ret, model, mask;
+        char out_buf[30];
+
+        model = get_model();
+        switch(model) {
+                case MODEL_RTN12:
+                case MODEL_RTN12B1:
+                case MODEL_RTN12C1:
+                case MODEL_RTN15U:
+                case MODEL_RTN53:
+                {       /* WAN L1 L2 L3 L4 */
+                        ports[0]=4; ports[1]=3; ports[2]=2, ports[3]=1; ports[4]=0;
+                        break;
+                }
+                case MODEL_RTN16:
+                {       /* WAN L1 L2 L3 L4 */
+			ports[0]=0; ports[1]=4; ports[2]=3, ports[3]=2; ports[4]=1;
+                        break;
+                }
+                case MODEL_RTN10U:
+                case MODEL_RTN10D:
+                case MODEL_RTN66U:
+                case MODEL_RTAC66U:
+                {
+			/* WAN L1 L2 L3 L4 */
+			ports[0]=0; ports[1]=1;	ports[2]=2; ports[3]=3; ports[4]=4;
+                        break;
+                }
+        }
+
+        memset(out_buf, 0, 30);
+        for(i=0; i<5; i++) {
+		mask = 0;
+		mask |= 0x0001<<ports[i];
+                if(get_phy_status(mask)==0) {/*Disconnect*/
+                        if(i==0)
+                                sprintf(out_buf, "W0=X;");
+                        else
+                                sprintf(out_buf, "%sL%d=X;", out_buf, i);
+                }
+                else { /*Connect, keep check speed*/
+			mask = 0;
+			mask |= (0x0003<<(ports[i]*2));
+                        ret=get_phy_speed(mask);
+			ret>>=(ports[i]*2);
+                        if(i==0) 
+                                sprintf(out_buf, "W0=%s;", (ret & 2)? "G":"M");
+                        else 
+                                sprintf(out_buf, "%sL%d=%s;", out_buf, i, (ret & 2)? "G":"M");
+
+                }
+	}
+
+	puts(out_buf);
+	return 1;
+}
+
 int 
 setAllLedOn(void)
 {
-	//LAN, WAN Led On
-	eval("et", "robowr", "0", "0x18", "0x01ff");
-	eval("et", "robowr", "0", "0x1a", "0x01e0");
+        int model;
 
-	led_control(LED_WPS, LED_ON);
 	led_control(LED_POWER, LED_ON);
-	led_control(LED_WPS, LED_ON);
-	led_control(LED_USB, LED_ON);
-	eval("radio", "on");
+
+        // generate nvram nvram according to system setting
+        model = get_model();
+        switch(model) {
+		case MODEL_RTN16:
+		case MODEL_RTN66U:
+                {
+                        /* LAN, WAN Led On */
+                        eval("et", "robowr", "0", "0x18", "0x01ff");
+                        eval("et", "robowr", "0", "0x1a", "0x01e0");
+                        eval("radio", "on"); /* wireless */
+                        led_control(LED_USB, LED_ON);
+                        break;
+                }
+		case MODEL_RTAC66U:
+		{
+	        	/* LAN, WAN Led On */
+        		eval("et", "robowr", "0", "0x18", "0x01ff");
+        		eval("et", "robowr", "0", "0x1a", "0x01e0");
+        		eval("radio", "on"); /* 2G led */
+                        gpio_write(LED_5G, 1);
+                        led_control(LED_5G, LED_ON);			
+			led_control(LED_USB, LED_ON);
+			break;
+		}
+                case MODEL_RTN53:
+                {
+			//LAN, WAN Led On
+			led_control(LED_LAN, LED_ON);
+			led_control(LED_WAN, LED_ON);
+			gpio_write(LED_2G, 1);
+			led_control(LED_2G, LED_ON);
+			gpio_write(LED_5G, 1);
+			led_control(LED_5G, LED_ON);
+                        break;
+                }
+	}
+
 	puts("1");
 	return 0;
 }
@@ -353,15 +759,47 @@ setAllLedOn(void)
 int 
 setAllLedOff(void)
 {
-	//LAN, WAN Led Off
-        eval("et", "robowr", "0", "0x18", "0x01e0");
-        eval("et", "robowr", "0", "0x1a", "0x01e0");
+        int model;
 
-	led_control(LED_WPS, LED_ON);
 	led_control(LED_POWER, LED_OFF);
-	led_control(LED_WPS, LED_OFF);
-	led_control(LED_USB, LED_OFF);
-	eval("radio","off");
+
+        // generate nvram nvram according to system setting
+        model = get_model();
+        switch(model) {
+                case MODEL_RTN16:
+                case MODEL_RTN66U:
+                {
+                        /* LAN, WAN Led Off */
+                        eval("et", "robowr", "0", "0x18", "0x01e0");
+                        eval("et", "robowr", "0", "0x1a", "0x01e0");
+                        eval("radio", "off"); /* wireless */
+                        led_control(LED_USB, LED_OFF);
+                        break;
+                }
+		case MODEL_RTAC66U:
+                {
+			/* LAN, WAN Led Off */
+		        eval("et", "robowr", "0", "0x18", "0x01e0");
+		        eval("et", "robowr", "0", "0x1a", "0x01e0");
+                        eval("radio", "off"); /* 2G led*/
+                        gpio_write(LED_5G, 1);
+                        led_control(LED_5G, LED_OFF);
+			led_control(LED_USB, LED_OFF);
+                        break;
+                }
+                case MODEL_RTN53:
+                {
+                        //LAN, WAN Led Off
+                        led_control(LED_LAN, LED_OFF);
+                        led_control(LED_WAN, LED_OFF);
+                        gpio_write(LED_2G, 1);
+                        led_control(LED_2G, LED_OFF);
+                        gpio_write(LED_5G, 1);
+                        led_control(LED_5G, LED_OFF);
+                        break;
+                }
+        }
+
 	puts("1");
 	return 0;
 }
@@ -396,13 +834,38 @@ getMAC_2G() {
 
 int
 getMAC_5G() {
-        puts(nvram_safe_get("pci/2/1/macaddr"));
-        return 0;
+	int model;
+
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	switch(model) {
+		case MODEL_RTN53:
+		{
+			puts(nvram_safe_get("0:macaddr"));
+			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			puts(nvram_safe_get("pci/2/1/macaddr"));
+			break;
+		}
+	}
+	return 0;
 }
 
 int 
 getBootVer(void) {
-	puts(nvram_safe_get("bl_version"));
+	char buf[32];
+	memset(buf, 0, 32);
+
+	if(get_model()==MODEL_RTN53)
+		strcpy(buf, nvram_safe_get("hardware_version"));
+	else	
+		sprintf(buf,"%s-%s",nvram_safe_get("productid"),nvram_safe_get("bl_version"));
+	puts(buf);
 	return 0;
 }
 
@@ -426,85 +889,148 @@ getCountryCode_5G(void) {
 
 int 
 getRegrev_2G(void) {
-	puts(nvram_safe_get("pci/1/1/regrev"));
+	int model;
+
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	switch(model) {
+		case MODEL_RTN12:
+		case MODEL_RTN12B1:
+		case MODEL_RTN12C1:
+		case MODEL_RTN53:
+		case MODEL_RTN15U:
+		case MODEL_RTN10U:
+		case MODEL_RTN10D:
+		case MODEL_RTN16:
+		{
+			puts(nvram_safe_get("sb/1/regrev"));
+			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			puts(nvram_safe_get("pci/1/1/regrev"));
+			break;
+		}
+	}
 	return 0;
 }
 
 int
 getRegrev_5G(void) {
-        puts(nvram_safe_get("pci/2/1/regrev"));
+	int model;
+
+	// generate nvram nvram according to system setting
+	model = get_model();
+
+	switch(model) {
+		case MODEL_RTN53:
+		{
+			puts(nvram_safe_get("0:regrev"));
+			break;
+		}
+
+		case MODEL_RTN66U:
+		case MODEL_RTAC66U:
+		{
+			puts(nvram_safe_get("pci/2/1/regrev"));
+			break;
+		}
+	}
 	return 0;
 }
 
-int
-Get_USB_Port_Info(int port_x)
+int setSN(const char *SN)
 {
-	char output_buf[16];
-	char usb_pid[14];
-	char usb_vid[14];
-	sprintf(usb_pid, "usb_path%d_pid", port_x);
-	sprintf(usb_vid, "usb_path%d_vid", port_x);
+	char cmd_l[64];
 
-	if( strcmp(nvram_get(usb_pid),"") && strcmp(nvram_get(usb_vid),"") ) {
-		sprintf(output_buf, "%s/%s",nvram_get(usb_pid),nvram_get(usb_vid));
-		puts(output_buf);
-	}
-	else
-		puts("N/A");
+	if(SN==NULL || !isValidSN(SN))
+		return 0;
 
-	return 1;
+        memset(cmd_l, 0, 64);
+        sprintf(cmd_l, "asuscfeserial_no=%s", SN);
+        eval("nvram", "set", cmd_l );
+        puts(nvram_safe_get("serial_no"));
+        return 1;
 }
 
-int
-Get_USB_Port_Folder(int port_x)
+int getSN(void)
 {
-        char usb_folder[19];
-        sprintf(usb_folder, "usb_path%d_fs_path0", port_x);
-	if( strcmp(nvram_safe_get(usb_folder),"") ) 
-		puts(nvram_safe_get(usb_folder));
+	puts(nvram_safe_get("serial_no"));
+	return 0;
+}
+
+void
+Get_fail_ret(void)
+{
+	puts(nvram_safe_get("Ate_power_on_off_ret"));
+}
+
+void
+Get_fail_reboot_log(void)
+{
+	puts(nvram_safe_get("Ate_fail_reboot_log"));
+}
+
+void
+Get_fail_dev_log(void)
+{
+	puts(nvram_safe_get("Ate_fail_dev_log"));
+}
+
+
+void ate_commit_bootlog(char *err_code) {
+	nvram_set("Ate_power_on_off_enable", err_code);
+	nvram_commit();
+	nvram_set("asuscfeAte_power_on_off_ret", err_code);
+	nvram_set("asuscfeAte_fail_reboot_log", nvram_get("Ate_reboot_log"));
+	nvram_set("asuscfeAte_fail_dev_log", nvram_get("Ate_dev_log"));
+	nvram_set("asuscfecommit=", "1");
+}
+
+int Get_channel_list(int unit)
+{
+        int i, retval = 0;
+        char buf[4096];
+        wl_channels_in_country_t *cic = (wl_channels_in_country_t *)buf;
+        char tmp[256], prefix[] = "wlXXXXXXXXXX_";
+        char *country_code;
+        char *name;
+        channel_info_t ci;
+
+        snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+        country_code = nvram_safe_get(strcat_r(prefix, "country_code", tmp));
+        name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+        cic->buflen = sizeof(buf);
+        strcpy(cic->country_abbrev, country_code);
+        if (!unit)
+                cic->band = WLC_BAND_2G;
         else
-                puts("N/A");
+                cic->band = WLC_BAND_5G;
+        cic->count = 0;
 
-        return 1;
-}
+        if (wl_ioctl(name, WLC_GET_CHANNELS_IN_COUNTRY, cic, cic->buflen) != 0)
+                return retval;
 
-int
-Get_SD_Card_Info(int port_x)
-{
-        char check_cmd[48];
-	char sd_info_buf[128];
-	int get_sd_card = 1;
-	FILE *fp;
-
-        sprintf(check_cmd, "test_disk2 %s &> /var/sd_info.txt", nvram_get("usb_path3_fs_path0"));
-	system(check_cmd);
-
-	if(fp = fopen("/var/sd_info.txt", "r")) {
-		while(fgets(sd_info_buf, 128, fp)!=NULL) {
-			if(strstr(sd_info_buf, "No partition")||strstr(sd_info_buf, "No disk"))
-				get_sd_card=0;
-		}
-		if(get_sd_card)
-			puts("1");
-		else
-			puts("0");
-		fclose(fp);
-		eval("rm", "-rf", "/var/sd_info.txt");
-	}
-	else
-		puts("ATE_ERROR");
-
-        return 1;
-}
-
-int
-Get_SD_Card_Folder(void)
-{
-        if( strcmp(nvram_safe_get("usb_path3_fs_path0"),"") ) 
-                puts(nvram_safe_get("usb_path3_fs_path0"));
+        if (cic->count == 0)
+                return retval;
         else
-                puts("N/A");
+        {
+                memset(tmp, 0x0, sizeof(tmp));
+
+                for (i = 0; i < cic->count; i++)
+                {
+                        if (i == 0)
+                                sprintf(tmp, "%d", cic->channel[i]);
+                        else
+                                sprintf(tmp,  "%s, %d", tmp, cic->channel[i]);
+                }
+
+                puts(tmp);
+        }
 
         return 1;
 }
-

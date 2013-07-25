@@ -29,6 +29,7 @@
 #include <net/if.h>
 
 #include <bcmnvram.h>
+#include <bcmparams.h>
 #include <utils.h>
 #include <shutils.h>
 #include <shared.h>
@@ -40,7 +41,7 @@ extern char wan6face[];
 #define LOGNAME nvram_safe_get("productid")
 #define is_ap_mode() (nvram_match("sw_mode", "3"))
 #ifdef RTCONFIG_USB_MODEM
-#define is_phyconnected() (nvram_match("link_wan", "1") || nvram_match("link_modem", "1"))
+#define is_phyconnected() (nvram_match("link_wan", "1") || nvram_match("link_wan1", "1"))
 #else
 #define is_phyconnected() (nvram_match("link_wan","1"))
 #endif
@@ -63,7 +64,6 @@ int parental_ctrl(void);
 
 #define MAX_NO_BRIDGE 	2
 #define MAX_NO_MSSID	4
-#define MOUNT_ROOT	"/tmp/mnt"
 #define PROC_SCSI_ROOT	"/proc/scsi"
 #define USB_STORAGE	"usb-storage"
 
@@ -72,6 +72,11 @@ int parental_ctrl(void);
 #endif
 #define PPP_DIR "/tmp/ppp/peers"
 #define PPP_CONF_FOR_3G "/tmp/ppp/peers/3g"
+
+#ifdef RTCONFIG_USB_BECEEM
+#define BECEEM_DIR "/tmp/Beceem_firmware"
+#define BECEEM_CONF "/tmp/Beceem_firmware/wimaxd.conf"
+#endif
 
 #define BOOT		0
 #define REDIAL		1
@@ -88,6 +93,7 @@ int parental_ctrl(void);
 #define USB_CONNECT		0x06	//For WRTSL54GS
 #define USB_DISCONNECT		0x07	//For WRTSL54GS
 
+#define SERIAL_NUMBER_LENGTH	12	//ATE need
 /*
 // ?
 #define SET_LED(val) \
@@ -137,7 +143,7 @@ extern int wan_prefix(char *ifname, char *prefix);
 extern int wan_ifunit(char *wan_ifname);
 extern int wanx_ifunit(char *wan_ifname);
 extern int preset_wan_routes(char *wan_ifname);
-extern int found_default_route();
+extern int found_default_route(int wan_unit);
 extern int autodet_main(int argc, char *argv[]);
 
 // firewall.c
@@ -158,7 +164,7 @@ extern int set_pppoepid_main(int argc, char **argv);	// by tallest 1219
 extern int pppoe_down_main(int argc, char **argv);		// by tallest 0407
 
 // pppd.c
-extern int start_pppd(char *prefix);
+extern int start_pppd(int unit);
 extern void start_pppoe_relay(char *wan_if);
 
 // network.c
@@ -167,31 +173,27 @@ extern void start_lan(void);
 extern void stop_lan(void);
 extern void do_static_routes(int add);
 extern void start_wl(void);
-#ifdef RTCONFIG_IPV6
-extern void enable_ipv6(int enable, int forceup);
-extern void accept_ra(const char *ifname);
-#else
-#define enable_ipv6(enable, forceup) do {} while (0)
-#define accept_ra(ifname) do {} while (0)
-#endif
 extern void wan_up(char *wan_ifname);
 #ifdef RTCONFIG_IPV6
 extern void wan6_up(const char *wan_ifname);
 #endif
 extern void wan_down(char *wan_ifname);
 extern void update_wan_state(char *prefix, int state, int reason);
-#if 0
-extern int update_resolvconf(char *wan_ifname, int up);
+#ifdef OVERWRITE_DNS
+extern int update_resolvconf();
 #endif
 
 // udhcpc.c
 extern int udhcpc_wan(int argc, char **argv);
 extern int udhcpc_lan(int argc, char **argv);
+extern int zcip_wan(int argc, char **argv);
+extern int start_zcip(char *wan_ifname);
 
 #ifdef RTCONFIG_IPV6
 extern int dhcp6c_state_main(int argc, char **argv);
 extern void start_dhcp6c(void);
 extern void stop_dhcp6c(void);
+extern int ipv6aide_main(int argc, char *argv[]);
 #endif
 
 // auth.c
@@ -208,9 +210,13 @@ extern int mtd_unlock(const char *mtdname);
 extern int mtd_write_main(int argc, char *argv[]);
 extern int mtd_unlock_erase_main(int argc, char *argv[]);
 
-
 // watchdog.c
 extern int watchdog_main(int argc, char *argv[]);
+
+// wpsfix.c
+#ifdef RTCONFIG_RALINK
+extern int wpsfix_main(int argc, char *argv[]);
+#endif
 
 // usbled.c
 extern int usbled_main(int argc, char *argv[]);
@@ -240,8 +246,6 @@ extern void inc_mac(char *mac, int plus);
 extern void set_mac(const char *ifname, const char *nvname, int plus);
 extern const char *default_wanif(void);
 //	extern const char *default_wlif(void);
-#define vstrsep(buf, sep, args...) _vstrsep(buf, sep, args, NULL)
-extern int _vstrsep(char *buf, const char *sep, ...);
 extern void simple_unlock(const char *name);
 extern void simple_lock(const char *name);
 extern void killall_tk(const char *name);
@@ -319,7 +323,6 @@ extern int tcpcheck_main(int argc, const char *argv[]);
 
 // usb_devices.c
 #ifdef RTCONFIG_USB
-extern int switch_usb_modem(const int flag);
 extern int asus_sd(const char *device_name, const char *action);
 extern int asus_lp(const char *device_name, const char *action);
 extern int asus_sr(const char *device_name, const char *action);
@@ -335,8 +338,13 @@ extern void start_ipv6_tunnel(void);
 extern void stop_ipv6_tunnel(void);
 extern void start_radvd(void);
 extern void stop_radvd(void);
+extern void start_dhcp6s(void);
+extern void stop_dhcp6s(void);
 extern void start_ipv6(void);
 extern void stop_ipv6(void);
+#endif
+#ifdef CONFIG_BCMWL5
+extern void set_acs_ifnames();
 #endif
 
 #ifdef BTN_SETUP

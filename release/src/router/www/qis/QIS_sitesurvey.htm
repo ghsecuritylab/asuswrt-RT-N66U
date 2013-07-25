@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>                                     
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -6,6 +6,33 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="qis_style.css">
+<style>
+#radio_0{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -0px; width: 30px; height: 30px;
+}
+#radio_1{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -30px; width: 30px; height: 30px;
+}	
+#radio_2{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -60px; width: 30px; height: 30px;
+}	
+#radio_3{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -90px; width: 30px; height: 30px;
+}	
+#radio_4{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -120px; width: 30px; height: 30px;
+}	
+#radio_5{
+  background: url(../images/survey/radio_status.png);
+  background-position: -0px -150px; width: 30px; height: 30px;
+}	
+	
+</style>	
 <script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script type="text/JavaScript">
 
@@ -15,8 +42,15 @@ var wlc_sbstate = '<% nvram_get("wlc_sbstate"); %>';
 var wlc_scan_state = '<% nvram_get("wlc_scan_state"); %>';
 var _wlc_ssid;
 var _sw_mode;
+
 var issubmit = 0;
+if(parent.issubmit == 120)
+	issubmit = 1;
+
 var isrescan = 0;
+if(parent.isrescan == 120)
+	isrescan = 1;
+
 var iserror = 0;
 var waitingTime = 120;
 
@@ -24,6 +58,66 @@ function QKInternet_load_body(){
 	parent.set_step("t2");
 	update_site_info();
 }
+
+// sorter [Jerry5_Chang]
+function addBorder(obj){
+	if(sorter.lastClick != ""){
+		sorter.lastClick.style.borderTop = '1px solid #334044';
+		sorter.lastClick.style.borderBottom = '1px solid #334044';
+	}
+	else
+		document.getElementById("sigTh").style.borderBottom = '1px solid #334044';
+
+	if(sorter.sortingMethod == "increase"){
+		obj.style.borderTop='1px solid #FC0';
+		obj.style.borderBottom='1px solid #334044';
+	}
+	else{
+		obj.style.borderTop='1px solid #334044';
+		obj.style.borderBottom='1px solid #FC0';
+	}
+
+	sorter.lastClick = obj;
+}
+
+function doSorter(_flag, _Method){
+	if(aplist.length == 1)
+		return 0;
+	
+	// doSorter
+	eval("aplist.sort(sorter."+_Method+"_"+sorter.sortingMethod+");");
+
+	// update variables
+	sorter.indexFlag = _flag;
+	sorter.sortingMethod = (sorter.sortingMethod == "increase") ? "decrease" : "increase";
+	
+	// show Table
+	showSiteTable();
+}
+
+// suit for 2 dimention array
+var sorter = {
+	"lastClick" : "", // a HTML object
+	"sortingMethod" : "increase", 
+	"indexFlag" : 5, // default sort is by signal
+	"num_increase" : function(a, b){
+		return parseInt(a[sorter.indexFlag]) - parseInt(b[sorter.indexFlag]);
+	},
+	"num_decrease" : function(a, b){
+		return parseInt(b[sorter.indexFlag]) - parseInt(a[sorter.indexFlag]);
+	},
+	"str_increase" : function(a, b){
+		if(a[sorter.indexFlag].toUpperCase() == b[sorter.indexFlag].toUpperCase()) return 0;
+		else if(a[sorter.indexFlag].toUpperCase() > b[sorter.indexFlag].toUpperCase()) return 1;
+		else return -1;
+	},
+	"str_decrease" : function(a, b){
+		if(a[sorter.indexFlag].toUpperCase() == b[sorter.indexFlag].toUpperCase()) return 0;
+		else if(a[sorter.indexFlag].toUpperCase() > b[sorter.indexFlag].toUpperCase()) return -1;
+		else return 1;
+	}
+}
+// end
 
 function update_site_info(){
 	$.ajax({
@@ -35,11 +129,10 @@ function update_site_info(){
 			if(iserror < 2)
 				setTimeout("update_site_info();", 1000);
 			else{
-				//alert("Ajax Error!");
 				if(issubmit > 0)
-					parent.location.href = 'http://www.asusrouter.com/QIS_wizard.htm?flag=wireless';
+					parent.location.href = 'http://www.asusnetwork.net/QIS_wizard.htm?flag=wireless';
 				else
-					parent.location.href = 'http://www.asusrouter.com/QIS_wizard.htm?flag=sitesurvey';
+					parent.location.href = 'http://www.asusnetwork.net/QIS_wizard.htm?flag=sitesurvey';
 			}			
 		},
 		success: function(response){
@@ -54,6 +147,7 @@ function update_site_info(){
 				wlc_scan_state = 0;
 			}
 			showSiteTable();
+			doSorter(5, 'num');
 		}
 	});	
 }
@@ -68,58 +162,73 @@ function showSiteTable(){
 		if(wlc_state == 0 || wlc_state == 1){
 			htmlCode += '<tr><td style="text-align:center;font-size:12px; border-collapse: collapse;border:1;" colspan="4"><span style="color:#FFCC00;line-height:25px;"><#APSurvey_msg_waiting_to_connect#> '+ '<span style="font-weight:bolder;">' + decodeURIComponent(_wlc_ssid) + '</span>' + '</span>&nbsp;<img style="margin-top:10px;" src="/images/InternetScan.gif"></td></tr>';
 		}
-		else{ // 
+		else{
 			htmlCode += '<tr><td style="text-align:center;font-size:12px; border-collapse: collapse;border:1;" colspan="4"><span style="color:#FFCC00;line-height:25px;">';
 			if(wlc_state == 2){ // connected
 				htmlCode += '<#APSurvey_action_ConnectingStatus24#>';
-				//alert("Success!");
-				setTimeout('parent.location.href = "http://www.asusrouter.com/QIS_wizard.htm?flag=wireless";', 2000);
+				setTimeout('parent.location.href = "http://www.asusnetwork.net/QIS_wizard.htm?flag=wireless";', 2000);
 			}
 			else{
 				if(wlc_sbstate == 2) // auth failed
 					htmlCode += '<span style="font-weight:bolder;">' + decodeURIComponent(_wlc_ssid) + '</span> <#APSurvey_action_ConnectingStatus1#>';
 				else // p-ap does not exist
-					htmlCode += '<#APSurvey_action_ConnectingStatus0#>';
+					htmlCode += '<#APSurvey_action_ConnectingStatus3#>';
+					//htmlCode += '<#APSurvey_action_ConnectingStatus0#>';
 			}
 			htmlCode += '</span></td></tr>';
 		}
-		document.getElementById("wlscan_table").style.marginLeft = "18px";
 	}
 	else if(wlc_scan_state != 3){ // on scanning
 		htmlCode +='<tr><td style="text-align:center;font-size:12px; border-collapse: collapse;border:1;" colspan="4"><span style="color:#FFCC00;line-height:25px;"><#APSurvey_action_searching_AP#></span>&nbsp;<img style="margin-top:10px;" src="/images/InternetScan.gif"></td></tr>';
-		document.getElementById("wlscan_table").style.marginLeft = "18px";
 	}
 	else{ // show ap list
 		if(aplist[0].length == 0){
 			htmlCode +='<tr><td style="text-align:center;font-size:12px; border-collapse: collapse;border:1;" colspan="4"><span style="color:#FFCC00;line-height:25px;"><#APSurvey_action_searching_noresult#></span>&nbsp;<img style="margin-top:10px;" src="/images/InternetScan.gif"></td></tr>';
-			document.getElementById("wlscan_table").style.marginLeft = "18px";
 		}
 		else{
 			for(var i = 0; i < aplist.length; i++){
 				if(aplist[i][1].search("%FFFF") != -1)
 					continue;
 				htmlCode += '<tr>';
-				htmlCode += '<td id="ssid">' + '<span title="' + aplist[i][6] + '">' + decodeURIComponent(aplist[i][1]) + '</span>'; //ssid
+
+				//ssid
+				htmlCode += '<td id="ssid">' + '<span title="' + aplist[i][6] + '">' + decodeURIComponent(aplist[i][1]) + '</span>';
 				if(aplist[i][8] != 0 && wlc_state == 2)
 					htmlCode += '<img src="/images/checked_parentctrl.png" width="18px" style="margin-left:10px;"/>';
 				htmlCode +=	'</td>';
-				htmlCode +=	'<td width="15%" style="text-align:center;">' + aplist[i][2] + '</td>'; // channel
-				if(aplist[i][3] == "Unknown")
-					htmlCode +=	'<td width="20%">' + aplist[i][3] + '(WEP)</td>'; // security
+ 				
+				// channel
+				htmlCode +=	'<td width="15%" style="text-align:center;">' + aplist[i][2] + '</td>';
+
+ 				// security
+				if(aplist[i][3] == "Open System" && aplist[i][4] == "NONE")
+					htmlCode +=	'<td width="20%">' + aplist[i][3] + '<img src="/images/New_ui/networkmap/unlock.png"></td>';
+				else if(aplist[i][3] == "Unknown")
+					htmlCode +=	'<td width="20%">' + aplist[i][3] + '(WEP)</td>';
 				else
-					htmlCode +=	'<td width="20%">' + aplist[i][3] + '</td>'; // security
+					htmlCode +=	'<td width="20%">' + aplist[i][3] + '</td>';
+
+				// band
 				if(aplist[i][0] == "2G")
-					htmlCode +=	'<td width="10%" style="text-align:center;">2.4GHz</td>'; // band
+					htmlCode +=	'<td width="10%" style="text-align:center;">2.4GHz</td>'; 
 				else
-					htmlCode +=	'<td width="10%" style="text-align:center;">5GHz</td>'; // band
-				htmlCode += '<td width="10%" style="text-align:center;"><img src="/images/survey/radio'+ Math.ceil(aplist[i][5]/20) +'.png"/></td></tr>';
+					htmlCode +=	'<td width="10%" style="text-align:center;">5GHz</td>';
+				
+				// signal
+				//htmlCode += '<td width="10%" style="text-align:center;"><img src="/images/survey/radio'+ Math.ceil(aplist[i][5]/20) +'.png"/></td></tr>';
+				htmlCode += '<td width="10%" style="text-align:center;"><div style="margin-left:13px;" id="radio_'+ Math.ceil(aplist[i][5]/20) +'"></div></td></tr>';
+				
 			}
-			document.getElementById("wlscan_table").style.marginLeft = "35px";
 		}
 	}
-
 	htmlCode +='</table>';
 	document.getElementById("wlscan_table").innerHTML = htmlCode;
+
+	if(document.getElementById("wlscan_table_container").scrollHeight > document.getElementById("wlscan_table_container").clientHeight)
+		document.getElementById("wlscan_table").style.marginLeft = "35px";
+	else
+		document.getElementById("wlscan_table").style.marginLeft = "18px";
+
 	bind_event();
 }
 
@@ -149,7 +258,7 @@ function bind_event(){ //bind <tr> click and hover event
 		var initRow = '<tr class="inputRow" style="display:none;background-color:#708789;"><td style="height:50px;" colspan="5">';
 		var connectedHint = '<span style="color:#FFCC00;"><#APSurvey_msg_connected#></span>';
 		var unEncrypt = '<span style="color:#FFCC00;"><#APSurvey_msg_connect_open_wlan#></span>';
-		var networkKey = '<span style="color:#FFFFFF;"><#Network_key#>:</span><input type="password" id="thekey" name="thekey" class="input_25_table">';
+		var networkKey = '<span style="color:#FFFFFF;"><#Network_key#>:</span><input type="password" autocapitalization="off" id="thekey" name="thekey" class="input_25_table">';
 		var wepkeyIndex = '<span style="margin-left:10px;color:#FFFFFF;"><#WLANConfig11b_WEPDefaultKey_itemname#></span><select name="sta_key_index" class="input_option"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>';
 		var connectBtn = '<input style="margin-left:10px;" id="connect_btn" type="button" value="<#CTL_Add_enrollee#>" onclick="submitForm('+ idx +')" class="button_gen"> <img id="loadingIcon" style="display:none;" src="/images/InternetScan.gif"></td></tr>';
 
@@ -177,7 +286,7 @@ function bind_event(){ //bind <tr> click and hover event
 				initRow = "";
 			}
 			else
-				initRow += '<span style="color:#FFCC00;"><#WLANConfig11b_x_BRApply_itemname#>...</span><img id="loadingIcon" src="/images/InternetScan.gif"></td></tr>';
+				initRow += '<span style="color:#FFCC00;"><#WLANConfig11b_x_BRApply_itemname2#>...</span><img id="loadingIcon" src="/images/InternetScan.gif"></td></tr>';
 		}
 		else{	
 			if(aplist[idx][4] == "NONE")
@@ -208,74 +317,139 @@ function bind_event(){ //bind <tr> click and hover event
 	}
 }
 
-function submitForm(_idx){	//["band","ssid","channel","auth","encrypt","signal","macaddr","wlmode","status"]
-	if(_idx != null){
-		if(aplist[_idx][0] == "2G")
-			document.form.wlc_band.value = 0;
-		else
-			document.form.wlc_band.value = 1;
-		document.form.wlc_ssid.value = decodeURIComponent(aplist[_idx][1]);
+function validate_psk(psk_obj){
+	var psk_length = psk_obj.value.length;
 	
-		if(aplist[_idx][4] == "WEP"){
-			document.form.wlc_wep_key.value = document.form.thekey.value;
-			document.form.wlc_key.value = document.form.sta_key_index.value;
-			document.form.wlc_wep.value = 1;
-		}
-		else if(aplist[_idx][4] == "NONE"){
-			document.form.wlc_wep.value = 0;
-			document.form.wlc_wpa_psk.value = "";
-		}
-		else{
-			document.form.wlc_wep.value = 0;
-			document.form.wlc_wpa_psk.value = document.form.thekey.value;
-		}
+	if(psk_length < 8 || psk_length > 64){
+		alert("<#JS_PSK64Hex#>");
+		psk_obj.focus();
+		psk_obj.select();		
+		return false;
+	}	
 	
-		if(aplist[_idx][3] == "Open System")
-			document.form.wlc_auth_mode.value = "open";
-		else if(aplist[_idx][3] == "Unknown")
-			document.form.wlc_auth_mode.value = "shared"; 
-		else if(aplist[_idx][3] == "WPA-PSK"){
-			document.form.wlc_auth_mode.value = "psk";
-			document.form.wlc_crypto.value = "tkip";
-		}
-		else if(aplist[_idx][3] == "WPA2-PSK"){
-			document.form.wlc_auth_mode.value = "psk2";
-			document.form.wlc_crypto.value = "aes";
-		}
-		else if(aplist[_idx][3] == "WPA-Enterprise")
-			document.form.wlc_auth_mode.value = "wpa";
-		else if(aplist[_idx][3] == "WPA2-Enterprise")
-			document.form.wlc_auth_mode.value = "wpa2";
+	if(psk_length == 64 && !parent.validate_hex(psk_obj)){
+		alert("<#JS_PSK64Hex#>");
+		psk_obj.focus();
+		psk_obj.select();		
+		return false;
+	}
+	
+	return true;
+}
+
+function validate_wlkey(key_obj){
+	var iscurrect = true;
+	var str = "<#JS_wepkey#>";
+
+	if((key_obj.value.length == 5 || key_obj.value.length == 13)&& parent.validate_string(key_obj)){
+			iscurrect = true;
+	}else if((key_obj.value.length == 10 || key_obj.value.length == 26)&& parent.validate_hex(key_obj)){
+			iscurrect = true;
 	}
 	else{
-		if(document.form.wlc_wep.value == 1){
+			str = str + "\n<#WLANConfig11b_WEPKey_itemtype1#>\n<#WLANConfig11b_WEPKey_itemtype2#>";
+			iscurrect = false;
+	}
+		
+	if(iscurrect == false){
+		alert(str);		
+		key_obj.focus();
+		key_obj.select();
+	}
+	
+	return iscurrect;
+}
+
+function validForm(_idx){
+	if(aplist[_idx][3] == "WPA-PSK" || aplist[_idx][3] == "WPA2-PSK"){
+		if(!validate_psk(document.form.thekey))
+			return false;
+	}
+	else if(aplist[_idx][4] == "WEP"){
+		if(!validate_wlkey(document.form.thekey))
+			return false;
+	}	
+
+	return true;	
+}
+
+function submitForm(_idx){	//["band","ssid","channel","auth","encrypt","signal","macaddr","wlmode","status"]
+	if(_idx != null){
+		if(validForm(_idx)){
+			if(aplist[_idx][0] == "2G")
+				document.form.wlc_band.value = 0;
+			else
+				document.form.wlc_band.value = 1;
+
+			document.form.wlc_ssid.value = aplist[_idx][1];
+
+			if(aplist[_idx][4] == "WEP"){
+				document.form.wlc_wep_key.value = document.form.thekey.value;
+				document.form.wlc_key.value = document.form.sta_key_index.value;
+				document.form.wlc_wep.value = 1;
+			}
+			else if(aplist[_idx][4] == "NONE"){
+				document.form.wlc_wep.value = 0;
+				document.form.wlc_wpa_psk.value = "";
+			}
+			else{
+				document.form.wlc_wep.value = 0;
+				document.form.wlc_wpa_psk.value = document.form.thekey.value;
+			}
+
+			if(aplist[_idx][3] == "Open System")
+				document.form.wlc_auth_mode.value = "open";
+			else if(aplist[_idx][3] == "Unknown")
+				document.form.wlc_auth_mode.value = "shared"; 
+			else if(aplist[_idx][3] == "WPA-PSK"){			
+				document.form.wlc_auth_mode.value = "psk";
+				document.form.wlc_crypto.value = "tkip";
+			}
+			else if(aplist[_idx][3] == "WPA2-PSK"){
+				document.form.wlc_auth_mode.value = "psk2";
+				document.form.wlc_crypto.value = "aes";
+			}
+			else if(aplist[_idx][3] == "WPA-Enterprise")
+				document.form.wlc_auth_mode.value = "wpa";
+			else if(aplist[_idx][3] == "WPA2-Enterprise")
+				document.form.wlc_auth_mode.value = "wpa2";
+		}
+		else
+			return;				
+	}
+	else{
+		alert("Please select a parent AP!");
+		return;
+
+		/*if(document.form.wlc_wep.value == 1){
 			document.form.wlc_wep_key.value = document.form.thekey.value;
 			document.form.wlc_key.value = document.form.sta_key_index.value;
 		}
 		else{
 			document.form.wlc_wpa_psk.value = document.form.thekey.value;
-		}
+		}*/
 	}
 
 	document.form.wlc_nbw_cap.value = "2";	
-	document.form.wlc_ssid.value = decodeURIComponent(document.form.wlc_ssid.value);
 
 	if(document.form.wlc_ure_ssid.value == ""){
 		if(document.form.wlc_band.value == 0)
-			document.form.wlc_ure_ssid.value = decodeURIComponent(document.form.wl0_ssid.value);
+			document.form.wlc_ure_ssid.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl0_ssid"); %>');
 		else
-			document.form.wlc_ure_ssid.value = decodeURIComponent(document.form.wl1_ssid.value);
+			document.form.wlc_ure_ssid.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl1_ssid"); %>');
 	}
 
-	document.form.flag.value = "wlcconnect";
-	document.getElementById("loadingIcon").style.display = "";
-
-	document.form.sw_mode.disabled = false;
-	document.form.action_script.value	= "reboot";
-	document.form.action_wait.value	= waitingTime;
-	issubmit++;
-	parent.document.getElementById("stassid").innerHTML = document.form.wlc_ssid.value;
-	document.form.submit();
+	parent.document.QKform.sw_mode.value = 2;
+	parent.document.QKform.wlc_band.value = document.form.wlc_band.value;
+	parent.document.QKform.wlc_ssid.value = document.form.wlc_ssid.value; // Here is ascii code!!
+	parent.document.QKform.wlc_wep.value = document.form.wlc_wep.value;
+	parent.document.QKform.wlc_key.value = document.form.wlc_key.value;
+	parent.document.QKform.wlc_wep_key.value = document.form.wlc_wep_key.value;
+	parent.document.QKform.wlc_auth_mode.value = document.form.wlc_auth_mode.value;
+	parent.document.QKform.wlc_crypto.value = document.form.wlc_crypto.value;
+	parent.document.QKform.wlc_wpa_psk.value = document.form.wlc_wpa_psk.value;
+	parent.document.QKform.wlc_nbw_cap.value = document.form.wlc_nbw_cap.value;
+	gotoPage('/qis/QIS_wireless.htm', 0)
 }
 
 function rescan(){
@@ -288,14 +462,16 @@ function rescan(){
 	document.form.submit();
 }
 
-function gotoPage(dst_url, flag, isParent){
-	if(isParent && isParent == 1)
-		document.redirectForm.target = "_parent";
-	else
+function gotoPage(dst_url, flag){
+	if('<% nvram_get("sw_mode"); %>'){
+		location.href = dst_url;
+	}
+	else{
 		document.redirectForm.target = "";
-	document.redirectForm.action = dst_url;
-	document.redirectForm.flag.value = flag;
-	document.redirectForm.submit();
+		document.redirectForm.action = dst_url;
+		document.redirectForm.flag.value = flag;
+		document.redirectForm.submit();
+	}
 }
 </script>
 </head>
@@ -309,7 +485,7 @@ function gotoPage(dst_url, flag, isParent){
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_wait" value="1">
 <input type="hidden" name="action_script" value="restart_wlcscan">
-<!-- STA -->
+<!-- wireless client -->
 <input type="hidden" name="wlc_band" value="<% nvram_get("wlc_band"); %>">
 <input type="hidden" name="wlc_ssid" value="<% nvram_char_to_ascii("", "wlc_ssid"); %>">
 <input type="hidden" name="wlc_wep" value="<% nvram_get("wlc_wep"); %>">
@@ -320,7 +496,7 @@ function gotoPage(dst_url, flag, isParent){
 <input type="hidden" name="wlc_wpa_psk" value="<% nvram_get("wlc_wpa_psk"); %>">
 <input type="hidden" name="wlc_nbw_cap" value="<% nvram_get("wlc_nbw_cap"); %>">
 <input type="hidden" name="wlc_ure_ssid" value="<% nvram_get("wlc_ure_ssid"); %>">
-<!-- STA -->
+<!-- wireless client end -->
 <input type="hidden" name="lan_proto" value="dhcp">
 <input type="hidden" name="sw_mode" value="2" disabled>
 <input type="hidden" name="wl0_ssid" value="<% nvram_char_to_ascii("", "wl0_ssid"); %>" disabled>
@@ -344,15 +520,15 @@ function gotoPage(dst_url, flag, isParent){
 
 <div style="margin-left:18px;">
 	<table width="670px" border="0" cellspacing="0" cellpadding="4" align="center" class="QIS_survey">
-		<th><#Wireless_name#></th>
-		<th width="15%" style="text-align:center;"><#WLANConfig11b_Channel_itemname#></th>
-		<th width="20%"><#QIS_finish_wireless_item2#></th>
-		<th width="10%" style="text-align:center;">Band</th>
-		<th width="10%" style="text-align:center;"><#Radio#></th>
+		<th onclick="addBorder(this);doSorter(1, 'str');" style="cursor:pointer;"><#Wireless_name#></th>
+		<th onclick="addBorder(this);doSorter(2, 'num');" width="15%" style="text-align:center;cursor:pointer;"><#WLANConfig11b_Channel_itemname#></th>
+		<th onclick="addBorder(this);doSorter(3, 'str');" width="20%" style="cursor:pointer;"><#QIS_finish_wireless_item2#></th>
+		<th onclick="addBorder(this);doSorter(0, 'str');" width="10%" style="text-align:center;cursor:pointer;">Band</th>
+		<th onclick="addBorder(this);doSorter(5, 'num');" width="10%" id="sigTh" style="border-bottom: 1px solid #FC0;text-align:center;cursor:pointer;"><#Radio#></th>
 	</table>
 </div>
 
-<div style="height:360px;overflow-y:auto;margin-top:0px;">
+<div style="height:360px;overflow-y:auto;margin-top:0px;" id="wlscan_table_container">
 	<div id="wlscan_table" style="height:360px;margin-left:35px;cursor:pointer;margin-top:0px;vertical-align:top;"></div>
 </div>
 

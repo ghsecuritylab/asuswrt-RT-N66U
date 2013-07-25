@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.30 2011/02/17 23:17:24 jmaggard Exp $
+# $Id: Makefile,v 1.31.2.1 2012/01/17 22:49:01 jmaggard Exp $
 # MiniDLNA project
 # http://sourceforge.net/projects/minidlna/
 # (c) 2008-2009 Justin Maggard
@@ -10,12 +10,17 @@
 # or :
 # $ make install
 #
+#CFLAGS = -Wall -O -D_GNU_SOURCE -g -DDEBUG
+#CFLAGS = -Wall -g -Os -D_GNU_SOURCE
 
 include ../common.mak
 
 LDFLAGS = -ffunction-sections -fdata-sections -Wl,--gc-sections
-#CFLAGS = -Wall -O -D_GNU_SOURCE -g -DDEBUG
-#CFLAGS = -Wall -g -Os -D_GNU_SOURCE
+
+#CFLAGS = -Wall -g -O3 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
+#	 -I/usr/include/ffmpeg \
+#	 -I/usr/include/libavutil -I/usr/include/libavcodec -I/usr/include/libavformat \
+#	 -I/usr/include/ffmpeg/libavutil -I/usr/include/ffmpeg/libavcodec -I/usr/include/ffmpeg/libavformat
 
 CFLAGS = -Wall -g -Os -D_GNU_SOURCE $(EXTRACFLAGS) -D_FILE_OFFSET_BITS=64 \
 	-ffunction-sections -fdata-sections \
@@ -38,6 +43,10 @@ endif
 #CC = gcc
 RM = rm -f
 INSTALL = install
+
+ifeq ($(RTAC66U), y)
+        CFLAGS += -DRTN66U
+endif
 
 ifeq ($(RTN66U), y)
         CFLAGS += -DRTN66U
@@ -96,7 +105,11 @@ clean:
 	$(RM) testupnpdescgen.o
 
 distclean: clean
-	$(RM) config.h
+#	$(RM) config.h
+
+install-conf:
+	$(INSTALL) -d $(ETCINSTALLDIR)
+	$(INSTALL) --mode=0644 minidlna.conf $(ETCINSTALLDIR)
 
 install:	minidlna
 	$(INSTALL) -D minidlna $(INSTALLDIR)/usr/sbin/minidlna
@@ -111,7 +124,10 @@ testupnpdescgen:	$(TESTUPNPDESCGENOBJS)
 	@echo Linking $@
 	@$(CC) $(CFLAGS) -o $@ $(TESTUPNPDESCGENOBJS)
 
-depend:	config.h
+config.h:	genconfig.sh
+#	./genconfig.sh
+
+depend:	#config.h
 	makedepend -f$(MAKEFILE_LIST) -Y \
 	$(ALLOBJS:.o=.c) $(TESTUPNPDESCGENOBJS:.o=.c) 2>/dev/null
 
@@ -155,7 +171,7 @@ inotify.o: inotify.h playlist.h
 image_utils.o: image_utils.h
 tivo_utils.o: config.h tivo_utils.h
 tivo_beacon.o: config.h tivo_beacon.h tivo_utils.h
-tivo_commands.o: config.h tivo_commands.h tivo_utils.h
+tivo_commands.o: config.h tivo_commands.h tivo_utils.h utils.h
 utils.o: utils.h
 sql.o: sql.h
 log.o: log.h

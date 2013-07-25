@@ -22,9 +22,9 @@ LDFLAGS	+= -L$(TOP)/nvram -lnvram -L$(TOP)/shared -lshared
 OBJS := wlconf.o
 vpath %.c $(SRCBASE)/wlconf
 
-ifneq ($(wildcard ./prebuilt),)
+ifeq ($(wildcard $(SRCBASE)/wlconf/*.c),)
 all:
-	-cp prebuilt/wlconf wlconf
+	-cp -f $(SRCBASE)/wlconf/prebuilt/wlconf wlconf
 else
 all: wlconf
 endif

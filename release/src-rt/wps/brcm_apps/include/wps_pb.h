@@ -1,7 +1,7 @@
 /*
  * WPS push button
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_pb.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_pb.h 318930 2012-03-06 09:31:37Z $
  */
 
 #ifndef __WPS_PB_H__
@@ -23,6 +23,7 @@
 typedef struct {
 	unsigned char	mac[6];
 	unsigned int	last_time;
+	unsigned char	uuid[16];
 } PBC_STA_INFO;
 
 enum {
@@ -32,9 +33,11 @@ enum {
 } WPS_PB_STATE_T;
 
 int wps_pb_check_pushtime(unsigned long time);
-void wps_pb_update_pushtime(char *mac);
+void wps_pb_update_pushtime(char *mac, uint8 *uuid);
+void wps_pb_get_uuids(uint8 *buf, int len);
 void wps_pb_clear_sta(char *mac);
 wps_hndl_t *wps_pb_check(char *buf, int *buflen);
+int wps_pb_find_pbc_ap(char * bssid, char *ssid, uint8 *wsec);
 int wps_pb_init();
 int wps_pb_deinit();
 void wps_pb_reset();

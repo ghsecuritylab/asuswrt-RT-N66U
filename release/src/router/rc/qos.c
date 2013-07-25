@@ -31,8 +31,57 @@ static unsigned calc(unsigned bw, unsigned pct)
 	return (n < 2) ? 2 : n;
 }
 
+
+#ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
+int etable_flag = 0;
+void del_EbtablesRules(void)
+{
+	/* Flush all rules in nat table of ebtable*/
+	eval("ebtables", "-t", "nat", "-F");
+	etable_flag = 0;
+}
+
+void add_EbtablesRules(void)
+{
+	if(etable_flag == 1) return;
+	char *p, *g;
+	g = strdup(nvram_safe_get("wl_ifnames"));
+	while(g){
+		if ((p = strsep(&g, " ")) != NULL){
+			//fprintf(stderr, "%s: g=%s, p=%s\n", __FUNCTION__, g, p); //tmp test
+			eval("ebtables", "-t", "nat", "-A", "PREROUTING", "-i", p, "-j", "mark", "--set-mark", "6", "--mark-target", "ACCEPT");
+			eval("ebtables", "-t", "nat", "-A", "POSTROUTING", "-o", p, "-j", "mark", "--set-mark", "6", "--mark-target", "ACCEPT");
+		}
+	}
+
+	// for MultiSSID
+	int UnitNum = 2; 	// wl0.x, wl1.x
+	int GuestNum = 3;	// wlx.0, wlx.1, wlx.2
+	char mssid_if[32];
+	char mssid_enable[32];
+	int i, j;
+	for( i = 0; i < UnitNum; i++){
+		for( j = 1; j <= GuestNum; j++ ){
+			snprintf(mssid_if, sizeof(mssid_if), "wl%d.%d", i, j);
+			snprintf(mssid_enable, sizeof(mssid_enable), "%s_bss_enabled", mssid_if);
+			//fprintf(stderr, "%s: mssid_enable=%s\n", __FUNCTION__, mssid_enable); //tmp test
+			if(!strcmp(nvram_safe_get(mssid_enable), "1")){
+				eval("ebtables", "-t", "nat", "-A", "PREROUTING", "-i", mssid_if, "-j", "mark", "--set-mark", "6", "--mark-target", "ACCEPT");
+				eval("ebtables", "-t", "nat", "-A", "POSTROUTING", "-o", mssid_if, "-j", "mark", "--set-mark", "6", "--mark-target", "ACCEPT");
+			}
+		}
+	}
+
+	etable_flag = 1;
+}
+#endif
+
 void del_iQosRules(void)
 {
+#ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
+	del_EbtablesRules(); // flush ebtables nat table
+#endif
+
 	/* Flush all rules in mangle table */
 	eval("iptables", "-t", "mangle", "-F");
 #ifdef RTCONFIG_IPV6
@@ -135,12 +184,17 @@ int add_iQosRules(char *pcWANIF)
 			0x1~0x6		: keep tracing this connection.
 			0x101~0x106 	: connection will be considered as marked connection, won't detect again.
 		*/
+#if 0
 		if(strcmp(transferred, "") != 0 ) 
 			method = 1;
 		else
 			method = atoi(nvram_safe_get("qos_method"));	// strict rule ordering
 		gum = (method == 0) ? 0x100 : 0;
-                class_num |= gum;
+#else
+		method = 1;
+		gum = 0;
+#endif     
+	        class_num |= gum;
 		down_class_num |= gum; // for download
 
 		chain = "QOSO";                     // chain name
@@ -301,23 +355,64 @@ int add_iQosRules(char *pcWANIF)
         i = nvram_get_int("qos_default");
         if ((i < 0) || (i > 4)) i = 3;  // "lowest"
         class_num = i + 1;
-        fprintf(fn,
-		"-A QOSO -d %s -j CONNMARK --set-return 0x%x/0xFF\n" // for download (LAN or wireless)
-		"-A POSTROUTING -o br0 -j QOSO\n"  // for download, interface br0
-                "-A QOSO -j CONNMARK --set-return 0x%x\n"
-                "-A FORWARD -o %s -j QOSO\n"
-                "-A OUTPUT -o %s -j QOSO\n",
-                        lan_addr, down_class_num, class_num, pcWANIF, pcWANIF);
+
+#ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
+	if(strncmp(pcWANIF, "ppp", 3)==0){
+		// ppp related interface doesn't need physdev
+		// do nothing
+	}
+	else{
+		/* for WLAN to LAN bridge packet */
+		// ebtables : identify bridge packet
+		add_EbtablesRules();
+
+		// for multicast
+		fprintf(fn, "-A QOSO -d 224.0.0.0/4 -j CONNMARK --set-return 0x%x/0xFF\n",  down_class_num);
+		// for download (LAN or wireless)
+		fprintf(fn, "-A QOSO -d %s -j CONNMARK --set-return 0x%x/0xFF\n", lan_addr, down_class_num);
+/* Requires bridge netfilter, but slows down and breaks EMF/IGS IGMP IPTV Snooping
+		// for WLAN to LAN bridge issue
+		fprintf(fn, "-A POSTROUTING -d %s -m physdev --physdev-is-in -j CONNMARK --set-return 0x6/0xFF\n", lan_addr);
+*/
+		// for download, interface br0
+		fprintf(fn, "-A POSTROUTING -o br0 -j QOSO\n");
+	}
+#endif
+		fprintf(fn,
+			"-A QOSO -j CONNMARK --set-return 0x%x\n"
+	                "-A FORWARD -o %s -j QOSO\n"
+        	        "-A OUTPUT -o %s -j QOSO\n",
+                	        class_num, pcWANIF, pcWANIF);
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled() && *wan6face) {
+#ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
+		if(strncmp(wan6face, "ppp", 3)==0){
+			// ppp related interface doesn't need physdev
+			// do nothing
+		}
+		else{
+			/* for WLAN to LAN bridge packet */
+			// ebtables : identify bridge packet
+			add_EbtablesRules();
+
+			// for multicast
+			fprintf(fn_ipv6, "-A QOSO -d 224.0.0.0/4 -j CONNMARK --set-return 0x%x/0xFF\n",  down_class_num);
+			// for download (LAN or wireless)
+        		fprintf(fn_ipv6, "-A QOSO -d %s -j CONNMARK --set-return 0x%x/0xFF\n", lan_addr, down_class_num);
+/* Requires bridge netfilter, but slows down and breaks EMF/IGS IGMP IPTV Snooping
+			// for WLAN to LAN bridge issue
+			fprintf(fn_ipv6, "-A POSTROUTING -d %s -m physdev --physdev-is-in -j CONNMARK --set-return 0x6/0xFF\n", lan_addr);
+*/
+			// for download, interface br0
+			fprintf(fn_ipv6, "-A POSTROUTING -o br0 -j QOSO\n");
+		}
+#endif
         	fprintf(fn_ipv6,
-			"-A QOSO -d %s -j CONNMARK --set-return 0x%x/0xFF\n" // for download (LAN or wireless)
-			"-A POSTROUTING -o br0 -j QOSO\n"  // for download, interface br0
                 	"-A QOSO -j CONNMARK --set-return 0x%x\n"
                 	"-A FORWARD -o %s -j QOSO\n"
                 	"-A OUTPUT -o %s -j QOSO\n",
-                        	lan_addr, down_class_num, class_num, wan6face, wan6face);
+                        	class_num, wan6face, wan6face);
 	}
 #endif
 
@@ -356,13 +451,14 @@ int add_iQosRules(char *pcWANIF)
 	}
 #endif
 	fprintf(stderr, "[qos] iptables DONE!\n");
+
+	return 0;
 }
 
 
 /*******************************************************************/
 // The definations of all partations
-// eth0 : LAN/WAN
-// eth1 : Wireless   (closed. if need, you can open wireless_tc())
+// eth0 : WAN
 // 1:1  : upload   
 // 1:2  : download   (1000000Kbits)
 // 1:10 : highest
@@ -380,7 +476,7 @@ int start_iQos(void)
 	char *buf, *g, *p;
 	unsigned int rate;
 	unsigned int ceil;
-	unsigned int bw;
+	unsigned int ibw, obw, bw;
 	unsigned int mtu;
 	FILE *f;
 	int x;
@@ -396,9 +492,12 @@ int start_iQos(void)
 	// move it to firewall - mangle_setting
 	// add_iQosRules(get_wan_ifname(0)); // iptables start
 
-	//wireless_tc();  /* Wireless tc  */
-
 	if (!nvram_match("qos_enable", "1")) return -1;
+
+	ibw = strtoul(nvram_safe_get("qos_ibw"), NULL, 10);
+	obw = strtoul(nvram_safe_get("qos_obw"), NULL, 10);
+	if(ibw==0||obw==0) return -1;
+
 	if ((f = fopen(qosfn, "w")) == NULL) return -2;
 
 	fprintf(stderr, "[qos] tc START!\n");
@@ -417,7 +516,7 @@ int start_iQos(void)
 	*/
 
 	mtu = strtoul(nvram_safe_get("wan_mtu"), NULL, 10);
-	bw = strtoul(nvram_safe_get("qos_obw"), NULL, 10);
+	bw = obw;
 
 	/* WAN */
 	fprintf(f,
@@ -440,20 +539,17 @@ int start_iQos(void)
 			bw, bw, burst_root);
 
 	/* LAN protocol: 802.1q */
-#ifdef RTCONFIG_RALINK
-	if (get_model() == MODEL_RTN56U)
-		protocol = strdup("ip");
-	else
-#endif
+#ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
 	protocol = strdup("802.1q");
 	fprintf(f,
 		"# download 1:2\n"
 		"\t$TCA parent 1: classid 1:2 htb rate 1000000kbit ceil 1000000kbit burst 10000 cburst 10000\n"
-		"# 1:60 ALL Download\n"
+		"# 1:60 ALL Download for BCM\n"
 		"\t$TCA parent 1:2 classid 1:60 htb rate 1000000kbit ceil 1000000kbit burst 10000 cburst 10000 prio 6\n"
 		"\t$TQA parent 1:60 handle 60: pfifo\n"
-		"\t$TFA parent 1: prio 60 protocol %s handle 6 fw flowid 1:60\n", protocol
+		"\t$TFA parent 1: prio 6 protocol %s handle 6 fw flowid 1:60\n", protocol
 		);
+#endif
 
 	inuse = atoi(nvram_safe_get("qos_inuse"));
 
@@ -540,7 +636,8 @@ int start_iQos(void)
 
 	// ingress
 	first = 1;
-	bw = strtoul(nvram_safe_get("qos_ibw"), NULL, 10);
+	bw = ibw;
+
 	if (bw > 0) {
 		g = buf = strdup(nvram_safe_get("qos_irates"));
 		for (i = 0; i < 5; ++i) { // 0~4 , 0:highest, 4:lowest 
@@ -560,7 +657,7 @@ int start_iQos(void)
 			unsigned int u = calc(bw, rate);
 
 			// burst rate
-			unsigned int v = u / 25;
+			unsigned int v = u / 2;
 			if (v < 50) v = 50;
 
 			x = i + 1;
@@ -570,10 +667,8 @@ int start_iQos(void)
 					" fw police rate %ukbit burst %ukbit drop flowid ffff:%d\n",
 					i, rate, x, x, u, v, x);
 		}
-
+		free(buf);
 	}
-
-	free(buf);
 
 	fputs(
 		"\t;;\n"
@@ -593,6 +688,7 @@ int start_iQos(void)
 	eval((char *)qosfn, "start");
 	fprintf(stderr,"[qos] tc done!\n");
 
+	return 0;
 }
 
 
@@ -600,47 +696,3 @@ void stop_iQos(void)
 {
 	eval((char *)qosfn, "stop");
 }
-
-/* Wireless tc  protocol: ip */
-/*
-static const char *qos_w_fn = "/tmp/w_qos";
-void wireless_tc(void)
-{
-	FILE *w_fn;
-
-	fprintf(stderr,"[qos] wireless tc start!\n");
-	if ((w_fn = fopen(qos_w_fn, "w")) == NULL) return;
-	fprintf(w_fn,
-		"#!/bin/sh\n"
-		"#Wireless\n"
-		"W=eth1\n"
-		"WQA=\"tc qdisc add dev $W\"\n"
-		"WCA=\"tc class add dev $W\"\n"
-		"WFA=\"tc filter add dev $W\"\n"
-		"case \"$1\" in\n"
-		"start)\n"
-		"# Wireless\n"
-		"\ttc qdisc del dev $W root 2>/dev/null\n"
-		"\t$WQA root handle 1: htb default %u\n"
-		"# download 1:2\n"
-		"\t$WCA parent 1: classid 1:2 htb rate 1000000kbit ceil 1000000kbit burst 10000 cburst 10000\n"
-		"# 1:60 WL_download\n"
-		"\t$WCA parent 1:2 classid 1:60 htb rate 900000kbit ceil 9000000kbit burst 10000 cburst 10000 prio 6\n"
-		"\t$WQA parent 1:60 handle 60: pfifo\n"
-		"\t$WFA parent 1: prio 60 protocol ip handle 6 fw flowid 1:60\n"
-		"\t;;\n"
-		"stop)\n"
-		"\ttc qdisc del dev $W root 2>/dev/null\n"
-		"\t;;\n"
-		"*)\n"
-		"\ttc -s -d class ls dev $W\n"
-		"\techo\n"
-		"\ttc -s -d qdisc ls dev $W\n"
-		"esac\n",
-			(atoi(nvram_safe_get("qos_default")) + 1) * 10);
-	fclose(w_fn);
-	chmod(qos_w_fn, 0700);
-	eval((char *)qos_w_fn, "start");
-	fprintf(stderr,"[qos] wireless tc done!\n");
-}
-*/

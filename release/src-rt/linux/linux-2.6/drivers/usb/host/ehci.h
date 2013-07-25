@@ -221,6 +221,7 @@ struct ehci_hcd {			/* one per controller */
 	struct usb_device *bypass_device;
 	struct ehci_qh *ehci_pipes[3]; /* pointer to ep location with qh address */
 	void (*ehci_bypass_callback)(int pipeindex, struct ehci_qh *, spinlock_t *lock);
+	struct dma_pool *fastpath_pool; /* fastpath qtd pool */
 };
 
 /* convert between an HCD pointer and the corresponding EHCI_HCD */
@@ -900,6 +901,8 @@ static inline u32 hc32_to_cpup (const struct ehci_hcd *ehci, const __hc32 *x)
 #define EHCI_SET_BYPASS_CB	(0x4300 | (EHCI_FASTPATH+1))
 #define EHCI_SET_BYPASS_DEV	(0x4300 | (EHCI_FASTPATH+2))
 #define EHCI_DUMP_STATE		(0x4300 | (EHCI_FASTPATH+3))
+#define EHCI_SET_BYPASS_POOL	(0x4300 | (EHCI_FASTPATH+4))
+#define EHCI_CLR_EP_BYPASS	(0x4300 | (EHCI_FASTPATH+5))
 
 
 

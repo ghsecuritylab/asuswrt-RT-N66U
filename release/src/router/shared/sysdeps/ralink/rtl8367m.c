@@ -264,6 +264,14 @@ int rtl8367m_ioctl(int val, int val2)
 		}
 		break;
 
+        case 41:
+		if(ioctl(fd, 41, NULL) < 0){
+			perror("rtkswitch ioctl");
+			close(fd);
+			return -1;
+		}
+		break;
+
 	default:
 		printf("wrong ioctl cmd: %d\n", val);
 	}
@@ -516,7 +524,7 @@ typedef struct {
         unsigned int speed[5];
 } phyState;
 
-void
+int
 rtl8367m_AllPort_phyState()
 {
         int fd;

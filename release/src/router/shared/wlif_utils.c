@@ -1,22 +1,28 @@
 /*
  * Wireless interface translation utility functions
  *
- * Copyright (C) 2008, Broadcom Corporation
- * All Rights Reserved.
+ * Copyright (C) 2011, Broadcom Corporation. All Rights Reserved.
  * 
- * THIS SOFTWARE IS OFFERED "AS IS", AND BROADCOM GRANTS NO WARRANTIES OF ANY
- * KIND, EXPRESS OR IMPLIED, BY STATUTE, COMMUNICATION OR OTHERWISE. BROADCOM
- * SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A SPECIFIC PURPOSE OR NONINFRINGEMENT CONCERNING THIS SOFTWARE.
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * $Id: wlif_utils.c,v 1.4 2008/10/02 04:09:46 Exp $
+ * $Id: wlif_utils.c 300516 2011-12-04 17:39:44Z $
  */
 
 #include <typedefs.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdarg.h>	// for va_list
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -25,13 +31,17 @@
 #include <bcmparams.h>
 #include <bcmnvram.h>
 #include <bcmutils.h>
+#include <netconf.h>
+#include <nvparse.h>
 #include <shutils.h>
 #include <wlutils.h>
 #include <wlif_utils.h>
 
 #include "shared.h"
 
+#ifndef MAX_NVPARSE
 #define MAX_NVPARSE 255
+#endif
 
 /* wireless interface name descriptors */
 typedef struct _wlif_name_desc {
@@ -252,6 +262,19 @@ get_wlname_by_mac(unsigned char *mac, char *wlname)
 	return -1;
 }
 
+bool
+wl_wlif_is_psta(char *ifname)
+{
+	int32 psta = FALSE;
+
+	if (wl_probe(ifname) < 0)
+		return FALSE;
+
+	wl_iovar_getint(ifname, "psta_if", &psta);
+
+	return psta ? TRUE : FALSE;
+}
+
 /*
  * Get LAN or WAN ifname by wl mac
  * NOTE: We pass ifname in case of same mac in vifs (like URE TR mode)
@@ -316,19 +339,12 @@ get_ifname_by_wlmac(unsigned char *mac, char *name)
 	return 0;
 }
 
-#ifdef BCMWPA2
 #define CHECK_NAS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WPA_AUTH_PSK | \
 				   WPA2_AUTH_UNSPECIFIED | WPA2_AUTH_PSK))
 #define CHECK_PSK(mode) ((mode) & (WPA_AUTH_PSK | WPA2_AUTH_PSK))
 #define CHECK_RADIUS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WLIFU_AUTH_RADIUS | \
 				      WPA2_AUTH_UNSPECIFIED))
-#else
-#define CHECK_NAS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WPA_AUTH_PSK))
-#define CHECK_PSK(mode) ((mode) & (WPA_AUTH_PSK))
-#define CHECK_RADIUS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WLIFU_AUTH_RADIUS))
-#endif
 
-#if 0
 /*
  * wl_wds<N> is authentication protocol dependant.
  * when auth is "psk":
@@ -386,13 +402,12 @@ fail:
 
 	return FALSE;
 }
-#endif	// 0
 
 /* Get wireless security setting by interface name */
 int
 get_wsec(wsec_info_t *info, char *mac, char *osifname)
 {
-	int unit, wds = 0, wds_wsec = 0;
+	int i, unit, wds = 0, wds_wsec = 0;
 	char nv_name[16], os_name[16], wl_prefix[16], comb[32], key[8];
 	char wds_role[8], wds_ssid[48], wds_psk[80], wds_akms[16], wds_crypto[16],
 	        remote[ETHER_ADDR_LEN];
@@ -421,20 +436,21 @@ get_wsec(wsec_info_t *info, char *mac, char *osifname)
 		snprintf(wl_prefix, sizeof(wl_prefix), "wl%d", unit);
 		wds = 1;
 	}
+	else if (wl_wlif_is_psta(os_name))
+		snprintf(wl_prefix, sizeof(wl_prefix), "wl%d", unit);
 	else if (osifname_to_nvifname(os_name, wl_prefix, sizeof(wl_prefix)))
 		return WLIFU_ERR_INVALID_PARAMETER;
 
 	strcat(wl_prefix, "_");
 	memset(info, 0, sizeof(wsec_info_t));
 
-	/* get wsd setting */
+	/* get wds setting */
 	if (wds) {
 		/* remote address */
 		if (wl_ioctl(os_name, WLC_WDS_GET_REMOTE_HWADDR, remote, ETHER_ADDR_LEN))
 			return WLIFU_ERR_WL_REMOTE_HWADDR;
 		memcpy(info->remote, remote, ETHER_ADDR_LEN);
-#if 0
-		int i;
+
 		/* get per wds settings */
 		for (i = 0; i < MAX_NVPARSE; i ++) {
 			char macaddr[18];
@@ -449,7 +465,6 @@ get_wsec(wsec_info_t *info, char *mac, char *osifname)
 			     break;
 			}
 		}
-#endif	// 0
 	}
 
 	/* interface unit */
@@ -480,12 +495,10 @@ get_wsec(wsec_info_t *info, char *mac, char *osifname)
 			info->akm |= WPA_AUTH_UNSPECIFIED;
 		if (!strcmp(akm, "psk"))
 			info->akm |= WPA_AUTH_PSK;
-#ifdef BCMWPA2
 		if (!strcmp(akm, "wpa2"))
 			info->akm |= WPA2_AUTH_UNSPECIFIED;
 		if (!strcmp(akm, "psk2"))
 			info->akm |= WPA2_AUTH_PSK;
-#endif
 	}
 	/* wsec encryption */
 	value = nvram_safe_get(strcat_r(wl_prefix, "wep", comb));
@@ -508,7 +521,8 @@ get_wsec(wsec_info_t *info, char *mac, char *osifname)
 	if (!strcmp(value, "ap")) {
 		info->flags |= WLIFU_WSEC_AUTH;
 	}
-	else if (!strcmp(value, "sta") || !strcmp(value, "wet")) {
+	else if (!strcmp(value, "sta") || !strcmp(value, "wet") ||
+	         !strcmp(value, "psr") || !strcmp(value, "psta")) {
 		if (!strcmp(infra, "0")) {
 			/* IBSS, so we must act as Authenticator and Supplicant */
 			info->flags |= WLIFU_WSEC_AUTH;
@@ -618,6 +632,7 @@ get_wsec(wsec_info_t *info, char *mac, char *osifname)
 	value = nvram_safe_get(strcat_r(wl_prefix, "nas_dbg", comb));
 	info->debug = (int)strtoul(value, NULL, 0);
 
+
+
 	return WLIFU_WSEC_SUCCESS;
 }
-

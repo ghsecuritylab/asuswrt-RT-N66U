@@ -14,7 +14,7 @@
 }
 
 .service_btn{
- 	background: transparent url(/images/New_ui/advancesetting/accountedit.png) no-repeat;
+ 	background: transparent url(/images/New_ui/accountedit.png) no-repeat;
 	border:0;
 	height:30px;
  	width:30px;
@@ -29,7 +29,7 @@
 }
 
 .url_btn{
- 	background: transparent url(/images/New_ui/advancesetting/accountadd.png) no-repeat;
+ 	background: transparent url(/images/New_ui/accountadd.png) no-repeat;
 	border:0;
 	height:30px;
  	width:30px;
@@ -44,7 +44,7 @@
 }
 
 .remove_btn{
- 	background: transparent url(/images/New_ui/advancesetting/accountdelete.png) no-repeat;
+ 	background: transparent url(/images/New_ui/accountdelete.png) no-repeat;
 	border:0;
 	height:30px;
  	width:30px;
@@ -92,18 +92,11 @@
 	font-weight:normal;
 }
 
-#pull_arrow{
- 	float:left;
- 	cursor:pointer;
- 	border:2px outset #EFEFEF;
- 	background-color:#CCC;
- 	padding:3px 2px 4px 0px;
-}
 #ClientList_Block_PC{
 	border:1px outset #999;
 	background-color:#576D73;
 	position:absolute;
-	margin-top:92px;
+	margin-top:76px;
 	margin-left:54px;
 	*margin-left:-298px;
 	width:255px;
@@ -120,6 +113,7 @@
 	height:20px;
 	line-height:20px;
 	text-decoration:none;
+	font-family: Lucida Console;
 	padding-left:2px;
 }
 

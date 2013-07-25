@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -7,7 +7,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#EZQoS#></title>
+<title><#Web_Title#> - <#EZQoS#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -44,6 +44,10 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 
 function initial(){
 	show_menu();
+
+	if(downsize_support != -1)
+		$("guest_image").parentNode.style.display = "none";
+
 	if(document.form.qos_enable.value==1){
 		document.form.qos_obw.parentNode.parentNode.style.display = "";
 		document.form.qos_ibw.parentNode.parentNode.style.display = "";		
@@ -51,6 +55,23 @@ function initial(){
 		document.form.qos_obw.parentNode.parentNode.style.display = "none";
 		document.form.qos_ibw.parentNode.parentNode.style.display = "none";		
 	}
+	init_changeScale("qos_obw");
+	init_changeScale("qos_ibw");	
+	addOnlineHelp($("faq"), ["ASUSWRT", "QoS"]);
+}
+
+function init_changeScale(_obj_String){
+	if($(_obj_String).value > 999){
+		$(_obj_String+"_scale").value = "Mb/s";
+		$(_obj_String).value = Math.round(($(_obj_String).value/1024)*100)/100;
+	}
+}
+
+function changeScale(_obj_String){
+	if($(_obj_String+"_scale").value == "Mb/s")
+		$(_obj_String).value = Math.round(($(_obj_String).value/1024)*100)/100;
+	else
+		$(_obj_String).value = Math.round($(_obj_String).value*1024);
 }
 
 function switchPage(page){
@@ -61,18 +82,32 @@ function switchPage(page){
 }
 
 function submitQoS(){
-
 	if(document.form.qos_enable.value == 1){
-		if(!validate_range(document.form.qos_obw, 1, 9999999999)){
-			return false;
-		}else if(!validate_range(document.form.qos_ibw, 1, 9999999999)){
-			return false;
-  	}
+		// Jieming To Do: please add a hint here when error occurred, and qos_ibw & qos_obw should allow number only.
+		if(document.form.qos_obw.value.length == 0 || document.form.qos_obw.value == 0){
+				alert("<#JS_fieldblank#>");
+				document.form.qos_obw.focus();
+				return;
+		}
+		if(document.form.qos_ibw.value.length == 0 || document.form.qos_ibw.value == 0){
+				alert("<#JS_fieldblank#>");
+				document.form.qos_ibw.focus();
+				return;
+		}
+		// end
   }	
+
+	if($("qos_obw_scale").value == "Mb/s")
+		document.form.qos_obw.value = Math.round(document.form.qos_obw.value*1024);
+	if($("qos_ibw_scale").value == "Mb/s")
+		document.form.qos_ibw.value = Math.round(document.form.qos_ibw.value*1024);
   
 	if(document.form.qos_enable.value != document.form.qos_enable_orig.value)
-    	FormActions("start_apply.htm", "apply", "reboot", "30");
+    	FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
 			
+	if(wl6_support != -1)
+		document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
+
 	parent.showLoading();
 	document.form.submit();	
 	
@@ -89,7 +124,6 @@ function submitQoS(){
 <form method="post" name="form" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
-
 <input type="hidden" name="current_page" value="QoS_EZQoS.asp">
 <input type="hidden" name="next_page" value="QoS_EZQoS.asp">
 <input type="hidden" name="group_id" value="">
@@ -124,7 +158,7 @@ function submitQoS(){
      		   					<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 											<!--option><#switchpage#></option-->
 											<option value="1" selected><#qos_automatic_mode#></option>
-											<option value="2">User define QoS rules</option>
+											<option value="2"><#user_def_qos#></option>
 										</select>	    
 									</div>
 								</td>
@@ -142,6 +176,9 @@ function submitQoS(){
 													</td>
 													<td>
 														<div class="formfontdesc" style="line-height:20px;"><#ezqosDesw#></div>
+														<div class="formfontdesc">
+															<a id="faq" href="" target="_blank" style="text-decoration:underline;">QoS FAQ</a>
+														</div>
 													</td>
 												</tr>
 											</table>
@@ -178,13 +215,25 @@ function submitQoS(){
 											</td>
 										</tr>										
 										<tr>
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);">Upload Bandwidth</a></th>
-							<td><input type="text" maxlength="10" name="qos_obw"  onKeyPress="return is_number_sp(event, this);" class="input_12_table" value="<% nvram_get("qos_obw"); %>" onBlur=""> kb/s</td>
+											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);"><#upload_bandwidth#></a></th>
+											<td>
+													<input type="text" maxlength="10" id="qos_obw" name="qos_obw" onKeyPress="return is_number(this,event);" class="input_15_table" value="<% nvram_get("qos_obw"); %>">
+														<select id="qos_obw_scale" class="input_option" style="width:87px;" onChange="changeScale('qos_obw');">
+															<option value="Kb/s">Kb/s</option>
+															<option value="Mb/s">Mb/s</option>
+														</select>
+											</td>
 										</tr>
 										
 										<tr>
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);">Download Bandwidth</a></th>
-							<td><input type="text" maxlength="10" name="qos_ibw" onKeyPress="return is_number_sp(event, this);" class="input_12_table" value="<% nvram_get("qos_ibw"); %>" onBlur=""> kb/s</td>
+											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 2);"><#download_bandwidth#></a></th>
+											<td>
+													<input type="text" maxlength="10" id="qos_ibw" name="qos_ibw" onKeyPress="return is_number(this,event);" class="input_15_table" value="<% nvram_get("qos_ibw"); %>">
+														<select id="qos_ibw_scale" class="input_option" style="width:87px;" onChange="changeScale('qos_ibw');">
+															<option value="Kb/s">Kb/s</option>
+															<option value="Mb/s">Mb/s</option>
+														</select>
+											</td>
 										</tr>
 
 									</table>
@@ -193,7 +242,7 @@ function submitQoS(){
 
         			<tr>
           				<td height="50" >
-          					<div style="margin-left:300px;" class="titlebtn" align="center" onClick="submitQoS();"><span><#CTL_onlysave#></span></div>
+          					<div style=" *width:136px;margin-left:300px;" class="titlebtn" align="center" onClick="submitQoS();"><span><#CTL_onlysave#></span></div>
           				</td>
         			</tr>
       			</table>

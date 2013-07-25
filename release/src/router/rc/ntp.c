@@ -56,6 +56,15 @@ static void catch_sig(int sig)
 		remove("/var/run/ntp.pid");
 		exit(0);
 	}
+	else if (sig == SIGALRM)
+	{
+		if (server_idx)
+			strcpy(servers, nvram_safe_get("ntp_server1"));
+		else
+			strcpy(servers, nvram_safe_get("ntp_server0"));
+		nvram_set("ntp_server_tried", servers);
+		server_idx = (++server_idx) % 2;
+	}
 }
 
 int ntp_main(int argc, char *argv[])
@@ -79,10 +88,37 @@ int ntp_main(int argc, char *argv[])
 	fprintf(stderr, "starting ntp...\n");
 
 	signal(SIGTSTP, catch_sig);
+	signal(SIGALRM, catch_sig);
 
 	while (1)
 	{
 		ret = doSystem("ntpclient -h %s -i 3 -l -s &", servers);
+		sleep(3);
+		setup_timezone();
+		
+		// when time_zone has "DST" ,will ntp syn every hour
+		if(strstr(nvram_safe_get("time_zone_x"), "DST")){
+			struct tm local;
+			time_t now;
+			int diff_sec;
+
+			time(&now);
+			localtime_r(&now, &local);
+			//cprintf("%s: %d-%d-%d, %d:%d:%d dst:%d\n", __FUNCTION__, local.tm_year+1900, local.tm_mon+1, local.tm_mday, local.tm_hour, local.tm_min, local.tm_sec, local.tm_isdst); //tmp test
+	
+			/* every hour */
+			// 3597 = 3600 - 3, because of sleep(3)
+			if((local.tm_min != 0) || (local.tm_sec != 0)){
+				diff_sec = (3600-3) - (local.tm_min*60 + local.tm_sec);
+				if(diff_sec == 0) diff_sec = 3597;
+				//fprintf(stderr, "diff_sec: %d \n", diff_sec);
+				alarm(diff_sec);
+			}
+			else{
+				alarm(3597);
+			}
+		}
+
 		pause();
 	}	
 }

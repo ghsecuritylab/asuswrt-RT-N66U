@@ -6,6 +6,8 @@
 */
 
 #include "rc.h"
+#include "interface.h"
+#include <sys/time.h>
 
 #ifdef DEBUG_RCTEST
 // used for various testing
@@ -41,6 +43,18 @@ static int rctest_main(int argc, char *argv[])
 	else if(strcmp(argv[1], "check_action")==0) {
 		_dprintf("check: %d\n", check_action());
 	}
+	else if(strcmp(argv[1], "nvramhex")==0) {
+		int i;
+		char *nv;
+
+		nv = nvram_safe_get(argv[2]);
+
+		_dprintf("nvram %s(%d): ", nv, strlen(nv));
+		for(i=0;i<strlen(nv);i++) {
+			_dprintf(" %x", (unsigned char)*(nv+i));
+		}
+		_dprintf("\n");
+	}
 	else {
 		on = atoi(argv[2]);
 		_dprintf("%s %d\n", argv[1], on);
@@ -55,7 +69,11 @@ static int rctest_main(int argc, char *argv[])
 			else stop_lan();
 		}
 		else if (strcmp(argv[1], "wl") == 0) {
-			if(on) start_wl();
+			if(on) 
+			{
+				start_wl();
+				lanaccess_wl();
+			}
 		}
 		else if (strcmp(argv[1], "wan") == 0) {
 			if(on) start_wan();
@@ -78,7 +96,7 @@ static int rctest_main(int argc, char *argv[])
 		else if (strcmp(argv[1], "qos") == 0) {//qos test
 			if(on){
 #ifdef RTCONFIG_RALINK
-				if (is_hwnat_loaded())
+				if (is_module_loaded("hw_nat"))
 				{
 					modprobe_r("hw_nat");
 					sleep(1);
@@ -94,7 +112,7 @@ static int rctest_main(int argc, char *argv[])
 #ifdef RTCONFIG_RALINK
 				if (nvram_get_int("hwnat") &&
 					!((nvram_get_int("fw_pt_l2tp") || nvram_get_int("fw_pt_ipsec") || nvram_get_int("wl0_mrate_x") || nvram_get_int("wl1_mrate_x"))) &&
-					!is_hwnat_loaded())
+					!is_module_loaded("hw_nat"))
 				{
 					system("echo 2 > /proc/sys/net/ipv4/conf/default/force_igmp_version");
 					system("echo 2 > /proc/sys/net/ipv4/conf/all/force_igmp_version");
@@ -106,6 +124,12 @@ static int rctest_main(int argc, char *argv[])
 				stop_iQos();
 			}
 		}
+#ifdef RTCONFIG_WEBDAV
+		else if (strcmp(argv[1], "webdav") == 0) {
+			if(on)
+				start_webdav();
+		}
+#endif
 		else if (strcmp(argv[1], "gpiow") == 0) {
 			if(argc>=4) set_gpio(atoi(argv[2]), atoi(argv[3]));
 		}
@@ -186,6 +210,9 @@ static const applets_t applets[] = {
 	{ "mtd-erase",			mtd_unlock_erase_main		},
 	{ "mtd-unlock",			mtd_unlock_erase_main		},
 	{ "watchdog",			watchdog_main			},
+#ifdef RTCONFIG_RALINK
+	{ "wpsfix",			wpsfix_main			},
+#endif
 #ifdef RTCONFIG_FANCTRL
 	{ "phy_tempsense",		phy_tempsense_main		},
 #endif
@@ -197,14 +224,20 @@ static const applets_t applets[] = {
 	{ "ots",			ots_main			},
 	{ "udhcpc",			udhcpc_wan			},
 	{ "udhcpc_lan",			udhcpc_lan			},
+	{ "zcip",			zcip_wan			},
 #ifdef RTCONFIG_IPV6
 	{ "dhcp6c-state",		dhcp6c_state_main		},
+	{ "ipv6aide",			ipv6aide_main			},
 #endif
 	{ "halt",			reboothalt_main			},
 	{ "reboot",			reboothalt_main			},
 	{ "ntp", 			ntp_main			},
 #ifdef RTCONFIG_RALINK
+#ifdef RTCONFIG_DSL
+	{ "8367r",			config8367r			},
+#else
 	{ "8367m",			config8367m			},
+#endif
 #endif
 	{ "wanduck",                    wanduck_main                    },
 	{ "tcpcheck",                   tcpcheck_main                   },
@@ -346,6 +379,14 @@ int main(int argc, char **argv)
 
 		return asus_tty(argv[1], argv[2]);
 	}
+	else if(!strcmp(base, "asus_usbbcm")){
+		if(argc != 3){
+			printf("Usage: asus_usbbcm [device_name] [action]\n");
+			return 0;
+		}
+
+		return asus_usbbcm(argv[1], argv[2]);
+	}
 	else if(!strcmp(base, "asus_usb_interface")){
 		if(argc != 3){
 			printf("Usage: asus_usb_interface [device_name] [action]\n");
@@ -404,8 +445,84 @@ int main(int argc, char **argv)
 		return setup_dnsmq(atoi(argv[1]));
 	}
 #endif
+#ifdef RTCONFIG_BCMWL6
+        else if (!strcmp(base, "acsd_restart_wl")) {
+		restart_wireless_acsd();
+		return 0;
+        }
+#endif
 	else if (!strcmp(base, "add_multi_routes")) {
 		return add_multi_routes();
+	}
+#ifndef OVERWRITE_DNS
+	else if (!strcmp(base, "add_ns")) {
+		return add_ns(argv[1]);
+	}
+	else if (!strcmp(base, "del_ns")) {
+		return del_ns(argv[1]);
+	}
+#endif
+	else if (!strcmp(base, "led_ctrl")) {
+		return(led_control(atoi(argv[1]), atoi(argv[2])));
+	}
+	else if (!strcmp(base, "free_caches")) {
+		int c;
+		unsigned int test_num;
+		char *set_value = NULL;
+		int clean_time = 1;
+		int threshold = 0;
+
+		if(argc){
+			while((c = getopt(argc, argv, "c:w:t:")) != -1){
+				switch(c){
+					case 'c': // set the clean-cache mode: 0~3.
+						test_num = strtol(optarg, NULL, 10);
+        		if(test_num == LONG_MIN || test_num == LONG_MAX){
+        			_dprintf("ERROR: unknown value %s...\n", optarg);
+							return 0;
+						}
+
+						if(test_num < 0 || test_num > 3){
+							_dprintf("ERROR: the value %s was over the range...\n", optarg);
+							return 0;
+						}
+
+						set_value = optarg;
+
+						break;
+					case 'w': // set the waited time for cleaning.
+						test_num = strtol(optarg, NULL, 10);
+        		if(test_num <= 0 || test_num == LONG_MIN || test_num == LONG_MAX){
+        			_dprintf("ERROR: unknown value %s...\n", optarg);
+							return 0;
+						}
+
+						clean_time = test_num;
+
+						break;
+					case 't': // set the waited time for cleaning.
+						test_num = strtol(optarg, NULL, 10);
+        		if(test_num < 0 || test_num == LONG_MIN || test_num == LONG_MAX){
+        			_dprintf("ERROR: unknown value %s...\n", optarg);
+							return 0;
+						}
+
+						threshold = test_num;
+
+						break;
+					default:
+						fprintf(stderr, "Usage: free_caches [ -c clean_mode ] [ -w clean_time ] [ -t threshold ]\n");
+						break;
+				}
+			}
+		}
+
+		if(!set_value)
+			set_value = FREE_MEM_PAGE;
+
+		free_caches(set_value, clean_time, threshold);
+
+		return 0;
 	}
 	printf("Unknown applet: %s\n", base);
 	return 0;

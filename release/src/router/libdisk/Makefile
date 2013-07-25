@@ -8,7 +8,7 @@ ifeq ($(RTCONFIG_WEBDAV),y)
 PROGS += write_webdav_conf
 endif
 
-CFLAGS += -DASUS_NVRAM
+CFLAGS += -DASUS_NVRAM $(EXTRACFLAGS)
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(LINUXDIR)/include -Wall
 LDFLAGS = -L. -ldisk -L$(TOP)/nvram -lnvram -L$(TOP)/shared -lshared
 

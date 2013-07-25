@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_2_1#></title>
+<title><#Web_Title#> - <#menu5_2_1#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
@@ -26,6 +26,15 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 
 <% login_state_hook(); %>
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
+var origin_lan_ip = '<% nvram_get("lan_ipaddr"); %>';
+var pptpd_clients = '<% nvram_get("pptpd_clients"); %>';
+var pptpd_clients_subnet = pptpd_clients.split(".")[0]
+															+"."+pptpd_clients.split(".")[1]
+															+"."+pptpd_clients.split(".")[2]
+															+".";	
+	var pptpd_clients_start_ip = parseInt(pptpd_clients.split(".")[3].split("-")[0]);
+	var pptpd_clients_end_ip = parseInt(pptpd_clients.split("-")[1]);
+
 
 function initial(){
 	final_flag = 1;	// for the function in general.js
@@ -37,10 +46,11 @@ function initial(){
 		 $("table_dnsenable").style.display = "none";
 		 $("table_dns1").style.display = "none";
 		 $("table_dns2").style.display = "none";
+		 /*  Not needed to show out. Viz 2012.04
 		 var chk_vpn = check_vpn();
 		 if(chk_vpn){
 		 		$("VPN_conflict").style.display = "";	
-		 }
+		 }*/
 	}
 	else{
 		display_lan_dns(<% nvram_get("lan_dnsenable_x"); %>);
@@ -50,6 +60,10 @@ function initial(){
 
 function applyRule(){
 	if(validForm()){
+
+		if(wl6_support != -1)
+			document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
+
 		showLoading();
 		document.form.submit();
 	}
@@ -66,8 +80,7 @@ function valid_IP(obj_name, obj_flag){
 		var B_class_start = inet_network("127.0.0.0");
 		var B_class_end = inet_network("127.255.255.255");
 		var C_class_start = inet_network("128.0.0.0");
-		var C_class_end = inet_network("255.255.255.255");
-		
+		var C_class_end = inet_network("255.255.255.255");		
 		var ip_obj = obj_name;
 		var ip_num = inet_network(ip_obj.value);
 
@@ -78,7 +91,7 @@ function valid_IP(obj_name, obj_flag){
 		if(obj_flag == "GW" && ip_num == -1){ //GW allows to input nothing
 			return true;
 		}
-		
+
 		if(ip_num > A_class_start && ip_num < A_class_end)
 			return true;
 		else if(ip_num > B_class_start && ip_num < B_class_end){
@@ -98,9 +111,7 @@ function valid_IP(obj_name, obj_flag){
 }
 
 function validForm(){
-
-			
-	if(sw_mode == 3){
+	if(sw_mode == 2 || sw_mode == 3){
 		if(document.form.lan_dnsenable_x_radio[0].checked == 1)
 			document.form.lan_dnsenable_x.value = 1;
 		else
@@ -114,21 +125,28 @@ function validForm(){
 			document.form.lan_proto.value = "static";
 			if(!valid_IP(document.form.lan_ipaddr, "")) return false;  //AP LAN IP 
 			if(!valid_IP(document.form.lan_gateway, "GW"))return false;  //AP Gateway IP		
+
 			if(document.form.lan_gateway.value == document.form.lan_ipaddr.value){
 					alert("<#IPConnection_warning_WANIPEQUALGatewayIP#>");
 					document.form.lan_gateway.focus();
 					document.form.lan_gateway.select();					
 					return false;
 			}				
+
+			return true;
 		}	
 	}else
 		document.form.lan_proto.value = "static";		
 	
-	if(matchSubnet(document.form.lan_ipaddr.value, document.form.wan_ipaddr_x.value, 3)){
-			alert("<#JS_validip#>");
-			document.form.lan_ipaddr.focus();
-			document.form.lan_ipaddr.select();
-			return false;
+	//router mode : WAN IP conflict with LAN ip subnet
+	if(sw_mode == 1 && document.form.wan_ipaddr_x.value != "0.0.0.0" && document.form.wan_ipaddr_x.value != "" 
+		&& document.form.wan_netmask_x.value != "0.0.0.0" && document.form.wan_netmask_x.value != ""){
+		if(matchSubnet2(document.form.wan_ipaddr_x.value, document.form.wan_netmask_x, document.form.lan_ipaddr.value, document.form.lan_netmask)){
+					document.form.lan_ipaddr.focus();
+					document.form.lan_ipaddr.select();
+					alert("<#IPConnection_x_WAN_LAN_conflict#>");
+					return false;
+		}	
 	}	
 	
 	var ip_obj = document.form.lan_ipaddr;
@@ -198,9 +216,8 @@ function done_validating(action){
 }
 
 // step1. check IP changed. // step2. check Subnet is the same 
-var old_lan_ipaddr = "<% nvram_get("lan_ipaddr"); %>";
 function changed_DHCP_IP_pool(){
-	if(document.form.lan_ipaddr.value != old_lan_ipaddr){ // IP changed
+	if(document.form.lan_ipaddr.value != origin_lan_ip){ // IP changed
 		if(!matchSubnet(document.form.lan_ipaddr.value, document.form.dhcp_start.value, 3) ||
 				!matchSubnet(document.form.lan_ipaddr.value, document.form.dhcp_end.value, 3)){ // Different Subnet
 				document.form.dhcp_start.value = subnetPrefix(document.form.lan_ipaddr.value, document.form.dhcp_start.value, 3);
@@ -298,20 +315,21 @@ function conv_flag(_flag){
 	return _flag;
 }
 
-function check_vpn(){		//true: local & VPN same subnet
-if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value, 3)){
-	return true;
-}else{
-	return false;	
-}
-		
+function check_vpn(){		//true: lAN ip & VPN client ip conflict
+		var lan_ip_subnet = origin_lan_ip.split(".")[0]+"."+origin_lan_ip.split(".")[1]+"."+origin_lan_ip.split(".")[2]+".";
+		var lan_ip_end = parseInt(origin_lan_ip.split(".")[3]);
+		if(lan_ip_subnet == pptpd_clients_subnet && lan_ip_end >= pptpd_clients_start_ip && lan_ip_end <= pptpd_clients_end_ip){
+				return true;
+		}else{
+				return false;	
+		}		
 }
 </script>
 </head>
 
 <body onload="initial();" onunLoad="return unload_body();">
 <div id="TopBanner"></div>
-<div id="hiddenMask" class="popup_bg">
+<div id="hiddenMask" class="popup_bg" style="z-index:10000;">
 	<table cellpadding="5" cellspacing="0" id="dr_sweet_advise" class="dr_sweet_advise" align="center">
 		<tr>
 		<td>
@@ -350,7 +368,6 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 <input type="hidden" name="wan_proto" value="<% nvram_get("wan_proto"); %>">
 <input type="hidden" name="lan_proto" value="<% nvram_get("lan_proto"); %>">
 <input type="hidden" name="lan_dnsenable_x" value="<% nvram_get("lan_dnsenable_x"); %>">
-<input type="hidden" name="pptpd_clients" value="<% nvram_get("pptpd_clients"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -376,12 +393,12 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 		  <div class="formfonttitle"><#menu5_2#> - <#menu5_2_1#></div>
       <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
       <div class="formfontdesc"><#LANHostConfig_display1_sectiondesc#></div>
-      <div id="VPN_conflict" class="formfontdesc" style="color:#FFCC00;display:none;"><#LANHostConfig_display1_sectiondesc2#></div>		
+      <div id="VPN_conflict" class="formfontdesc" style="color:#FFCC00;display:none;"><#LANHostConfig_display1_sectiondesc2#></div>
 		  
 		  <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 		  
 			<tr id="table_proto">
-			<th width="30%">Get the LAN IP of RT-N66U automatically?</th>
+			<th width="30%"><#LANHostConfig_x_LAN_DHCP_itemname#></th>
 			<td>
 				<input type="radio" name="lan_proto_radio" class="input" onclick="change_ip_setting('dhcp')" value="dhcp" <% nvram_match("lan_proto", "dhcp", "checked"); %>><#checkbox_Yes#>
 				<input type="radio" name="lan_proto_radio" class="input" onclick="change_ip_setting('static')" value="static" <% nvram_match("lan_proto", "static", "checked"); %>><#checkbox_No#>
@@ -393,16 +410,16 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 			  <a class="hintstyle" href="javascript:void(0);" onClick="openHint(4,1);"><#LANHostConfig_IPRouters_itemname#></a>
 			</th>			
 			<td>
-			  <input type="text" maxlength="15" class="input_15_table" id="lan_ipaddr" name="lan_ipaddr" value="<% nvram_get("lan_ipaddr"); %>" onKeyPress="return is_ipaddr(this);" onKeyUp="change_ipaddr(this);">
+			  <input type="text" maxlength="15" class="input_15_table" id="lan_ipaddr" name="lan_ipaddr" value="<% nvram_get("lan_ipaddr"); %>" onKeyPress="return is_ipaddr(this, event);">
 			</td>
 		  </tr>
 		  
 		  <tr>
 			<th>
-			  <a class="hintstyle"  href="javascript:void(0);" onClick="openHint(4,2);"><#LANHostConfig_SubnetMask_itemname#></a>
+			  <a class="hintstyle"  href="javascript:void(0);" onClick="openHint(4,2);"><#IPConnection_x_ExternalSubnetMask_itemname#></a>
 			</th>
 			<td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" onkeypress="return is_ipaddr(this);" onkeyup="change_ipaddr(this);" />
+				<input type="text" maxlength="15" class="input_15_table" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" onkeypress="return is_ipaddr(this, event);" >
 			  <input type="hidden" name="dhcp_start" value="<% nvram_get("dhcp_start"); %>">
 			  <input type="hidden" name="dhcp_end" value="<% nvram_get("dhcp_end"); %>">
 			</td>
@@ -411,7 +428,7 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 			<tr id="table_gateway">
 			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,3);"><#IPConnection_x_ExternalGateway_itemname#></a></th>
 			<td>
-				<input type="text" name="lan_gateway" maxlength="15" class="input_15_table" value="<% nvram_get("lan_gateway"); %>" onKeyPress="return is_ipaddr(this);" onKeyUp="change_ipaddr(this);">
+				<input type="text" name="lan_gateway" maxlength="15" class="input_15_table" value="<% nvram_get("lan_gateway"); %>" onKeyPress="return is_ipaddr(this, event);">
 			</td>
 			</tr>
 
@@ -428,7 +445,7 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 				<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,13);"><#IPConnection_x_DNSServer1_itemname#></a>
 			</th>
       <td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_dns1_x" value="<% nvram_get("lan_dns1_x"); %>" onkeypress="return is_ipaddr(this)" onkeyup="change_ipaddr(this)"/>
+				<input type="text" maxlength="15" class="input_15_table" name="lan_dns1_x" value="<% nvram_get("lan_dns1_x"); %>" onkeypress="return is_ipaddr(this, event)" >
 			</td>
       </tr>
 
@@ -437,7 +454,7 @@ if(matchSubnet(document.form.lan_ipaddr.value, document.form.pptpd_clients.value
 				<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,14);"><#IPConnection_x_DNSServer2_itemname#></a>
 			</th>
       <td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_dns2_x" value="<% nvram_get("lan_dns2_x"); %>" onkeypress="return is_ipaddr(this)" onkeyup="change_ipaddr(this)"/>
+				<input type="text" maxlength="15" class="input_15_table" name="lan_dns2_x" value="<% nvram_get("lan_dns2_x"); %>" onkeypress="return is_ipaddr(this, event)" >
 			</td>
       </tr>  
 

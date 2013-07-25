@@ -15,7 +15,7 @@
 ***********************************************************************/
 
 static char const RCSID[] =
-"$Id: event.c 2930 2011-04-26 15:24:06Z themiron.ru $";
+"$Id: event.c 3323 2011-09-21 18:45:48Z lly.dev $";
 
 #include "event.h"
 #include <stdlib.h>

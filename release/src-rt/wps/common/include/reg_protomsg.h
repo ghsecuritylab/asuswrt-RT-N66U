@@ -1,7 +1,7 @@
 /*
  * Registrar protocol messages
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: reg_protomsg.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: reg_protomsg.h 292703 2011-10-28 03:05:19Z $
  */
 
 #ifndef _WPS_MSG_H
@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #include <reg_prototlv.h>
-
+#include <wps_sslist.h>
 
 /* Message Structures */
 
@@ -238,46 +238,50 @@ typedef struct {
 /* M7 */
 /* NOTE : this structure MUST be freed using reg_msg_m7enr_del */
 typedef struct {
+	int es_type;
 	CTlvNonce nonce; /* ES2 */
 	CTlvIdentityProof idProof;
 	CTlvAuthenticator keyWrapAuth; /* reuse Authenticator data struct */
-} TlvEsM7Enr;
+} EsM7Enr;
 
 /* NOTE : this structure MUST be freed using reg_msg_m7ap_del */
 typedef struct {
+	int es_type;
 	CTlvNonce nonce; /* ES2 */
 	CTlvSsid ssid;
 	CTlvMacAddr macAddr;
 	CTlvAuthType authType;
 	CTlvEncrType encrType;
-	LPLIST nwKeyIndex;
-	LPLIST nwKey;
+	WPS_SSLIST *nwKeyIndex;
+	WPS_SSLIST *nwKey;
 	CTlvWEPTransmitKey wepIdx;
 	CTlvAuthenticator keyWrapAuth; /* reuse Authenticator data struct */
-} CTlvEsM7Ap;
+} EsM7Ap;
 
 /* M8 */
 /* NOTE : this structure MUST be freed using reg_msg_m8ap_del */
 typedef struct {
+	int es_type;
 	CTlvNwIndex nwIndex;
 	CTlvSsid ssid;
 	CTlvAuthType authType;
 	CTlvEncrType encrType;
-	LPLIST nwKeyIndex;
-	LPLIST nwKey;
+	WPS_SSLIST *nwKeyIndex;
+	WPS_SSLIST *nwKey;
 	CTlvMacAddr macAddr;
 	CTlvNewPwd new_pwd;
 	CTlvDevicePwdId pwdId;
 	CTlvWEPTransmitKey wepIdx;
 	CTlvAuthenticator keyWrapAuth; /* reuse Authenticator data struct */
-} CTlvEsM8Ap;
+} EsM8Ap;
 
 typedef struct {
-	LPLIST credential;
+	int es_type;
+	WPS_SSLIST *credential;
 	CTlvNewPwd new_pwd;
 	CTlvDevicePwdId pwdId;
 	CTlvAuthenticator keyWrapAuth; /* reuse Authenticator data struct */
-} CTlvEsM8Sta;
+} EsM8Sta;
 
 #define ES_TYPE_M7ENR	1
 #define ES_TYPE_M7AP	2
@@ -285,28 +289,23 @@ typedef struct {
 #define ES_TYPE_M8STA	4
 
 void reg_msg_init(void *m, int type);
+int reg_msg_version_check(uint8 msgId, BufferObj *theBuf, TlvObj_uint8 *version, TlvObj_uint8 *msgType);
 void reg_msg_nonce_parse(TlvEsNonce *t, uint16 theType, BufferObj *theBuf, BufferObj *authKey);
 void reg_msg_nonce_write(TlvEsNonce *t, BufferObj *theBuf, BufferObj *authKey);
-TlvEsM7Enr * reg_msg_m7enr_new(void);
-void reg_msg_m7enr_del(TlvEsM7Enr *t, bool content_only);
-uint32 reg_msg_m7enr_parse(TlvEsM7Enr *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
-void reg_msg_m7enr_write(TlvEsM7Enr *t, BufferObj *theBuf, BufferObj *authKey);
-CTlvEsM7Ap * reg_msg_m7ap_new(void);
-void reg_msg_m7ap_del(CTlvEsM7Ap *tlv, bool content_only);
-uint32 reg_msg_m7ap_parse(CTlvEsM7Ap *tlv, BufferObj *theBuf, BufferObj *authKey, bool allocate);
-void reg_msg_m7ap_write(CTlvEsM7Ap *tlv, BufferObj *theBuf, BufferObj *authKey);
-CTlvEsM8Ap *reg_msg_m8ap_new(void);
-void reg_msg_m8ap_del(CTlvEsM8Ap *t, bool content_only);
-void reg_msg_m8ap_parse(CTlvEsM8Ap *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
-void reg_msg_m8ap_write(CTlvEsM8Ap *t, BufferObj *theBuf, BufferObj *authKey, bool b_wsp_version2);
-CTlvEsM8Sta *reg_msg_m8sta_new(void);
-void reg_msg_m8sta_del(CTlvEsM8Sta *t, bool content_only);
-void reg_msg_m8sta_parse(CTlvEsM8Sta *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
-void reg_msg_m8sta_write(CTlvEsM8Sta *t, BufferObj *theBuf);
-void reg_msg_m8sta_write_cred(CTlvEsM8Sta *t, BufferObj *theBuf);
-void reg_msg_m8sta_write_key(CTlvEsM8Sta *t, BufferObj *theBuf, BufferObj *authKey);
-void reg_msg_es_del(void *tlv, bool content_only);
 
+uint32 reg_msg_m7enr_parse(EsM7Enr *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
+void reg_msg_m7enr_write(EsM7Enr *t, BufferObj *theBuf, BufferObj *authKey);
+uint32 reg_msg_m7ap_parse(EsM7Ap *tlv, BufferObj *theBuf, BufferObj *authKey, bool allocate);
+void reg_msg_m7ap_write(EsM7Ap *tlv, BufferObj *theBuf, BufferObj *authKey);
+void reg_msg_m8ap_parse(EsM8Ap *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
+void reg_msg_m8ap_write(EsM8Ap *t, BufferObj *theBuf, BufferObj *authKey, bool b_wsp_version2);
+void reg_msg_m8sta_parse(EsM8Sta *t, BufferObj *theBuf, BufferObj *authKey, bool allocate);
+void reg_msg_m8sta_write(EsM8Sta *t, BufferObj *theBuf);
+void reg_msg_m8sta_write_cred(EsM8Sta *t, BufferObj *theBuf);
+void reg_msg_m8sta_write_key(EsM8Sta *t, BufferObj *theBuf, BufferObj *authKey);
+
+void *reg_msg_es_new(int es_type);
+void reg_msg_es_del(void *tlv, bool content_only);
 
 #ifdef __cplusplus
 }

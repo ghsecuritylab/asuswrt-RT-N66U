@@ -1,7 +1,7 @@
 #
 # Linux router libbcmcrypto Makefile
 #
-# Copyright (C) 2010, Broadcom Corporation
+# Copyright (C) 2011, Broadcom Corporation
 # All Rights Reserved.
 # 
 # This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
 # or duplicated in any form, in whole or in part, without the prior
 # written permission of Broadcom Corporation.
 #
-# $Id: Makefile,v 1.5 2011-01-20 03:49:46 Exp $
+# $Id: Makefile 311083 2012-01-27 13:47:05Z $
 #
 
 include $(TOP)/.config
@@ -17,20 +17,18 @@ include $(TOP)/.config
 CFLAGS	+= -Wsign-compare -I. -I../httpd -I$(SRCBASE)/include -Wall
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s
-ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
-CFLAGS  += -Os
-else
-CFLAGS  += -O2
-endif
 LDFLAGS += -L.
+
 
 vpath %.c $(SRCBASE)/bcmcrypto
 vpath %.o $(SRCBASE)/router/libbcmcrypto/prebuilt
 
 OBJS := aes.o aeskeywrap.o rijndael-alg-fst.o dh.o bn.o sha1.o passhash.o prf.o md5.o hmac.o rc4.o random.o
-ifeq ($(CONFIG_WSCCMD), y)
-OBJS += sha256.o hmac_sha256.o 
-endif
+# For customer backwords compatibility, for now we keep CONFIG_WSCCMD here and can be removed when
+# all customers migrate to new SDK (no CONFIG_WSCCMD in configration files).
+#ifneq ($(CONFIG_WPS)$(CONFIG_WSCCMD)$(CONFIG_MFP),)
+OBJS += sha256.o hmac_sha256.o
+#endif
 
 # Find all ELF binaries (including extra libraries)
 BINARIES := $(shell find $(TARGETDIR) -path $(TARGETDIR)/lib -prune -o -type f -print | file -f - | grep ELF | cut -d':' -f1)

@@ -646,7 +646,7 @@ link_terminated(unit)
      * we delete its pid file.
      */
     if (!doing_multilink && !demand)
-	remove_pidfiles();
+	remove_pidfiles(1);
 
     /*
      * If we may want to bring the link up again, transfer
@@ -827,7 +827,7 @@ network_phase(unit)
     /*
      * If the peer had to authenticate, run the auth-up script now.
      */
-    if (go->neg_chap || go->neg_upap || go->neg_eap) {
+    if (go->neg_chap || go->neg_upap || go->neg_eap || auth_done[unit]) {
 	notify(auth_up_notifier, 0);
 	auth_state = s_up;
 	if (auth_script_state == s_down && auth_script_pid == 0) {

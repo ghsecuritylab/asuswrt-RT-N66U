@@ -1,7 +1,7 @@
 /*
  * WPS station
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_sta.h 247315 2011-03-18 12:26:00Z kenlo $
+ * $Id: wps_sta.h 297187 2011-11-18 04:09:28Z $
  */
 #ifndef __WPS_STA_H__
 #define __WPS_STA_H__
@@ -21,13 +21,13 @@ wps_ap_list_info_t *wps_get_ap_list(void);
 wps_ap_list_info_t *create_aplist(void);
 int add_wps_ie(unsigned char *p_data, int length, bool pbc, bool b_wps_version2);
 int rem_wps_ie(unsigned char *p_data, int length, unsigned int pktflag);
-int join_network(char* ssid, uint8 wsec);
+int join_network(char* ssid, uint32 wsec);
 int leave_network(void);
 int wps_get_bssid(char *bssid);
 int wps_get_ssid(char *ssid, int *len);
 int wps_get_bands(uint *band_num, uint *active_band);
 int do_wpa_psk(WpsEnrCred* credential);
-int join_network_with_bssid(char* ssid, uint8 wsec, char *bssid);
+int join_network_with_bssid(char* ssid, uint32 wsec, char *bssid);
 int do_wps_scan(void);
 char* get_wps_scan_results(void);
 

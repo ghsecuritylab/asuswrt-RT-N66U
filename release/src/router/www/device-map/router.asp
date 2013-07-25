@@ -10,26 +10,54 @@
 <link href="/NM_style.css" rel="stylesheet" type="text/css" />
 <link href="/form_style.css" rel="stylesheet" type="text/css" />
 <script type="text/javascript" src="/general.js"></script>
-<script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="formcontrol.js"></script>
 <script type="text/javascript" src="/ajax.js"></script>
+<script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
-var $j = jQuery.noConflict();
 
+var $j = jQuery.noConflict();
 <% wl_get_parameter(); %>
 
 function initial(){
+	if(sw_mode == 2){
+		if(parent.psta_support == -1){
+			if('<% nvram_get("wl_unit"); %>' == '<% nvram_get("wlc_band"); %>' && '<% nvram_get("wl_subunit"); %>' != '1'){
+				tabclickhandler('<% nvram_get("wl_unit"); %>');
+			}
+			else if(sw_mode == 2 && '<% nvram_get("wl_unit"); %>' != '<% nvram_get("wlc_band"); %>' && '<% nvram_get("wl_subunit"); %>' == '1'){
+				tabclickhandler('<% nvram_get("wl_unit"); %>');
+			}
+		}
+		else{
+			$("WLnetworkmap").style.display = "none";
+			$("applySecurity").style.display = "none";
+			$("WLnetworkmap_re").style.display = "";
+			if('<% nvram_get("wl_unit"); %>' != '<% nvram_get("wlc_band"); %>'){
+				tabclickhandler('<% nvram_get("wlc_band"); %>');
+			}
+		}
+	}
+	else{
+		if("<% nvram_get("wl_subunit"); %>" != "0" && "<% nvram_get("wl_subunit"); %>" != "-1"){
+			tabclickhandler("<% nvram_get("wl_unit"); %>");
+		}
+	}
+
 	flash_button();
 
+	// modify wlX.1_ssid(SSID to end clients) under repeater mode
+	if(parent.sw_mode == 2 && '<% nvram_get("wlc_band"); %>' == '<% nvram_get("wl_unit"); %>')
+		document.form.wl_subunit.value = 1;
+	else
+		document.form.wl_subunit.value = -1;
+	
 	if(band5g_support != -1){
 		$("t0").style.display = "";
 		$("t1").style.display = "";
-	}
-
-	if("<% nvram_get("wl_subunit"); %>" != "0" && "<% nvram_get("wl_subunit"); %>" != "-1"){
-		tabclickhandler("<% nvram_get("wl_unit"); %>");
+		if(sw_mode == 2 && parent.psta_support != -1)
+			$('t'+((parseInt(<% nvram_get("wlc_band"); %>+1))%2)).style.display = 'none';
 	}
 
 	$("t0").className = <% nvram_get("wl_unit"); %> ? "tab_NW" : "tabclick_NW";
@@ -38,26 +66,48 @@ function initial(){
 	if($("t1").className == "tabclick_NW" && 	parent.Rawifi_support != -1)	//no exist Rawifi
 		$("wl_txbf_tr").style.display = "";		//Viz Add 2011.12 for RT-N56U Ralink 			
 
-	document.form.wl_ssid.value = decodeURIComponent(document.form.wl_ssid_org.value);
-	document.form.wl_wpa_psk.value = decodeURIComponent(document.form.wl_wpa_psk_org.value);
-	document.form.wl_key1.value = decodeURIComponent(document.form.wl_key1_org.value);
-	document.form.wl_key2.value = decodeURIComponent(document.form.wl_key2_org.value);
-	document.form.wl_key3.value = decodeURIComponent(document.form.wl_key3_org.value);
-	document.form.wl_key4.value = decodeURIComponent(document.form.wl_key4_org.value);
+	document.form.wl_ssid.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_ssid"); %>');
+	document.form.wl_wpa_psk.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_wpa_psk"); %>');
+	document.form.wl_key1.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_key1"); %>');
+	document.form.wl_key2.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_key2"); %>');
+	document.form.wl_key3.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_key3"); %>');
+	document.form.wl_key4.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl_key4"); %>');
 
+	/* Viz banned 2012.06
 	if(document.form.wl_wpa_psk.value.length <= 0)
-		document.form.wl_wpa_psk.value = "Please type Password";
+		document.form.wl_wpa_psk.value = "<#wireless_psk_fillin#>";
+		*/
+	
+	if(sw_mode == 2){				
+			//remove Crypto: WPA & RADIUS
+			for(i=document.form.wl_auth_mode_x.length-1;i>=0;i--){
+					var authmode_opt = document.form.wl_auth_mode_x.options[i].value.toString();
+					if(authmode_opt.match('wpa') || authmode_opt.match('radius'))
+      					document.form.wl_auth_mode_x.remove(i);      									
+  		}
+  }
 	
 	wl_auth_mode_change(1);
 	show_LAN_info();
-	domore_create();
-	parent.show_middle_status(document.form.wl_auth_mode_x.value, document.form.wl_wpa_mode.value, parseInt(document.form.wl_wep_x.value));
+	if(parent.psta_support != -1 && parent.sw_mode == 2)
+		parent.show_middle_status('<% nvram_get("wlc_auth_mode"); %>', '', 0);		
+	else
+		parent.show_middle_status(document.form.wl_auth_mode_x.value, document.form.wl_wpa_mode.value, parseInt(document.form.wl_wep_x.value));
+	
+	automode_hint();		
+}
 
-	if(sw_mode == 2 && '<% nvram_get("wl_unit"); %>' == '<% nvram_get("wlc_band"); %>'){
-		document.form.wl_ssid.value = decodeURIComponent(document.form.wlc_ure_ssid_org.value);
-		UIunderRepeater();
-		disableAdvFn();
-	}
+function tabclickhandler(wl_unit){
+	if(parent.sw_mode == 2 && '<% nvram_get("wlc_band"); %>' == wl_unit)
+		document.form.wl_subunit.value = 1;
+	else
+		document.form.wl_subunit.value = -1;
+
+	document.form.wl_unit.value = wl_unit;
+	document.form.current_page.value = "device-map/router.asp";
+	FormActions("/apply.cgi", "change_wl_unit", "", "");
+	document.form.target = "";
+	document.form.submit();
 }
 
 function disableAdvFn(){
@@ -75,43 +125,6 @@ function UIunderRepeater(){
 
 	var ssidObj=document.getElementById("wl_ssid");
 	ssidObj.name="wlc_ure_ssid";
-}
-
-
-function domore_create(){
-	var option_AP = new Array();
-	option_AP[0] = document.createElement("option");
-	option_AP[0].text = "<#menu5_7_4#>";
-	option_AP[0].value = "../Main_WStatus2g_Content.asp"
-
-	if(sw_mode == "2"){
-		$("Router_domore").remove(6);
-		$("Router_domore").remove(5);
-		$("Router_domore").remove(4);
-		$("Router_domore").options[3].value="../Advanced_FirmwareUpgrade_Content.asp";
-		$("Router_domore").options[3].text="<#menu5_6_3#>";
-		$("Router_domore").remove(2);
-		$("Router_domore").remove(1);
-		try{
-    	$("Router_domore").add(option_AP[0],null);
-    }
-  	catch(ex){
-    	$("Router_domore").add(option_AP[0],2);
-    }
-	}
-	else if(sw_mode == "3"){
-		$("Router_domore").remove(6);
-		$("Router_domore").remove(5);
-		$("Router_domore").remove(4);
-		$("Router_domore").options[3].value="../Advanced_APLAN_Content.asp";
-		$("Router_domore").remove(2);
-		try{
-    	$("Router_domore").add(option_AP[0],null);
-    }
-  	catch(ex){
-    	$("Router_domore").add(option_AP[0],4);
-    }
-	}
 }
 
 function wl_auth_mode_change(isload){
@@ -144,9 +157,9 @@ function wl_auth_mode_change(isload){
 	
 	/* enable/disable psk passphrase */
 	if(mode == "psk" || mode == "psk2" || mode == "pskpsk2")
-		$("wl_wpa_psk").style.display = "";
+		$("wl_wpa_psk_tr").style.display = "";
 	else
-		$("wl_wpa_psk").style.display = "none";
+		$("wl_wpa_psk_tr").style.display = "none";
 	
 	/* update wl_crypto */
 	for(var i = 0; i < document.form.wl_crypto.length; ++i)
@@ -158,16 +171,12 @@ function wl_auth_mode_change(isload){
 	/* Reconstruct algorithm array from new crypto algorithms */
 	if(mode == "psk" || mode == "psk2" || mode == "pskpsk2"){
 		/* Save current crypto algorithm */
-		if(isModel() == "SnapAP" || isBand() == 'b')
-			new_array = new Array("TKIP");
-		else{
 			if(opts[opts.selectedIndex].text == "WPA-Personal")
 				new_array = new Array("TKIP");
 			else if(opts[opts.selectedIndex].text == "WPA2-Personal")
 				new_array = new Array("AES");
 			else
 				new_array = new Array("AES", "TKIP+AES");
-		}
 		
 		free_options(document.form.wl_crypto);
 		for(var i = 0; i < new_array.length; i++){
@@ -283,6 +292,7 @@ function change_wlweptype(wep_type_obj){
 	}
 	
 	wl_wep_change();
+	automode_hint();
 }
 
 function wl_wep_change(){
@@ -292,7 +302,7 @@ function wl_wep_change(){
 	if(mode == "psk" || mode == "psk2" || mode == "pskpsk2" || mode == "wpa" || mode == "wpa2" || mode == "wpawpa2"){
 		if(mode == "psk" || mode == "psk2" || mode == "pskpsk2"){
 			$("wl_crypto").style.display = "";
-			$("wl_wpa_psk").style.display = "";
+			$("wl_wpa_psk_tr").style.display = "";
 		}
 		
 		$("all_wep_key").style.display = "none";
@@ -300,7 +310,7 @@ function wl_wep_change(){
 	}
 	else{
 		$("wl_crypto").style.display = "none";
-		$("wl_wpa_psk").style.display = "none";
+		$("wl_wpa_psk_tr").style.display = "none";
 		
 		//if(mode == "radius") //2009.03 magic
 		//	blocking("all_related_wep", 0); //2009.03 magic
@@ -336,39 +346,10 @@ function change_key_des(){
 		showtext(objs[i], str);
 }
 
-function change_auth_mode(auth_mode_obj){
-	wl_auth_mode_change(0);
-	if(auth_mode_obj.value == "psk" || auth_mode_obj.value == "psk2" || auth_mode_obj.value == "pskpsk2" || auth_mode_obj.value == "wpa" || auth_mode_obj.value == "wpawpa2"){
-		var opts = document.form.wl_auth_mode_x.options;
-		
-		if(opts[opts.selectedIndex].text == "WPA-Personal")
-			document.form.wl_wpa_mode.value = "1";
-		else if(opts[opts.selectedIndex].text == "WPA2-Personal")
-			document.form.wl_wpa_mode.value="2";
-		else if(opts[opts.selectedIndex].text == "WPA-Auto-Personal")
-			document.form.wl_wpa_mode.value="0";
-		else if(opts[opts.selectedIndex].text == "WPA-Enterprise")
-			document.form.wl_wpa_mode.value="3";
-		else if(opts[opts.selectedIndex].text == "WPA-Auto-Enterprise")
-			document.form.wl_wpa_mode.value = "4";
-		
-		if(auth_mode_obj.value == "psk" || auth_mode_obj.value == "psk2" || auth_mode_obj.value == "pskpsk2"){
-			document.form.wl_wpa_psk.focus();
-			document.form.wl_wpa_psk.select();
-		}
-	}
-	else if(auth_mode_obj.value == "shared"){
-		show_key();
-	}
-	else{
-		document.form.wl_wep_x.selectedIndex = 0;
-		show_key();
-		wl_wep_change();
-	}
-	nmode_limitation2();
-}
-
 function show_key(){
+	if(document.form.wl_asuskey1_text)
+			switchType_IE(document.form.wl_asuskey1_text);
+
 	var wep_type = document.form.wl_wep_x.value;
 	var keyindex = document.form.wl_key.value;
 	var cur_key_obj = eval("document.form.wl_key"+keyindex);
@@ -378,19 +359,17 @@ function show_key(){
 		if(cur_key_length == 5 || cur_key_length == 10)
 			document.form.wl_asuskey1.value = cur_key_obj.value;
 		else
-			document.form.wl_asuskey1.value = "0000000000";
+			document.form.wl_asuskey1.value = ""; //0000000000
 	}
 	else if(wep_type == 2){
 		if(cur_key_length == 13 || cur_key_length == 26)
 			document.form.wl_asuskey1.value = cur_key_obj.value;
 		else
-			document.form.wl_asuskey1.value = "00000000000000000000000000";
+			document.form.wl_asuskey1.value = ""; //00000000000000000000000000
 	}
 	else
 		document.form.wl_asuskey1.value = "";
 	
-	document.form.wl_asuskey1.focus();
-	document.form.wl_asuskey1.select();
 }
 
 function show_LAN_info(){
@@ -428,37 +407,10 @@ var timeout = 1000;
 var delay = 500;
 var stopFlag=0;
 
-function resetTimer(){
-}
-
-function InitializeTimer(){
-}
-
-function StopTheClock(){
-}
-
-function StartTheTimer(){
-}
-
-function updateWPS(){
-}
-
-function loadXML(){
-}
-
-function refresh_wpsinfo(xmldoc){
-}
-
-function PBC_shining(){
-}
-
-function PBC_normal(){
-}
-
 function submitForm(){
 	var auth_mode = document.form.wl_auth_mode_x.value;
 
-	if(document.form.wl_wpa_psk.value == "Please type Password")
+	if(document.form.wl_wpa_psk.value == "<#wireless_psk_fillin#>")
 		document.form.wl_wpa_psk.value = "";
 		
 	if(!validate_string_ssid(document.form.wl_ssid))
@@ -490,6 +442,10 @@ function submitForm(){
 		document.form.target = "";
 		document.form.next_page.value = "/Advanced_WSecurity_Content.asp";
 	}
+
+	if(wl6_support != -1)
+		document.form.action_wait.value = parseInt(document.form.action_wait.value)+10;			// extend waiting time for BRCM new driver
+
 	parent.showLoading();
 	document.form.submit();	
 	return true;
@@ -524,24 +480,97 @@ function nmode_limitation2(){ //Lock add 2009.11.05 for TKIP limitation in n mod
 		}
 		wl_auth_mode_change(1);
 	}
-	document.form.wl_wpa_psk.focus();
-	document.form.wl_wpa_psk.select();
 }
 
-function tabclickhandler(wl_unit){
-	document.form.wl_unit.value = wl_unit;
-	document.form.current_page.value = "device-map/router.asp";
-	FormActions("/apply.cgi", "change_wl_unit", "", "");
-	document.form.target = "";
-	document.form.submit();
+var isNotIE = (navigator.userAgent.search("MSIE") == -1); 
+function switchType(_method){
+	if(isNotIE){
+		document.form.wl_asuskey1.type = _method ? "text" : "password";
+		document.form.wl_wpa_psk.type = _method ? "text" : "password";
+	}
+}
+
+function switchType_IE(obj){
+		if(isNotIE) return;		
+		
+		var tmp = "";
+		tmp = obj.value;
+		if(obj.id.indexOf('text') < 0){		//password
+					if(obj.id.indexOf('psk') >= 0){							
+							obj.style.display = "none";
+							document.getElementById('wl_wpa_psk_text').style.display = "";
+							document.getElementById('wl_wpa_psk_text').value = tmp;
+							document.getElementById('wl_wpa_psk_text').focus();
+					}
+					if(obj.id.indexOf('asuskey') >= 0){
+							obj.style.display = "none";
+							document.getElementById('wl_asuskey1_text').style.display = "";
+							document.getElementById('wl_asuskey1_text').value = tmp;						
+							document.getElementById('wl_asuskey1_text').focus();
+					}	
+		}else{														//text					
+					if(obj.id.indexOf('psk') >= 0){
+							obj.style.display = "none";
+							document.getElementById('wl_wpa_psk').style.display = "";
+							document.getElementById('wl_wpa_psk').value = tmp;
+					}
+					if(obj.id.indexOf('asuskey') >= 0){
+							obj.style.display = "none";
+							document.getElementById('wl_asuskey1').style.display = "";
+							document.getElementById('wl_asuskey1').value = tmp;						
+					}					
+		}
+}
+
+function clean_input(obj){
+	if(obj.value == "<#wireless_psk_fillin#>")
+			obj.value = "";
+}
+
+function change_authmode(o, s, v){
+	change = 1;
+	pageChanged = 1;	
+	if(document.form.wl_wpa_psk_text)
+			switchType_IE(document.form.wl_wpa_psk_text);
+	
+	if(v == "wl_auth_mode_x"){ /* Handle AuthenticationMethod Change */
+		wl_auth_mode_change(0);
+		if(o.value == "psk" || o.value == "psk2" || o.value == "pskpsk2" || o.value == "wpa" || o.value == "wpawpa2"){
+			opts = document.form.wl_auth_mode_x.options;			
+			if(opts[opts.selectedIndex].text == "WPA-Personal"){
+				document.form.wl_wpa_mode.value="1";
+			}
+			else if(opts[opts.selectedIndex].text == "WPA2-Personal")
+				document.form.wl_wpa_mode.value="2";
+			else if(opts[opts.selectedIndex].text == "WPA-Auto-Personal")
+				document.form.wl_wpa_mode.value="0";
+			else if(opts[opts.selectedIndex].text == "WPA-Enterprise")
+				document.form.wl_wpa_mode.value="3";
+			else if(opts[opts.selectedIndex].text == "WPA-Auto-Enterprise")
+				document.form.wl_wpa_mode.value="4";
+
+		}
+		else if(o.value == "shared"){ //2009.03.10 Lock
+			document.form.wl_key.focus();
+		}
+		nmode_limitation();
+
+	}
+	
+	automode_hint();
+	return true;
+}
+
+
+function gotoSiteSurvey(){
+	parent.location.href = '/QIS_wizard.htm?flag=sitesurvey&band='+'<% nvram_get("wl_unit"); %>';
 }
 </script>
 </head>
-
 <body class="statusbody" onload="initial();">
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" id="form" action="/start_apply2.htm">
-<input type="hidden" name="current_page" value="">
+<input type="hidden" name="current_page" value="device-map/router.asp">
 <input type="hidden" name="next_page" value="">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="restart_wireless">
@@ -561,6 +590,7 @@ function tabclickhandler(wl_unit){
 <input type="hidden" name="wl_wpa_mode_orig" value="<% nvram_get("wl_wpa_mode"); %>">
 <input type="hidden" name="wl_wep_x_orig" value="<% nvram_get("wl_wep_x"); %>">
 <input type="hidden" name="wl_key_type" value="<% nvram_get("wl_key_type"); %>"><!--Lock Add 1125 for ralink platform-->
+<input type="hidden" name="wl_key_org" value="<% nvram_char_to_ascii("WLANConfig11b", "wl_key"); %>">
 <input type="hidden" name="wl_key1_org" value="<% nvram_char_to_ascii("WLANConfig11b", "wl_key1"); %>">
 <input type="hidden" name="wl_key2_org" value="<% nvram_char_to_ascii("WLANConfig11b", "wl_key2"); %>">
 <input type="hidden" name="wl_key3_org" value="<% nvram_char_to_ascii("WLANConfig11b", "wl_key3"); %>">
@@ -571,21 +601,39 @@ function tabclickhandler(wl_unit){
 <input type="hidden" name="wl_subunit" value="-1">
 <input type="hidden" name="wl_radio" value="<% nvram_get("wl_radio"); %>">
 <input type="hidden" name="wl_txbf" value="<% nvram_get("wl_txbf"); %>">
+
 <table border="0" cellpadding="0" cellspacing="0">
 <tr>
 	<td>		
 		<table width="100px" border="0" align="left" style="margin-left:8px;" cellpadding="0" cellspacing="0">
-	<!--td align="center" class="r1">2.4GHz</td-->
-  		<td ><div id="t0" class="tabclick_NW" align="center" style="display:none; margin-right:2px; width:90px;" onclick="tabclickhandler(0)"><span id="span1" ><a href="#">2.4GHz</a></span></div></td>
-  		<td ><div id="t1" class="tab_NW" align="center" style="display:none; margin-right:2px; width:90px;" onclick="tabclickhandler(1)"><span id="span1" ><a href="#">5GHz</a></span></div></td>
-  	<!--td align="center" class="r2"><a href="router.asp">5GHz</a></td-->
+  		<td>
+				<div id="t0" class="tabclick_NW" align="center" style="font-weight: bolder;display:none; margin-right:2px; width:90px;" onclick="tabclickhandler(0)">
+					<span id="span1" style="cursor:pointer;font-weight: bolder;">2.4GHz</span>
+				</div>
+			</td>
+  		<td>
+				<div id="t1" class="tab_NW" align="center" style="font-weight: bolder;display:none; margin-right:2px; width:90px;" onclick="tabclickhandler(1)">
+					<span id="span1" style="cursor:pointer;font-weight: bolder;">5GHz</span>
+				</div>
+			</td>
 		</table>
 	</td>
 </tr>
 
 <tr>
-	<td>				
-		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="table1px" id="WLnetworkmap">
+	<td>
+		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" class="table1px" id="WLnetworkmap_re" style="display:none">
+		  <tr>
+		    <td height="50" style="padding:10px 15px 0px 15px;">
+		    	<p class="formfonttitle_nwm" style="float:left;"><#APSurvey_action_search_again_hint2#></p>
+					<br />
+		    	<input type="button" class="button_gen" onclick="gotoSiteSurvey();" value="<#btn_go#>" style="float:right;">
+     			<img style="margin-top:5px; *margin-top:-10px; visibility:hidden;" src="/images/New_ui/networkmap/linetwo2.png">
+		    </td>
+		  </tr>
+		</table>
+
+		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" class="table1px" id="WLnetworkmap">
   		<tr>
     			<td style="padding:5px 10px 0px 10px; ">
   	  			<p class="formfonttitle_nwm" ><#Wireless_name#>(SSID)</p>
@@ -596,7 +644,7 @@ function tabclickhandler(wl_unit){
   		<tr>
     			<td style="padding:5px 10px 0px 10px; *padding:1px 10px 0px 10px;">
     				<p class="formfonttitle_nwm" ><#WLANConfig11b_AuthenticationMethod_itemname#></p>
-				  		<select style="*margin-top:-7px;" name="wl_auth_mode_x" class="input_option" onChange="return change_common(this, 'WLANConfig11b', 'wl_auth_mode_x');">
+				  		<select style="*margin-top:-7px;" name="wl_auth_mode_x" class="input_option" onChange="return change_authmode(this, 'WLANConfig11b', 'wl_auth_mode_x');">
 							<option value="open"    <% nvram_match("wl_auth_mode_x", "open",   "selected"); %>>Open System</option>
 							<option value="shared"  <% nvram_match("wl_auth_mode_x", "shared", "selected"); %>>Shared Key</option>
 							<option value="psk"     <% nvram_match("wl_auth_mode_x", "psk",    "selected"); %>>WPA-Personal</option>
@@ -606,7 +654,8 @@ function tabclickhandler(wl_unit){
 							<option value="wpa2"    <% nvram_match("wl_auth_mode_x", "wpa2",   "selected"); %>>WPA2-Enterprise</option>
 							<option value="wpawpa2" <% nvram_match("wl_auth_mode_x", "wpawpa2","selected"); %>>WPA-Auto-Enterprise</option>
 							<option value="radius"  <% nvram_match("wl_auth_mode_x", "radius", "selected"); %>>Radius with 802.1x</option>
-				  		</select>				 		
+				  		</select>
+					<div id="wl_nmode_x_hint"  style="display:none;"><#WLANConfig11n_automode_limition_hint#></div>				 		
 	  				<img style="margin-top:5px; *margin-top:-10px;"src="/images/New_ui/networkmap/linetwo2.png">
     			</td>
   		</tr>
@@ -635,8 +684,12 @@ function tabclickhandler(wl_unit){
   		</tr>
   		<tr id='asus_wep_key'>
     			<td style="padding:5px 10px 0px 10px; ">
-	    			<p class="formfonttitle_nwm" ><#WLANConfig11b_WEPKey_itemname#></p>
-						<input style="width:260px;*margin-top:-7px;" type="text" id="sta_asuskey1" name="wl_asuskey1" onfocus="show_wepkey_help();" onKeyUp="return change_wlkey(this, 'WLANConfig11b');" value="" maxlength="32" class="input_25_table">
+	    			<p class="formfonttitle_nwm" ><#WLANConfig11b_WEPKey_itemname#>
+						</p>
+						<span id="sta_asuskey1_span">
+							<input id="wl_asuskey1" name="wl_asuskey1" style="width:260px;*margin-top:-7px;" type="password" autocapitalization="off" onBlur="switchType(false);" onFocus="switchType(true);switchType_IE(this);show_wepkey_help();" onKeyUp="return change_wlkey(this, 'WLANConfig11b');" value="" maxlength="27" class="input_25_table">
+							<input id="wl_asuskey1_text" name="wl_asuskey1_text" style="width:260px;*margin-top:-7px;display:none;" type="text" autocapitalization="off"  onClick="clean_input(this);" onBlur="switchType_IE(this);parent.showHelpofDrSurf(0, 7);" value="" maxlength="27" class="input_25_table"/>
+						</span>
       			<img style="margin-top:5px; *margin-top:-10px;"src="/images/New_ui/networkmap/linetwo2.png">
     			</td>
   		</tr>
@@ -644,26 +697,32 @@ function tabclickhandler(wl_unit){
 			<td style="padding:5px 10px 0px 10px; *padding:1px 10px 0px 10px;">
 	  			<p class="formfonttitle_nwm" ><#WLANConfig11b_WPAType_itemname#></p>
 	  			<select style="*margin-top:-7px;" name="wl_crypto" class="input_option" onfocus="parent.showHelpofDrSurf(0, 6);" onchange="wl_auth_mode_change(0);">
-				<!--option value="tkip" <% nvram_match("wl_crypto", "tkip", "selected"); %>>TKIP</option-->
+					<!--option value="tkip" <% nvram_match("wl_crypto", "tkip", "selected"); %>>TKIP</option-->
 					<option value="aes" <% nvram_match("wl_crypto", "aes", "selected"); %>>AES</option>
 					<option value="tkip+aes" <% nvram_match("wl_crypto", "tkip+aes", "selected"); %>>TKIP+AES</option>
 	  			</select>	  			
 	  			<img style="margin-top:5px; *margin-top:-10px;"src="/images/New_ui/networkmap/linetwo2.png">
 			</td>
   		</tr>
-  		<tr id='wl_wpa_psk' style='display:none'>
+  		<tr id='wl_wpa_psk_tr' style='display:none'>
     			<td style="padding:5px 10px 0px 10px;">
-      			<p class="formfonttitle_nwm" ><#WPA-PSKKey#></p>
-      			<input style="width:260px;*margin-top:-7px;" type="text" id="sta_wpa_psk" name="wl_wpa_psk" onfocus="parent.showHelpofDrSurf(0, 7);" value="" size="22" maxlength="65" class="input_25_table"/>
+      			<p class="formfonttitle_nwm" ><#WPA-PSKKey#>
+						</p>	
+      			<span id="sta_wpa_psk_span">
+							<input id="wl_wpa_psk" name="wl_wpa_psk" style="width:260px;*margin-top:-7px;" type="password" autocapitalization="off" onBlur="switchType(false);" onFocus="switchType(true);switchType_IE(this);parent.showHelpofDrSurf(0, 7);" value="" maxlength="65" class="input_25_table"/>
+							<input id="wl_wpa_psk_text" name="wl_wpa_psk_text" style="width:260px;*margin-top:-7px;display:none;" type="text" autocapitalization="off" onClick="clean_input(this);" onBlur="switchType_IE(this);parent.showHelpofDrSurf(0, 7);" value="" maxlength="65" class="input_25_table"/>
+						</span>
       			<img style="margin-top:5px; *margin-top:-10px;"src="/images/New_ui/networkmap/linetwo2.png">
     			</td>
   		</tr>
+
   		<tr id="wl_radio_tr" style="display:none">
 			<td style="padding:5px 10px 0px 10px;">
 	    			<p class="formfonttitle_nwm" style="float:left;"><#Wireless_Radio#></p>
 				<div class="left" style="width:94px; float:right;" id="radio_wl_radio"></div>
 				<div class="clear"></div>
 				<script type="text/javascript">
+					//var $j = jQuery.noConflict();
 					$j('#radio_wl_radio').iphoneSwitch('<% nvram_get("wl_radio"); %>', 
 							 function() {
 								document.form.wl_radio.value = "1";
@@ -686,6 +745,7 @@ function tabclickhandler(wl_unit){
 				<div class="left" style="width:94px; float:right;" id="radio_wl_txbf"></div>
 				<div class="clear"></div>
 				<script type="text/javascript">
+					var $j = jQuery.noConflict();
 					$j('#radio_wl_txbf').iphoneSwitch('<% nvram_get("wl_txbf"); %>', 
 							 function() {
 								document.form.wl_txbf.value = "1";
@@ -710,7 +770,7 @@ function tabclickhandler(wl_unit){
 
 <tr>
 	<td> 			
- 		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="table1px">
+ 		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" class="table1px">
   		<tr id="apply_tr">
     			<td style="border-bottom:3px #15191b solid;padding:0px 10px 5px 10px;">
     				<input id="applySecurity" type="button" class="button_gen" value="<#CTL_apply#>" onclick="submitForm();" style="margin-left:90px;">
@@ -750,23 +810,12 @@ function tabclickhandler(wl_unit){
     				<p style="padding-left:10px; margin-top:3px; *margin-top:-5px; padding-bottom:3px; margin-right:10px; background-color:#444f53; line-height:20px;" id="MAC_wl5"></p>
     				<img style="margin-top:5px; *margin-top:-10px;" src="/images/New_ui/networkmap/linetwo2.png">
     			</td>
-  		</tr>     
-			</tr>
+  		</tr>
 		</table>
 	</td>
 </tr>
 </table>			
 </form>
-<select id="Router_domore" class="input_option_left" onchange="domore_link(this);" style="display:none">
-	<option><#MoreConfig#>...</option>
-	<option value="../Advanced_Wireless_Content.asp"><#menu5_1#>-<#menu5_1_1#></option>
-	<option value="../Advanced_WWPS_Content.asp"><#menu5_1_2#></option>
-	<option value="../Advanced_LAN_Content.asp"><#menu5_2_1#></option>
-	<option value="../Advanced_DHCP_Content.asp"><#menu5_2_2#></option>
-	<option value="../Advanced_GWStaticRoute_Content.asp"><#menu5_2_3#></option>
-	<option value="../Main_LogStatus_Content.asp"><#menu5_7_2#></option>
-</select>
-
 <form method="post" name="WPSForm" id="WPSForm" action="/stawl_apply.htm">
 <input type="hidden" name="current_page" value="">
 <input type="hidden" name="action_script" value="">

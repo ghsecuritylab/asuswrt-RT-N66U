@@ -39,7 +39,7 @@ extern void hndpci_init_cores(si_t *sih);
 extern void hndpci_arb_park(si_t *sih, uint parkid);
 extern bool hndpci_is_hostbridge(uint bus, uint dev);
 extern uint32 hndpci_get_membase(uint bus);
-extern void hndpci_deinit(si_t *sih);	/* for 4706 reboot issue*/
+extern void hndpci_deinit(si_t *sih);
 extern int hndpci_deinit_pci(si_t *sih, uint coreunit);
 
 #define PCI_PARK_NVRAM    0xff

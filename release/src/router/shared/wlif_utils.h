@@ -77,5 +77,6 @@ extern int get_wlname_by_mac(unsigned char *mac, char *wlname);
 extern char *get_ifname_by_wlmac(unsigned char *mac, char *name);
 
 extern int get_wsec(wsec_info_t *info, char *mac, char *osifname);
+extern bool wl_wlif_is_psta(char *ifname);
 
 #endif /* _wlif_utils_h_ */

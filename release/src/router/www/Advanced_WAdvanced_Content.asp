@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_1_6#></title>
+<title><#Web_Title#> - <#menu5_1_6#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <script type="text/javascript" src="/state.js"></script>
@@ -37,26 +37,33 @@ function initial(){
 	}
 
 	$("wl_rate").style.display = "none";
+	if(wifi_hw_sw_support != -1) {
+		$("wl_rf_enable").style.display = "none";	
+	}
 	
 	if(band5g_support == -1)	
 		$("wl_unit_field").style.display = "none";
 
 	if(Rawifi_support == -1){		//without rawifi
-		$("wl_mrate_select").style.display = "";	
-		$("wl_mrate_select_rawifi").style.display = "none";			
 		$("DLSCapable").style.display = "none";	
 		$("PktAggregate").style.display = "none";
 		$("enable_wl_multicast_forward").style.display = "";
+	}
+	else{
+		free_options(document.form.wl_mrate_x);
+		add_option(document.form.wl_mrate_x, "<#CTL_Disabled#>", 0, <% nvram_get("wl_mrate_x"); %> == 0);
+		add_option(document.form.wl_mrate_x, "Auto", 13, <% nvram_get("wl_mrate_x"); %> == 13);
 	}
 
 	if(repeater_support != -1){		//with RE mode
 		$("DLSCapable").style.display = "none";	
 	}	
 
-	if(document.form.wl_nmode_x.value == "1" || document.form.wl_nmode_x.value == "0"){		
-		$("wl_wme").value = "on";
+	if(document.form.wl_nmode_x.value == "0" || document.form.wl_nmode_x.value == "1"){		//auto , n only		
 		inputCtrl(document.form.wl_frag, 0);
+		document.form.wl_wme.value = "on";
 		inputCtrl(document.form.wl_wme, 0);
+		document.form.wl_wme_no_ack.value = "off";
 		inputCtrl(document.form.wl_wme_no_ack, 0);
 	}
 	else{
@@ -64,18 +71,8 @@ function initial(){
 		inputCtrl(document.form.wl_wme, 1);
 		inputCtrl(document.form.wl_wme_no_ack, 1);
 	}	
-
-	document.form.wl_radio_date_x_Sun.checked = getDateCheck(document.form.wl_radio_date_x.value, 0);
-	document.form.wl_radio_date_x_Mon.checked = getDateCheck(document.form.wl_radio_date_x.value, 1);
-	document.form.wl_radio_date_x_Tue.checked = getDateCheck(document.form.wl_radio_date_x.value, 2);
-	document.form.wl_radio_date_x_Wed.checked = getDateCheck(document.form.wl_radio_date_x.value, 3);
-	document.form.wl_radio_date_x_Thu.checked = getDateCheck(document.form.wl_radio_date_x.value, 4);
-	document.form.wl_radio_date_x_Fri.checked = getDateCheck(document.form.wl_radio_date_x.value, 5);
-	document.form.wl_radio_date_x_Sat.checked = getDateCheck(document.form.wl_radio_date_x.value, 6);
-	document.form.wl_radio_time_x_starthour.value = getTimeRange(document.form.wl_radio_time_x.value, 0);
-	document.form.wl_radio_time_x_startmin.value = getTimeRange(document.form.wl_radio_time_x.value, 1);
-	document.form.wl_radio_time_x_endhour.value = getTimeRange(document.form.wl_radio_time_x.value, 2);
-	document.form.wl_radio_time_x_endmin.value = getTimeRange(document.form.wl_radio_time_x.value, 3);
+		
+	loadDateTime();
 
 	if(power_support < 0)
 		inputHideCtrl(document.form.wl_TxPower, 0);
@@ -83,32 +80,33 @@ function initial(){
 
 function applyRule(){
 	if(power_support != -1){
-		if(document.form.wl_unit.value == 0)
-			var maxPower = 500;
+		var wlcountry = '<% nvram_get("wl0_country_code"); %>';
+		if(wlcountry == 'US' || wlcountry == 'CN' || wlcountry == 'TW'){
+			if(document.form.wl_unit.value == 0)
+				var maxPower = 501;
+			else
+				var maxPower = 251;
+		}
 		else
-			var maxPower = 250;
+			var maxPower = 101;
 
 		if(parseInt(document.form.wl_TxPower.value) > maxPower){
-			$("TxPowerHint").style.display = "";
+			alert('<#JS_validrange#> 1 <#JS_validrange_to#> ' + maxPower + '.');
 			document.form.wl_TxPower.focus();
 			return false;
 		}
 	
-		if(parseInt(document.form.wl_TxPower.value) > 40 && flag < 2){
-			$("TxPowerHint").style.display = "";
+		if(parseInt(document.form.wl_TxPower.value) > 80 && flag < 2){
 			document.form.wl_TxPower.focus();
 			flag++;
 			return false;
 		}
-		else
-			$("TxPowerHint").style.display = "none";
 			
 		if(parseInt(document.form.wl_TxPower.value) > parseInt(document.form.wl_TxPower_orig.value))
-		  FormActions("start_apply.htm", "apply", "set_wltxpower;reboot", "30");
+		  FormActions("start_apply.htm", "apply", "set_wltxpower;reboot", "<% get_default_reboot_time(); %>");
 	}
 
 	if(validForm()){
-		updateDateTime(document.form.current_page.value);		
 		showLoading();
 		document.form.submit();
 	}
@@ -121,51 +119,31 @@ function validForm(){
 				|| !validate_range(document.form.wl_dtim, 1, 255)
 				|| !validate_range(document.form.wl_bcn, 20, 1000)
 				){
-			//alert("<#WLANConfig11b_x_RadioEnableTime_itemname#>");		
 			return false;
 		}	
 	}
 	
-	if(!validate_timerange(document.form.wl_radio_time_x_starthour, 0)
-			|| !validate_timerange(document.form.wl_radio_time_x_startmin, 1)
-			|| !validate_timerange(document.form.wl_radio_time_x_endhour, 2)
-			|| !validate_timerange(document.form.wl_radio_time_x_endmin, 3)
+	if(!validate_timerange(document.form.wl_radio_time_x_starthour, 0) || !validate_timerange(document.form.wl_radio_time2_x_starthour, 0)
+			|| !validate_timerange(document.form.wl_radio_time_x_startmin, 1) || !validate_timerange(document.form.wl_radio_time2_x_startmin, 1)
+			|| !validate_timerange(document.form.wl_radio_time_x_endhour, 2) || !validate_timerange(document.form.wl_radio_time2_x_endhour, 2)
+			|| !validate_timerange(document.form.wl_radio_time_x_endmin, 3) || !validate_timerange(document.form.wl_radio_time2_x_endmin, 3)
 			)
 		return false;
 	
-	if(document.form.wl_radio_time_x_starthour.value > document.form.wl_radio_time_x_endhour.value){
-			alert("<#FirewallConfig_URLActiveTime_itemhint#>");
-					document.form.wl_radio_time_x_starthour.focus();
-					document.form.wl_radio_time_x_starthour.select;
-			return false;	
-	}else if(document.form.wl_radio_time_x_starthour.value == document.form.wl_radio_time_x_endhour.value){
-			if(document.form.wl_radio_time_x_startmin.value > document.form.wl_radio_time_x_endmin.value){
-					alert("<#FirewallConfig_URLActiveTime_itemhint#>");
-					document.form.wl_radio_time_x_startmin.focus();
-					document.form.wl_radio_time_x_startmin.select;
-					return false;	
-			}else if(document.form.wl_radio_time_x_startmin.value == document.form.wl_radio_time_x_endmin.value){
-					alert("<#FirewallConfig_URLActiveTime_itemhint2#>");
-					document.form.wl_radio_time_x_startmin.focus();
-					document.form.wl_radio_time_x_startmin.select;
-					return false;					
-			}
-				
-	}
-		
-	if(document.form.wl_radio_date_x_Sun.checked == false
+	if(document.form.wl_radio[0].checked == true 
+			&& document.form.wl_radio_date_x_Sun.checked == false
 			&& document.form.wl_radio_date_x_Mon.checked == false
 			&& document.form.wl_radio_date_x_Tue.checked == false
 			&& document.form.wl_radio_date_x_Wed.checked == false
 			&& document.form.wl_radio_date_x_Thu.checked == false
 			&& document.form.wl_radio_date_x_Fri.checked == false
-			&& document.form.wl_radio_date_x_Sat.checked == false)
-		document.form.wl_radio[1].checked=true;
-		
-	if(!validate_range(document.form.wl_TxPower, 0, 100))
-		return false;
-		
-	
+			&& document.form.wl_radio_date_x_Sat.checked == false){
+				document.form.wl_radio_date_x_Sun.focus();
+				$('blank_warn').style.display = "";
+				return false;
+	}	
+					   
+	updateDateTime(document.form.current_page.value);	
 	return true;
 }
 
@@ -177,6 +155,23 @@ function disableAdvFn(row){
 	for(var i=row; i>=3; i--){
 		$("WAdvTable").deleteRow(i);
 	}
+}
+function loadDateTime(){
+	document.form.wl_radio_date_x_Sun.checked = getDateCheck(document.form.wl_radio_date_x.value, 0);
+	document.form.wl_radio_date_x_Mon.checked = getDateCheck(document.form.wl_radio_date_x.value, 1);
+	document.form.wl_radio_date_x_Tue.checked = getDateCheck(document.form.wl_radio_date_x.value, 2);
+	document.form.wl_radio_date_x_Wed.checked = getDateCheck(document.form.wl_radio_date_x.value, 3);
+	document.form.wl_radio_date_x_Thu.checked = getDateCheck(document.form.wl_radio_date_x.value, 4);
+	document.form.wl_radio_date_x_Fri.checked = getDateCheck(document.form.wl_radio_date_x.value, 5);
+	document.form.wl_radio_date_x_Sat.checked = getDateCheck(document.form.wl_radio_date_x.value, 6);
+	document.form.wl_radio_time_x_starthour.value = getTimeRange(document.form.wl_radio_time_x.value, 0);
+	document.form.wl_radio_time_x_startmin.value = getTimeRange(document.form.wl_radio_time_x.value, 1);
+	document.form.wl_radio_time_x_endhour.value = getTimeRange(document.form.wl_radio_time_x.value, 2);
+	document.form.wl_radio_time_x_endmin.value = getTimeRange(document.form.wl_radio_time_x.value, 3);
+	document.form.wl_radio_time2_x_starthour.value = getTimeRange(document.form.wl_radio_time2_x.value, 0);
+	document.form.wl_radio_time2_x_startmin.value = getTimeRange(document.form.wl_radio_time2_x.value, 1);
+	document.form.wl_radio_time2_x_endhour.value = getTimeRange(document.form.wl_radio_time2_x.value, 2);
+	document.form.wl_radio_time2_x_endmin.value = getTimeRange(document.form.wl_radio_time2_x.value, 3);
 }
 </script>
 </head>
@@ -208,6 +203,7 @@ function disableAdvFn(row){
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="wl_radio_date_x" value="<% nvram_get("wl_radio_date_x"); %>">
 <input type="hidden" name="wl_radio_time_x" value="<% nvram_get("wl_radio_time_x"); %>">
+<input type="hidden" name="wl_radio_time2_x" value="<% nvram_get("wl_radio_time2_x"); %>">
 <input type="hidden" name="wl_subunit" value="-1">
 <input type="hidden" name="wl_plcphdr" value="<% nvram_get("wl_plcphdr"); %>">
 <input type="hidden" name="wl_amsdu" value="<% nvram_get("wl_amsdu"); %>">
@@ -250,8 +246,7 @@ function disableAdvFn(row){
 							</select>			
 						</td>
 				  </tr>
-
-					<tr>
+					<tr id=wl_rf_enable>
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 1);"><#WLANConfig11b_x_RadioEnable_itemname#></a></th>
 			  			<td>
 			  				<input type="radio" value="1" name="wl_radio" class="input" onClick="return change_common_radio(this, 'WLANConfig11b', 'wl_radio', '1')" <% nvram_match("wl_radio", "1", "checked"); %>><#checkbox_Yes#>
@@ -259,25 +254,41 @@ function disableAdvFn(row){
 			  			</td>
 					</tr>
 
-					<tr>
-			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 2);"><#WLANConfig11b_x_RadioEnableDate_itemname#></a></th>
+					<tr id="enable_date_week_tr">
+			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 2);"><#WLANConfig11b_x_RadioEnableDate_itemname#> (week days)</a></th>
 			  			<td>
-							<input type="checkbox" class="input" name="wl_radio_date_x_Sun" onChange="return changeDate();">Sun
-							<input type="checkbox" class="input" name="wl_radio_date_x_Mon" onChange="return changeDate();">Mon
-							<input type="checkbox" class="input" name="wl_radio_date_x_Tue" onChange="return changeDate();">Tue
-							<input type="checkbox" class="input" name="wl_radio_date_x_Wed" onChange="return changeDate();">Wed
-							<input type="checkbox" class="input" name="wl_radio_date_x_Thu" onChange="return changeDate();">Thu
-							<input type="checkbox" class="input" name="wl_radio_date_x_Fri" onChange="return changeDate();">Fri
-							<input type="checkbox" class="input" name="wl_radio_date_x_Sat" onChange="return changeDate();">Sat			  
+							<input type="checkbox" class="input" name="wl_radio_date_x_Mon" onChange="return changeDate();"><#date_Mon_itemdesc#>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Tue" onChange="return changeDate();"><#date_Tue_itemdesc#>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Wed" onChange="return changeDate();"><#date_Wed_itemdesc#>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Thu" onChange="return changeDate();"><#date_Thu_itemdesc#>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Fri" onChange="return changeDate();"><#date_Fri_itemdesc#>						
+							<span id="blank_warn" style="display:none;"><#JS_Shareblanktest#></span>	
 			  			</td>
 					</tr>
-					<tr>
+					<tr id="enable_time_week_tr">
 			  			<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(3, 3);"><#WLANConfig11b_x_RadioEnableTime_itemname#></a></th>
 			  			<td>
-			  				<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_starthour" onKeyPress="return is_number_sp(event, this)" onblur="validate_timerange(this, 0);">:
-							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_startmin" onKeyPress="return is_number_sp(event, this)" onblur="validate_timerange(this, 1);">-
-							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_endhour" onKeyPress="return is_number_sp(event, this)" onblur="validate_timerange(this, 2);">:
-							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_endmin" onKeyPress="return is_number_sp(event, this)" onblur="validate_timerange(this, 3);">
+			  				<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_starthour" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 0);"> :
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_startmin" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 1);"> -
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_endhour" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 2);"> :
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time_x_endmin" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 3);">
+						</td>
+					</tr>
+					<tr id="enable_date_weekend_tr">
+			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 2);"><#WLANConfig11b_x_RadioEnableDate_itemname#> (weekend)</a></th>
+			  			<td>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Sat" onChange="return changeDate();"><#date_Sat_itemdesc#>
+							<input type="checkbox" class="input" name="wl_radio_date_x_Sun" onChange="return changeDate();"><#date_Sun_itemdesc#>					
+							<span id="blank_warn" style="display:none;"><#JS_Shareblanktest#></span>	
+			  			</td>
+					</tr>
+					<tr id="enable_time2_tr">
+			  			<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(3, 3);"><#WLANConfig11b_x_RadioEnableTime_itemname#></a></th>
+			  			<td>
+			  				<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time2_x_starthour" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 0);"> :
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time2_x_startmin" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 1);"> -
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time2_x_endhour" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 2);"> :
+							<input type="text" maxlength="2" class="input_3_table" name="wl_radio_time2_x_endmin" onKeyPress="return is_number(this,event)" onblur="validate_timerange(this, 3);">
 						</td>
 					</tr>
 
@@ -293,7 +304,7 @@ function disableAdvFn(row){
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 6);"><#WLANConfig11b_DataRateAll_itemname#></a></th>
 			  			<td>
 							<select name="wl_rate" class="input_option" onChange="return change_common(this, 'WLANConfig11b', 'wl_rate')">
-				  				<option value="0" <% nvram_match("wl_rate", "0","selected"); %>>Auto</option>
+				  				<option value="0" <% nvram_match("wl_rate", "0","selected"); %>><#Auto#></option>
 				  				<option value="1000000" <% nvram_match("wl_rate", "1000000","selected"); %>>1</option>
 				  				<option value="2000000" <% nvram_match("wl_rate", "2000000","selected"); %>>2</option>
 				  				<option value="5500000" <% nvram_match("wl_rate", "5500000","selected"); %>>5.5</option>
@@ -310,11 +321,11 @@ function disableAdvFn(row){
 			  			</td>
 					</tr>
 			<!-- 2008.03 James. patch for Oleg's patch. { -->
-					<tr id="wl_mrate_select" style="display:none;">
+					<tr id="wl_mrate_select">
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 7);"><#WLANConfig11b_MultiRateAll_itemname#></a></th>
 						<td>
 							<select name="wl_mrate_x" class="input_option" onChange="return change_common(this, 'WLANConfig11b', 'wl_mrate_x')">
-								<option value="0" <% nvram_match("wl_mrate_x", "0", "selected"); %>>Disable</option>
+								<option value="0" <% nvram_match("wl_mrate_x", "0", "selected"); %>><#WLANConfig11b_WirelessCtrl_buttonname#></option>
 								<option value="1" <% nvram_match("wl_mrate_x", "1", "selected"); %>>1</option>
 								<option value="2" <% nvram_match("wl_mrate_x", "2", "selected"); %>>2</option>
 								<option value="3" <% nvram_match("wl_mrate_x", "3", "selected"); %>>5.5</option>
@@ -327,22 +338,10 @@ function disableAdvFn(row){
 								<option value="10" <% nvram_match("wl_mrate_x", "10", "selected"); %>>36</option>
 								<option value="11" <% nvram_match("wl_mrate_x", "11", "selected"); %>>48</option>
 								<option value="12" <% nvram_match("wl_mrate_x", "12", "selected"); %>>54</option>
-								<!--option value="13" <% nvram_match("wl_mrate_x", "13", "selected"); %>>Auto</option-->
 							</select>
 						</td>
 					</tr>
 			<!-- 2008.03 James. patch for Oleg's patch. } -->
-					<!-- Viz add for rawifi platform start 2012.01 -->
-					<tr id="wl_mrate_select_rawifi">
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 7);"><#1338#></a></th>
-						<td>
-							<select name="wl_mrate_x" class="input_option" onChange="return change_common(this, 'WLANConfig11b', 'wl_mrate_x')">
-								<option value="0" <% nvram_match("wl_mrate_x", "0", "selected"); %>>Disable</option>		
-								<option value="13" <% nvram_match("wl_mrate_x", "13", "selected"); %>>Auto</option>
-							</select>
-						</td>
-					</tr>
-					<!-- Viz add for rawifi platform end 2012.01 -->			
 					<tr style="display:none;">
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 8);"><#WLANConfig11b_DataRate_itemname#></a></th>
 			  			<td>
@@ -356,25 +355,25 @@ function disableAdvFn(row){
 					<tr>
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 9);"><#WLANConfig11b_x_Frag_itemname#></a></th>
 			  			<td>
-			  				<input type="text" maxlength="4" name="wl_frag" id="wl_frag" class="input_6_table" value="<% nvram_get("wl_frag"); %>" onKeyPress="return is_number(this)" onChange="page_changed()">
+			  				<input type="text" maxlength="4" name="wl_frag" id="wl_frag" class="input_6_table" value="<% nvram_get("wl_frag"); %>" onKeyPress="return is_number(this,event)" onChange="page_changed()">
 						</td>
 					</tr>
 					<tr>
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 10);"><#WLANConfig11b_x_RTS_itemname#></a></th>
 			  			<td>
-			  				<input type="text" maxlength="4" name="wl_rts" class="input_6_table" value="<% nvram_get("wl_rts"); %>" onKeyPress="return is_number(this)">
+			  				<input type="text" maxlength="4" name="wl_rts" class="input_6_table" value="<% nvram_get("wl_rts"); %>" onKeyPress="return is_number(this,event)">
 			  			</td>
 					</tr>
 					<tr>
 			  			<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(3, 11);"><#WLANConfig11b_x_DTIM_itemname#></a></th>
 						<td>
-			  				<input type="text" maxlength="3" name="wl_dtim" class="input_6_table" value="<% nvram_get("wl_dtim"); %>" onKeyPress="return is_number(this)">
+			  				<input type="text" maxlength="3" name="wl_dtim" class="input_6_table" value="<% nvram_get("wl_dtim"); %>" onKeyPress="return is_number(this,event)">
 						</td>			  
 					</tr>
 					<tr>
 			  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 12);"><#WLANConfig11b_x_Beacon_itemname#></a></th>
 						<td>
-							<input type="text" maxlength="4" name="wl_bcn" class="input_6_table" value="<% nvram_get("wl_bcn"); %>" onKeyPress="return is_number(this)">
+							<input type="text" maxlength="4" name="wl_bcn" class="input_6_table" value="<% nvram_get("wl_bcn"); %>" onKeyPress="return is_number(this,event)">
 						</td>
 					</tr>
 					<tr>
@@ -407,11 +406,12 @@ function disableAdvFn(row){
 						</td>
 					</tr-->
 			<!--Greenfield by Lock Add in 2008.10.01 -->
+					<!-- WMM setting start  -->
 					<tr>
 			  			<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(3, 14);"><#WLANConfig11b_x_WMM_itemname#></a></th>
 			  			<td>
 							<select name="wl_wme" id="wl_wme" class="input_option" onChange="return change_common(this, 'WLANConfig11b', 'wl_wme')">			  	  				
-			  	  				<option value="auto" <% nvram_match("wl_wme", "auto", "selected"); %>>Auto</option>
+			  	  				<option value="auto" <% nvram_match("wl_wme", "auto", "selected"); %>><#Auto#></option>
 			  	  				<option value="on" <% nvram_match("wl_wme", "on", "selected"); %>><#WLANConfig11b_WirelessCtrl_button1name#></option>
 			  	  				<option value="off" <% nvram_match("wl_wme", "off", "selected"); %>><#WLANConfig11b_WirelessCtrl_buttonname#></option>			  	  			
 							</select>
@@ -431,8 +431,8 @@ function disableAdvFn(row){
 						<th>Enable Wireless Multicast Forwarding</th>
 						<td>
                   				<select name="wl_wmf_bss_enable" class="input_option">
-                    					<option value="off" <% nvram_match("wl_wmf_bss_enable", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
-                    					<option value="on" <% nvram_match("wl_wmf_bss_enable", "1","selected"); %> ><#WLANConfig11b_WirelessCtrl_button1name#></option>
+                    					<option value="0" <% nvram_match("wl_wmf_bss_enable", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
+                    					<option value="1" <% nvram_match("wl_wmf_bss_enable", "1","selected"); %> ><#WLANConfig11b_WirelessCtrl_button1name#></option>
                   				</select>
 						</td>
 					</tr>
@@ -446,6 +446,7 @@ function disableAdvFn(row){
                   				</select>
 						</td>
 					</tr>					
+					<!-- WMM setting end  -->
 
 					<tr id="DLSCapable"> <!-- RaLink Only  -->
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,18);"><#WLANConfig11b_x_DLS_itemname#></a></th>
@@ -462,7 +463,7 @@ function disableAdvFn(row){
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 17);"><#WLANConfig11b_TxPower_itemname#></a></th>
 						<td>
 		  				<input type="text" maxlength="3" name="wl_TxPower" class="input_3_table" value="<% nvram_get("wl_TxPower"); %>"> mW
-							<span id="TxPowerHint" style="margin-left:10px;display:none;">This value could not exceed 40</span>
+							<br><span>FCC: max. 500mW for North America.<br>ETSI: max. 100mW for Europe, South America and APAC.</span>
 						</td>
 					</tr>
 

@@ -474,7 +474,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 
 			rdsz = sizeof(G.wget_buf);
 			if (G.got_clen) {
-				if (G.content_len < (off_t)sizeof(G.wget_buf)) {
+				if (G.content_len < (off_t)rdsz) {
 					if ((int)G.content_len <= 0)
 						break;
 					rdsz = (unsigned)G.content_len;
@@ -651,9 +651,100 @@ static void download_one_url(const char *url)
 		char *str;
 		int status;
 
-
 		/* Open socket to http server */
 		sfp = open_socket(lsa);
+
+#ifdef CHECK_FULL_CONTENT_LEN
+		/* First, Send HTTP request to get the full size of the target file. */
+		if(use_proxy){
+			fprintf(sfp, "GET %stp://%s/%s HTTP/1.1\r\n",
+					target.is_ftp?"f":"ht",
+					target.host,
+					target.path);
+		}
+		else{
+			if(option_mask32 & WGET_OPT_POST_DATA)
+				fprintf(sfp, "POST /%s HTTP/1.1\r\n", target.path);
+			else
+				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
+		}
+		fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n", target.host, G.user_agent);
+		fprintf(sfp, "Connection: close\r\n");
+
+#if ENABLE_FEATURE_WGET_AUTHENTICATION
+		if(target.user)
+			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6, base64enc(target.user));
+		if(use_proxy && server.user)
+			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n", base64enc(server.user));
+#endif
+		fprintf(sfp, "\r\n");
+
+		fflush(sfp);
+
+first_response:
+		fgets_and_trim(sfp);
+
+		str = G.wget_buf;
+		str = skip_non_whitespace(str);
+		str = skip_whitespace(str);
+
+		status = atoi(str);
+		switch(status){
+			case 0:
+			case 100:
+				while(gethdr(sfp) != NULL)
+					/* eat all remaining headers */;
+					goto first_response;
+			case 200:
+			case 204:
+				break;
+			case 300:  /* redirection */
+			case 301:
+			case 302:
+			case 303:
+				break;
+			case 206:
+				if(G.beg_range)
+					break;
+			/* fall through */
+			default:
+				bb_error_msg_and_die("server returned error: %s", sanitize_string(G.wget_buf));
+		}
+
+		while((str = gethdr(sfp)) != NULL){
+			static const char keywords[] ALIGN1 = "content-length\0";
+			enum{
+				KEY_content_length = 1
+			};
+			smalluint key;
+
+			/* strip trailing whitespace */
+			char *s = strchrnul(str, '\0')-1;
+			while(s >= str && (*s == ' ' || *s == '\t')){
+				*s = '\0';
+				s--;
+			}
+			key = index_in_strings(keywords, G.wget_buf)+1;
+			if(key == KEY_content_length){
+				G.content_len = BB_STRTOOFF(str, NULL, 10);
+				if(G.content_len < 0 || errno)
+					bb_error_msg_and_die("content-length %s is garbage", sanitize_string(str));
+
+				G.got_clen = 1;
+				break;
+			}
+		}
+
+		// Had already downloaded the full content.
+		if(G.beg_range == G.content_len){
+			dfp = sfp;
+			free(lsa);
+			goto END_OF_DOWNLOAD;
+		}
+
+		fclose(sfp);
+		sfp = open_socket(lsa);
+#endif
 
 		/* Send HTTP request */
 		if (use_proxy) {
@@ -849,6 +940,9 @@ However, in real world it was observed that some web servers
 		}
 	}
 
+#ifdef CHECK_FULL_CONTENT_LEN
+END_OF_DOWNLOAD:
+#endif
 	if (dfp != sfp) {
 		/* It's ftp. Close data connection properly */
 		fclose(dfp);

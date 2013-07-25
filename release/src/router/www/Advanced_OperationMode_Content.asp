@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>ASUS Wireless Router <#Web_Title#> - <#menu5_6_1_title#></title>
+<title><#Web_Title#> - <#menu5_6_1_title#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -32,7 +32,7 @@ function initial(){
 	setScenerion(sw_mode);
 	Senario_shift();
 	if(repeater_support < 0)
-		$("repeaterMode").style.display = "none";
+			$("repeaterMode").style.display = "none";
 }
 
 function Senario_shift(){
@@ -44,7 +44,7 @@ function Senario_shift(){
 
 function saveMode(){
 	if('<% nvram_get("sw_mode"); %>' == document.form.sw_mode.value){
-		alert("<#Web_Title#> <#op_already_configured#>");
+		alert("<#Web_Title2#> <#op_already_configured#>");
 		return false;
 	}
 
@@ -53,7 +53,10 @@ function saveMode(){
 		return false;
 	}
 	else if(document.form.sw_mode.value == 2){
-		parent.location.href = '/QIS_wizard.htm?flag=sitesurvey';
+		if(sw_mode == 3)
+			parent.location.href = '/QIS_wizard.htm?flag=sitesurvey';
+		else
+			parent.location.href = 'http://www.asusnetwork.net/QIS_wizard.htm?flag=sitesurvey';
 		return false;
 	}
 	else{ // default router
@@ -118,7 +121,7 @@ $j("#Senario").css("background", "url(/images/New_ui/ap.jpg) center");
 		$j("#Internet_span").css("display", "block");
 		$j("#ap-line").css("display", "none");
 		$j("#AP").html("<#Device_type_02_RT#>");
-		$j("#mode_desc").html("<#OP_AP_desc#>");
+		$j("#mode_desc").html("<#OP_AP_desc#><br/><span style=\"color:#FC0\"><#deviceDiscorvy#></span>");
 		$j("#nextButton").attr("value","<#CTL_next#>");
 		clearTimeout(id_WANunplungHint);
 		$j("#Unplug-hint").css("display", "none");
@@ -139,7 +142,7 @@ $j("#Senario").css("background", "url(/images/New_ui/ap.jpg) center");
 
 <body onload="initial();" onunLoad="return unload_body();">
 <div id="TopBanner"></div>
-<div id="hiddenMask" class="popup_bg">
+<div id="hiddenMask" class="popup_bg" style="z-index:10000;">
 	<table cellpadding="5" cellspacing="0" id="dr_sweet_advise" class="dr_sweet_advise" align="center">
 		<tr>
 		<td>
@@ -208,14 +211,14 @@ $j("#Senario").css("background", "url(/images/New_ui/ap.jpg) center");
 	<tr>
 	  <td bgcolor="#4D595D" valign="top" height="500px">
 	<div style="width:95%; margin:0 auto; padding-bottom:3px;">
-		<span style="font-size:16px; font-weight:bold;color:white;text-shadow:1px 1px 1px black">
+		<span style="font-size:16px; font-weight:bold;color:white;text-shadow:1px 1px 0px black">
 			<input type="radio" name="sw_mode_radio" class="input" value="1" onclick="setScenerion(1);" <% nvram_match("sw_mode", "1", "checked"); %>><#OP_GW_item#>
 			&nbsp;&nbsp;
 			<span id="repeaterMode"><input type="radio" name="sw_mode_radio" class="input" value="2" onclick="setScenerion(2);" <% nvram_match("sw_mode", "2", "checked"); %>><#OP_RE_item#></span>
 			&nbsp;&nbsp;
 			<input type="radio" name="sw_mode_radio" class="input" value="3" onclick="setScenerion(3);" <% nvram_match("sw_mode", "3", "checked"); %>><#OP_AP_item#>
 		</span>
-	<div id="mode_desc" style="position:relative;display:block;margin-top:10px;margin-left:5px;height:60px;z-index:90;">
+	<div id="mode_desc" style="position:relative;display:block;margin-top:10px;margin-left:5px;height:60px;z-index:75;">
 		<#OP_GW_desc#>
 	</div>
 		<br/><br/>
@@ -241,7 +244,6 @@ $j("#Senario").css("background", "url(/images/New_ui/ap.jpg) center");
 	</tr>
 </table>
 </form>
-<form name="hint_form"></form>
 <div id="footer"></div>
 </body>
 </html>

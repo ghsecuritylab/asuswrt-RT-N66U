@@ -1,7 +1,7 @@
 /*
  * Inband EAP
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: ap_eap_sm.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: ap_eap_sm.h 268017 2011-06-21 09:48:46Z $
  */
 
 #ifndef _AP_EAP_SM_H_
@@ -62,6 +62,8 @@ typedef struct {
 } EAP_WPS_AP_STATE;
 
 #define AP_EAP_SM_AP_M2D_READY	0x1
+#define AP_EAP_SM_M1_RECVD	0x2
+#define AP_EAP_SM_M2_SENT	0x4
 
 int ap_eap_sm_process_timeout();
 int ap_eap_sm_startWPSReg(unsigned char *sta_mac, unsigned char *ap_mac);

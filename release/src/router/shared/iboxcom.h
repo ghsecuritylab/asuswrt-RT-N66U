@@ -1,4 +1,14 @@
 /************************************************************/
+/*  Version 2.1     by Cheni      2012/5/31		    */
+/*  Webdav Info						    */
+/************************************************************/
+
+/************************************************************/
+/*  Version 2.0     by Cheni      2012/2/24                 */
+/*  Webdav Info						    */
+/************************************************************/
+
+/************************************************************/
 /*  Version 1.9     by Roly      2009/7/24                  */
 /*  Add LAN IP and Static Route List Info		    */
 /************************************************************/
@@ -27,6 +37,7 @@
 
 #ifndef __IBOX_COMMON__
 #define __IBOX_COMMON__
+#include "shared.h"
 
 #pragma pack(1)
 
@@ -190,7 +201,38 @@ typedef struct ws_info_t	{
 } WS_INFO_T;
 #endif
 
-//#ifdef 1 //WL700G
+#ifdef RTCONFIG_WEBDAV
+#define EXTEND_MAGIC			0x8082
+#define EXTEND_CAP_WEBDAV 		0x0001
+#define EXTEND_CAP_SYNC			0x0002
+#define EXTEND_CAP_MEDIA		0x0004
+
+#define EXTEND_WEBDAV_TYPE_HTTP		0x00
+#define EXTEND_WEBDAV_TYPE_HTTPS	0x01
+#define EXTEND_WEBDAV_TYPE_BOTH		0x02
+
+typedef struct webdav_info_t {
+	BYTE EnableWebDav;
+	BYTE HttpType;
+	WORD HttpPort;
+	BYTE EnableDDNS;
+	BYTE HostName[64];
+  	DWORD WANIPAddr;
+	BYTE WANState;
+	BYTE isNotDefault;
+	WORD HttpsPort;
+} WEBDAV_INFO_T;
+
+typedef struct storage_info_t {
+	WORD MagicWord;
+	WORD ExtendCap;
+	union {
+		WEBDAV_INFO_T wt;
+		BYTE Reserved[128];
+	} u;
+} STORAGE_INFO_T;
+
+#else
 #define APPS_CAP_DOWNLOAD 	0x01
 #define APPS_CAP_WEBSERVER 	0x02
 #define APPS_CAP_PHOTOALBUM 	0x04
@@ -219,7 +261,6 @@ typedef struct ws_info_t	{
 #define APPS_STATUS_SMBUSER             0x2000  // 13
 #define APPS_SLOW_DISK			0x4000	// 14
 
-
 // appended after wave server
 typedef struct storage_info_t
 {
@@ -234,7 +275,7 @@ typedef struct storage_info_t
 	BYTE 	PrinterModel2[32];	// Name of Printer Model
 	BYTE 	Apps_Model_Name[32];	// Name of Model
 } STORAGE_INFO_T;
-//#endif
+#endif
 
 typedef struct PktGetInfoEx1
 {

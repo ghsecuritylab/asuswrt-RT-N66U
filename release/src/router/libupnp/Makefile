@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2010, Broadcom Corporation
+# Copyright (C) 2011, Broadcom Corporation
 # All Rights Reserved.
 # 
 # This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -7,7 +7,7 @@
 # or duplicated in any form, in whole or in part, without the prior
 # written permission of Broadcom Corporation.
 #
-# $Id: Makefile 247613 2011-03-21 06:09:11Z simonk $
+# $Id: Makefile 311089 2012-01-27 13:47:40Z $
 #
 
 UPNPLIB_NAME = libupnp.so
@@ -18,6 +18,7 @@ INCLUDES += -I$(UPNPLIB)/include -I$(SRCBASE)/include -I$(SRCBASE)/include/bcmcr
 CFLAGS += ${INCLUDES}
 
 CFLAGS += -Wall -Wunused -g -s -Werror
+
 
 LDFLAGS = -L$(TOP)/libbcmcrypto -lbcmcrypto
 
@@ -30,8 +31,13 @@ SRCFILES = upnp.c upnp_ssdp.c upnp_http.c upnp_gena.c upnp_soap.c \
 
 OBJFILES = ${SRCFILES:.c=.o}
 
+ifeq ($(wildcard ./upnp),)
+all:
+	cp -f ./prebuilt/$(UPNPLIB_NAME) .
+else
 all: $(OBJFILES)
 	$(LD) -shared -o $(UPNPLIB_NAME) $^
+endif
 
 install: all
 	install -d $(INSTALLDIR)/usr/lib

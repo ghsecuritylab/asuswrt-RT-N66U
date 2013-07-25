@@ -1,7 +1,7 @@
 /*
  * WPS aplockdown
  *
- * Copyright (C) 2010, Broadcom Corporation
+ * Copyright (C) 2011, Broadcom Corporation
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wps_aplockdown.h 241376 2011-02-18 03:19:15Z stakita $
+ * $Id: wps_aplockdown.h 312343 2012-02-02 07:26:00Z $
  */
 
 #ifndef __WPS_APLOCKDOWN_H__
@@ -20,5 +20,4 @@ int wps_aplockdown_add(void);
 int wps_aplockdown_check(void);
 int wps_aplockdown_islocked();
 int wps_aplockdown_cleanup();
-
 #endif	/* __WPS_APLOCKDOWN_H__ */

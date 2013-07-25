@@ -15,7 +15,8 @@
 	padding:10 0 5 0;
 	text-align:left;
 	width:95%;
-	text-shadow:1px 1px 1px black;
+	text-shadow: 1px 1px 0px black;
+	filter: progid:DXImageTransform.Microsoft.DropShadow(OffX=1, OffY=1, Color=#000000);
 }
 .wan_type_dec{
 	line-height:20px;
@@ -31,7 +32,7 @@ var original_switch_wantag = '<% nvram_get("switch_wantag"); %>';
 var contentM_height_orig = parent.document.getElementById("contentM").height;
 
 function QKinternettype_load_body(){
-	parent.document.title = "ASUS Wireless Router <#Web_Title#> - <#QKSet_type_head#>";
+	parent.document.title = "<#Web_Title#> - <#QKSet_type_head#>";
 	parent.set_step("t2");
 	document.applyForm.wan_proto.value = '<% nvram_get("wan_proto"); %>';
 	
@@ -51,6 +52,14 @@ function QKinternettype_load_body(){
 
 	ISP_Profile_Selection(original_switch_wantag);
 	hide_specialISP();
+
+	if(parent.ruisp_support >= 0)
+		document.getElementById("ruisp_btn").style.display = "";
+		
+	document.getElementById("ff123").focus();
+
+	if(parent.rc_support.search("manual_stb") == -1)
+		document.applyForm.switch_wantag.remove(6);
 }
 
 function inputCCtrl4(o, flag){
@@ -58,6 +67,7 @@ function inputCCtrl4(o, flag){
 	o[1].checked = false;
 	o[2].checked = false;
 	o[3].checked = false;
+	o[4].checked = false;
 	
 	o[flag].checked = true;
 }
@@ -94,7 +104,7 @@ function submitForm(){
 	else{
 		document.applyForm.wan_proto.value = "dhcp";
 		parent.document.QKform.wan_dhcpenable_x.value = 1;
-		parent.document.QKform.wan_dnsenable_x.value = 1;		
+		parent.document.QKform.wan_dnsenable_x.value = 1;
 		document.applyForm.next_page.value = "QIS_internet_isp.htm";
 	}
 	
@@ -128,7 +138,6 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "none";
 		document.getElementById("wan_voip_port3_x").style.display = "none";
 		document.applyForm.switch_wantag.value = "none";
-		document.applyForm.switch_stb_x.value = "0";
 	}
   	else if(isp == "unifi_home"){
 		document.getElementById("wan_iptv_x").style.display = "";
@@ -137,7 +146,6 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "none";
 		document.getElementById("wan_voip_port3_x").style.display = "none";
 		document.applyForm.switch_wantag.value = "unifi_home";
-		document.applyForm.switch_stb_x.value = "4";
 	}
 	else if(isp == "unifi_biz"){
 		document.getElementById("wan_iptv_x").style.display = "none";
@@ -146,7 +154,6 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "none";
 		document.getElementById("wan_voip_port3_x").style.display = "none";
 		document.applyForm.switch_wantag.value = "unifi_biz";
-		document.applyForm.switch_stb_x.value = "0";
 	}
 	else if(isp == "singtel_mio"){
 		document.getElementById("wan_iptv_x").style.display = "";
@@ -155,7 +162,6 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "none";
 		document.getElementById("wan_voip_port3_x").style.display = "none";	
 		document.applyForm.switch_wantag.value = "singtel_mio";
-		document.applyForm.switch_stb_x.value = "6";
 	}
 	else if(isp == "singtel_others"){
 		document.getElementById("wan_iptv_x").style.display = "";
@@ -164,7 +170,14 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "none";
 		document.getElementById("wan_voip_port3_x").style.display = "none";
 		document.applyForm.switch_wantag.value = "singtel_others";
-		document.applyForm.switch_stb_x.value = "4";
+	}
+	else if(isp == "m1_fiber"){		
+		document.getElementById("wan_iptv_x").style.display = "none";
+		document.getElementById("wan_voip_x").style.display = "";
+		document.getElementById("wan_internet_x").style.display = "none";
+		document.getElementById("wan_iptv_port4_x").style.display = "none";
+		document.getElementById("wan_voip_port3_x").style.display = "none";
+		document.applyForm.switch_wantag.value = "m1_fiber";
 	}
 	else if(isp == "manual"){
 		document.getElementById("wan_iptv_x").style.display = "";
@@ -173,13 +186,12 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("wan_iptv_port4_x").style.display = "";
 		document.getElementById("wan_voip_port3_x").style.display = "";
 		document.applyForm.switch_wantag.value = "manual";
-		document.applyForm.switch_stb_x.value = "6";
 	}
 }
 
 function set_ISP_profile(){
         if(document.applyForm.switch_wantag.value == "unifi_home") {
-								document.applyForm.switch_stb_x.value = "4";
+		document.applyForm.switch_stb_x.value = "4";
                 document.applyForm.switch_wan0tagid.value = "500";
                 document.applyForm.switch_wan0prio.value = "0";
                 document.applyForm.switch_wan1tagid.value = "600";
@@ -188,7 +200,7 @@ function set_ISP_profile(){
                 document.applyForm.switch_wan2prio.value = "0";
         }
         else if(document.applyForm.switch_wantag.value == "unifi_biz") {
-								document.applyForm.switch_stb_x.value = "0";
+		document.applyForm.switch_stb_x.value = "0";
                 document.applyForm.switch_wan0tagid.value = "500";
                 document.applyForm.switch_wan0prio.value = "0";
                 document.applyForm.switch_wan1tagid.value = "0";
@@ -197,7 +209,7 @@ function set_ISP_profile(){
                 document.applyForm.switch_wan2prio.value = "0";
         }
         else if(document.applyForm.switch_wantag.value == "singtel_mio") {
-								document.applyForm.switch_stb_x.value = "6";
+		document.applyForm.switch_stb_x.value = "6";
                 document.applyForm.switch_wan0tagid.value = "10";
                 document.applyForm.switch_wan0prio.value = "0";
                 document.applyForm.switch_wan1tagid.value = "20";
@@ -206,7 +218,7 @@ function set_ISP_profile(){
                 document.applyForm.switch_wan2prio.value = "4";
         }
         else if(document.applyForm.switch_wantag.value == "singtel_others") {
-								document.applyForm.switch_stb_x.value = "4";
+		document.applyForm.switch_stb_x.value = "4";
                 document.applyForm.switch_wan0tagid.value = "10";
                 document.applyForm.switch_wan0prio.value = "0";
                 document.applyForm.switch_wan1tagid.value = "20";
@@ -214,6 +226,16 @@ function set_ISP_profile(){
                 document.applyForm.switch_wan2tagid.value = "0";
                 document.applyForm.switch_wan2prio.value = "0";
         }
+        else if(document.applyForm.switch_wantag.value == "m1_fiber") {
+                document.applyForm.switch_stb_x.value = "3";
+                document.applyForm.switch_wan0tagid.value = "1103";
+                document.applyForm.switch_wan0prio.value = "1";
+                document.applyForm.switch_wan1tagid.value = "0";
+                document.applyForm.switch_wan1prio.value = "0";
+                document.applyForm.switch_wan2tagid.value = "1107";
+                document.applyForm.switch_wan2prio.value = "1";
+        }
+
 }
 
 function hide_specialISP(){
@@ -252,10 +274,38 @@ function hide_specialISP(){
 			parent.document.getElementById("contentM").height = document.body.scrollHeight;
 	}
 }
+
+function submitenter(myfield,e)
+{	
+	var keycode;
+	if (window.event) keycode = window.event.keyCode;
+	else if (e) keycode = e.which;
+	else return true;
+
+	if (keycode == 13){
+		submitForm();
+   	return false;
+  }
+	else
+   	return true;
+}
+
+function focus_radio(obj){
+	if(obj.value == "1")		
+ 			document.applyForm.x_WANType[1].focus();
+ 	else if(obj.value == "4")		
+ 			document.applyForm.x_WANType[2].focus();
+ 	else if(obj.value == "2")		
+ 			document.applyForm.x_WANType[3].focus();
+ 	else if(obj.value == "3")		
+ 			document.applyForm.x_WANType[4].focus();
+ 	else
+ 			document.applyForm.x_WANType[0].focus(); 			 			
+}
 </script>                      
 </head>  
 
-<body onLoad="QKinternettype_load_body();" onunload="">
+<body onLoad="QKinternettype_load_body();" onunload="" onKeyPress="submitenter(this,event)">
 
 <form method="post" name="applyForm">                          
 <input type="hidden" name="current_page" value="QIS_internet_type.htm">
@@ -284,16 +334,16 @@ function hide_specialISP(){
 <div id='dhcppppoe_sec' style="margin-top:15px; margin-left:-40px;">
   <table id="tblsetting" class="QISform2" style="width:400px;margin-left:110px" border=0 align="left" cellpadding="2" cellspacing="0"> 
   	<tr>
-		  <td align="center"><input type="radio" id="d1" name="x_WANType" value="0"></td>
-		  <td class="wan_type_title"><label for="d1"><#BOP_ctype_title1#> (DHCP):</label></td>
+		  <td align="center"><input type="radio" id="d1" name="x_WANType" value="0" onClick="focus_radio(this)" onKeyPress="return submitenter(this,event)"></td>
+		  <td class="wan_type_title"><label for="d1"><#BOP_ctype_title1#> (DHCP)</label></td>
 		</tr>
 		<tr>
 		  <td align="center"></td>
 		  <td><span class="wan_type_dec"><#BOP_ctype_item1#></span></td>
 		</tr>
 		<tr>
-		  <td align="center"><input type="radio" id="d2" name="x_WANType" value="1"></td>
-		  <td class="wan_type_title"><label for="d2">PPPoE: </label></td>
+		  <td align="center"><input type="radio" id="d2" name="x_WANType" value="1" onClick="focus_radio(this)" onKeyPress="return submitenter(this,event)"></td>
+		  <td class="wan_type_title"><label for="d2">PPPoE </label></td>
 		</tr>
 		<tr>
 		  <td align="center"></td>
@@ -301,24 +351,24 @@ function hide_specialISP(){
 		</tr>
 
 		<tr>
-		  <td align="center"><input type="radio" id="d3" name="x_WANType" value="4"></td>
-		  <td class="wan_type_title"><label for="d3"><#BOP_ctype_title5#>:</label></td>
+		  <td align="center"><input type="radio" id="d3" name="x_WANType" value="4" onClick="focus_radio(this)" onKeyPress="return submitenter(this,event)"></td>
+		  <td class="wan_type_title"><label for="d3"><#BOP_ctype_title5#></label></td>
 		</tr>
 		<tr>
 		  <td align="center"></td>
 		  <td><span class="wan_type_dec"><#BOP_ctype_item5#></span></td>
 		</tr>
 		<tr>
-			<td align="center"><input type="radio" id="d4" name="x_WANType" value="2"></td>
-			<td class="wan_type_title"><label for="d4">PPTP:</label></td>
+			<td align="center"><input type="radio" id="d4" name="x_WANType" value="2" onClick="focus_radio(this)" onKeyPress="return submitenter(this,event)"></td>
+			<td class="wan_type_title"><label for="d4">PPTP</label></td>
 		</tr>
 		<tr>
 			<td align="center"></td>
 			<td><span class="wan_type_dec"><#BOP_ctype_item3#></span></td>
 		</tr>
 		<tr>
-			<td align="center"><input type="radio" id="d5" name="x_WANType" value="3"></td>
-			<td class="wan_type_title"><label for="d5">L2TP: </label></td>
+			<td align="center"><input type="radio" id="d5" name="x_WANType" value="3" onClick="focus_radio(this)" onKeyPress="return submitenter(this,event)"></td>
+			<td class="wan_type_title"><label for="d5">L2TP </label></td>
 		</tr>
 		<tr>
 		  <td align="center"></td>
@@ -337,7 +387,8 @@ function hide_specialISP(){
 		<tr>
 			<td align="center" colspan="2">
 				<div id="apply_gen" class="apply_gen">
-				 	<input id="ff123" type='button' value="<#CTL_next#>" onclick="submitForm();" class="button_gen" width="70px" align="center">
+				 	<input id="ruisp_btn" type="button" value="Russia ISP" onclick="location.href='QIS_internet_ruisp.htm';" class="button_gen" width="70px" align="center" style="display:none;">
+				 	<input id="ff123" name="ff123" type="button" value="<#CTL_next#>" onclick="submitForm();" class="button_gen" width="70px" align="center">
 				</div>
 			</td>
 		</tr>
@@ -351,22 +402,25 @@ function hide_specialISP(){
 	<!--p class="QISGeneralFont" style="font-style:normal;color:#66CCFF;font-size:12px;font-weight:bolder;"><#PPPConnection_x_HostNameForISP_sectionname#></p-->
 	<div style="margin-left:70px;margin-top:65px;line-height:25px;">
 		<span>
-			<p style="color:#66CCFF;">Select ISP Profile:</p>
+			<p style="color:#66CCFF;"><#Select_ISPfile#></p>
 			<select name="switch_wantag" class="input_option" onChange="ISP_Profile_Selection(this.value)">
 				<option value="none" <% nvram_match( "switch_wantag", "none", "selected"); %>>None</option>
 				<option value="unifi_home" <% nvram_match( "switch_wantag", "unifi_home", "selected"); %>>Unifi-Home</option>
 				<option value="unifi_biz" <% nvram_match( "switch_wantag", "unifi_biz", "selected"); %>>Unifi-Business</option>
 				<option value="singtel_mio" <% nvram_match( "switch_wantag", "singtel_mio", "selected"); %>>Singtel-MIO</option>
 				<option value="singtel_others" <% nvram_match( "switch_wantag", "singtel_others", "selected"); %>>Singtel-Others</option>
+				<option value="m1_fiber" <% nvram_match_x("switch_wantag", "m1_fiber", "selected"); %>>M1-Fiber</option>
 				<option value="manual" <% nvram_match( "switch_wantag", "manual", "selected"); %>>Manual</option>
 			</select>
 		</span>
 
 		<span id="wan_iptv_x">
 		<p style="margin-top:5px;"><span style="color:#66CCFF;">IPTV STB Port: </span><b>LAN4</b></p>
-
+		</span>
+		
 		<span id="wan_voip_x">
 		<p><span style="color:#66CCFF;">VoIP Port: </span><b>LAN3</b></p>
+		</span>
 
 		<span id="wan_internet_x">
   	<p style="margin-top:5px;color:#66CCFF;">Internet:</p>

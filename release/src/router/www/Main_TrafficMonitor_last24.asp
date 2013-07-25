@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -7,7 +7,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
 <meta name="svg.render.forceflash" content="false" />	
 
-<title>ASUS Wireless Router <#Web_Title#> - <#menu4_2#> : <#menu4_2_2#></title>
+<title><#Web_Title#> - <#traffic_monitor#> : <#menu4_2_2#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="tmmenu.css">
@@ -31,9 +31,9 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 <% backup_nvram("wan_ifname,lan_ifname,wl_ifname,wan_proto,web_svg,rstats_enable,rstats_colors"); %>
 
 var cprefix = 'bw_24';
-var updateInt = 120;
+var updateInt = 30;
 var updateDiv = updateInt;
-var updateMaxL = 720;
+var updateMaxL = 2880;
 var updateReTotal = 1;
 var hours = 24;
 var lastHours = 0;
@@ -51,7 +51,7 @@ function switchHours(h)
 	if ((!svgReady) || (updating)) return;
 
 	hours = h;
-	updateMaxL = (720 / 24) * hours;
+	updateMaxL = (updateMaxL / 24) * hours;
 	showHours();
 	loadData();
 	cookie.set(cprefix + 'hrs', hours);
@@ -126,7 +126,7 @@ function init()
 	}
 
 	hours = fixInt(cookie.get(cprefix + 'hrs'), 1, 24, 24);
-	updateMaxL = (720 / 24) * hours;
+	updateMaxL = (updateMaxL / 24) * hours;
 	showHours();
 	initCommon(1, 0, 0, 1);	   //Viz 2010.09
 	ref.initX();
@@ -224,18 +224,30 @@ function Zoom(func){
         			<tr>
           				<td height="20"><img src="images/New_ui/export/line_export.png" /></td>
         			</tr>
-
         			<tr>
           				<td height="30" align="left" valign="middle" >
-										<p class="formfontcontent"><#traffic_monitor_desc#></p>
+										<div class="formfontcontent"><p class="formfontcontent"><#traffic_monitor_desc1#></p></div>										
           				</td>
         			</tr>
-
+        			<tr>
+          				<td align="left" valign="middle">
+										<table width="95%" border="1" align="left" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="DescTable">
+											<tr><th width="16%"></th><th width="26%"><#tm_internet#></th><th width="29%"><#tm_wired#></th><th width="29%"><#tm_wireless#></th></tr>
+											<tr><th><#tm_reception#></th><td><#tm_recp_int#></td><td><#tm_recp_wired#></td><td><#tm_recp_wireless#></td></tr>
+											<tr><th><#tm_transmission#></th><td><#tm_trans_int#></td><td><#tm_trans_wired#></td><td><#tm_trans_wireless#></td></tr>
+										</table>	
+          				</td>
+        			</tr>
+        			<tr>
+          				<td height="30" align="left" valign="middle" >
+										<div class="formfontcontent"><p class="formfontcontent"><#traffic_monitor_desc2#></p></div>										
+          				</td>
+        			</tr>
 
         					<tr>
         						<td>
 								<span id="tab-area"></span>										
-										<span>	
+										<span style="display:none;">	
 											<input title="Zoom in" type="button" onclick="Zoom('in');" class="zoomin_btn" name="button">
          							<input title="Zoom out" type="button" onclick="Zoom('out');" class="zoomout_btn" name="button">
 										</span>
@@ -256,7 +268,7 @@ function Zoom(func){
         	    
   		     				<tr>
 							<td>
-				    	 			<table width="735px"   border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable_NWM">
+				    	 			<table width="735px"   border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable_NWM" style="margin-top:10px">
 						  		<tr>
 						  			<th style="text-align:center;width:160px;height:25px;"><#Network#></th>
 						  			<th style="text-align:center;width:160px;height:25px;"><#Current#></th>
@@ -266,18 +278,7 @@ function Zoom(func){
 						  		</tr>
 						  		<tr>
 						  			<td style="text-align:center; background-color:#111;">
-										<div id='rx-sel'><#Downlink#>
-											<!--ul id="navigation-1"><b><#Downlink#></b><b style='border-bottom: 4px solid; display: none;' id='rx-name'></b>
-   												<li><a  title="Choose Color"><img src="images/arrow-top.gif" style="width:14px;height:14px;margin-center:40px;" ></a>
-      												<ul class="navigation-2">
-         													<li><a title="Orange" style="background-color:#FF9000;" onclick="switchColorRX(0)"></a></li>
-         													<li><a title="Blue" style="background-color:#3CF;" onclick="switchColorRX(1)"></a></li>
-         													<li><a title="Black" style="background-color:#000000;" onclick="switchColorRX(2)"></a></li>
-         													<li><a title="Red" style="background-color:#dd0000;" onclick="switchColorRX(3)"></a></li>
-         													<li><a title="Gray" style="background-color:#999999;" onclick="switchColorRX(4)"></a></li>
-         													<li><a title="Green" style="background-color:#118811;"onclick="switchColorRX(5)"></a></li>
-      												</ul>
-   												</li-->
+										<div id='rx-sel'><#tm_reception#>										
 											</ul>
 										</div>
 						  			</td>
@@ -290,27 +291,13 @@ function Zoom(func){
 						    		
 						    		<tr>
 						    			<td style="text-align:center; background-color:#111;">
-										<div id='tx-sel'><#Uplink#>
-											<!--ul id="navigation-1"><b><#Uplink#></b><b style='border-bottom: 4px solid; display: none;' id='tx-name'></b>
-   												<li><a  title="Choose Color"><img src="images/arrow-top.gif" style="width:14px;height:14px;margin-left:40px;" ></a>
-      												<ul class="navigation-2">
-         													<li><a title="Orange" style="background-color:#FF9000;" onclick="switchColorTX(0)"></a></li>
-         													<li><a title="Blue" style="background-color:#3CF;" onclick="switchColorTX(1)"></a></li>
-         													<li><a title="Black" style="background-color:#000000;" onclick="switchColorTX(2)"></a></li>
-         													<li><a title="Red" style="background-color:#dd0000;" onclick="switchColorTX(3)"></a></li>
-         													<li><a title="Gray" style="background-color:#999999;" onclick="switchColorTX(4)"></a></li>
-         													<li><a title="Green" style="background-color:#118811;"onclick="switchColorTX(5)"></a></li>
-      												</ul>
-   												</li>
-											</ul-->
-										</div>              			                            
-						    			</td>
-						    			
-						  			<td style="text-align:center;font-weight: bold; background-color:#111;"><span id='tx-current' style="color:#3CF;"></span></td>
-									<td style="text-align:center; background-color:#111;" id='tx-avg'></td>
-									<td style="text-align:center; background-color:#111;" id='tx-max'></td>
-									<td style="text-align:center; background-color:#111;" id='tx-total'></td>
-								</tr>
+											<div id='tx-sel'><#tm_transmission#></div> 																			             			                            
+						    			</td>						    			
+										<td style="text-align:center;font-weight: bold; background-color:#111;"><span id='tx-current' style="color:#3CF;"></span></td>
+										<td style="text-align:center; background-color:#111;" id='tx-avg'></td>
+										<td style="text-align:center; background-color:#111;" id='tx-max'></td>
+										<td style="text-align:center; background-color:#111;" id='tx-total'></td>
+									</tr>
 								</table>
 							</td>
 						</tr>

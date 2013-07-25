@@ -13,6 +13,42 @@
 #include <syslog.h>
 #include "iboxcom.h"
 
+#ifdef RTCONFIG_WEBDAV
+int getStorageStatus(STORAGE_INFO_T *st)
+{
+	memset(st, sizeof(st), 0);
+
+	if(nvram_get_int("sw_mode")!=SW_MODE_ROUTER) {
+		return 0;
+	}
+
+	st->MagicWord = EXTEND_MAGIC;
+	st->ExtendCap = EXTEND_CAP_WEBDAV;
+	if(nvram_get_int("enable_webdav")) 	
+		st->u.wt.EnableWebDav = 1;
+	else
+		st->u.wt.EnableWebDav = 0;
+
+	st->u.wt.HttpType = nvram_get_int("st_webdav_mode");
+	st->u.wt.HttpPort = htons(nvram_get_int("webdav_http_port"));
+	st->u.wt.HttpsPort = htons(nvram_get_int("webdav_https_port"));
+
+	if(nvram_get_int("ddns_enable_x")) {
+		st->u.wt.EnableDDNS = 1;
+		snprintf(st->u.wt.HostName, sizeof(st->u.wt.HostName), nvram_safe_get("ddns_hostname_x"));
+	}
+	else {
+		st->u.wt.EnableDDNS = 0;
+	}
+
+	// setup st->u.WANIPAddr
+	st->u.wt.WANIPAddr = inet_network(get_wanip());
+
+	st->u.wt.WANState = get_wanstate(); 
+	st->u.wt.isNotDefault = nvram_get_int("x_Setting");
+	return 0;
+}
+#else
 #define MAXARRAY 64
 #define MAXARRSIZE  64
 
@@ -283,4 +319,4 @@ getStorageStatus(STORAGE_INFO_T *st)
 	printf("Storage: %d %s\n", st->DiskStatus, st->AppsShare);	// tmp test
 	return 0;
 }
-
+#endif

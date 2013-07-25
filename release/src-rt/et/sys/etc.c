@@ -229,7 +229,6 @@ etc_iovar(etc_info_t *etc, uint cmd, uint set, void *arg)
 
 	error = 0;
 	ET_TRACE(("et%d: etc_iovar: cmd 0x%x\n", etc->unit, cmd));
-
 	switch (cmd) {
 #if defined(ETROBO) && !defined(_CFE_)
 		case IOV_ET_POWER_SAVE_MODE:
@@ -285,7 +284,6 @@ etc_ioctl(etc_info_t *etc, int cmd, void *arg)
 	val = arg ? *(int*)arg : 0;
 
 	ET_TRACE(("et%d: etc_ioctl: cmd 0x%x\n", etc->unit, cmd));
-
 	switch (cmd) {
 	case ETCUP:
 		et_up(etc->et);
@@ -422,13 +420,20 @@ etc_ioctl(etc_info_t *etc, int cmd, void *arg)
 		if (etc->robo && vec) {
 			uint page, reg;
 			uint16 val;
+			uint32 val32;
 			robo_info_t *robo = (robo_info_t *)etc->robo;
 
 			page = vec[0] >> 16;
 			reg = vec[0] & 0xffff;
 			val = -1;
-			robo->ops->read_reg(etc->robo, page, reg, &val, 2);
-			vec[1] = val;
+			if(reg==0x08 ||reg==0x0C) {
+				robo->ops->read_reg(etc->robo, page, reg, &val32, 4);
+				vec[1] = val32;
+			}
+			else {
+				robo->ops->read_reg(etc->robo, page, reg, &val, 2);
+				vec[1] = val;
+			}
 			ET_TRACE(("etc_ioctl: ETCROBORD of page 0x%x, reg 0x%x => 0x%x\n",
 			          page, reg, val));
 		}
@@ -438,16 +443,25 @@ etc_ioctl(etc_info_t *etc, int cmd, void *arg)
 		if (etc->robo && vec) {
 			uint page, reg;
 			uint16 val;
+			uint32 val32;
 			robo_info_t *robo = (robo_info_t *)etc->robo;
 
 			page = vec[0] >> 16;
 			reg = vec[0] & 0xffff;
-			val = vec[1];
-			robo->ops->write_reg(etc->robo, page, vec[0], &val, 2);
+			if(vec[1]>0xffff) {
+				val32 = vec[1];
+				robo->ops->write_reg(etc->robo, page, vec[0], &val32, 4);
+			}
+			else {
+				val = vec[1];
+				robo->ops->write_reg(etc->robo, page, vec[0], &val, 2);
+			}
+
 			ET_TRACE(("etc_ioctl: ETCROBOWR to page 0x%x, reg 0x%x <= 0x%x\n",
 			          page, reg, val));
 		}
 		break;
+
 #endif /* ETROBO */
 
 

@@ -1959,7 +1959,7 @@ out:
 }
 
 #ifdef CONFIG_INET_GRO
-static int BCMFASTPATH napi_gro_complete(struct sk_buff *skb)
+static int BCMFASTPATH_HOST napi_gro_complete(struct sk_buff *skb)
 {
 	struct packet_type *ptype;
 	__be16 type = skb->protocol;
@@ -1991,7 +1991,7 @@ out:
 	return netif_receive_skb(skb);
 }
 
-void BCMFASTPATH napi_gro_flush(struct net_device *gro_dev)
+void BCMFASTPATH_HOST napi_gro_flush(struct net_device *gro_dev)
 {
 	struct sk_buff *skb, *next;
 
@@ -2006,7 +2006,7 @@ void BCMFASTPATH napi_gro_flush(struct net_device *gro_dev)
 }
 EXPORT_SYMBOL(napi_gro_flush);
 
-void * BCMFASTPATH skb_gro_header(struct sk_buff *skb, unsigned int hlen)
+void * BCMFASTPATH_HOST skb_gro_header(struct sk_buff *skb, unsigned int hlen)
 {
 	unsigned int offset = skb_gro_offset(skb);
 
@@ -2026,7 +2026,7 @@ void * BCMFASTPATH skb_gro_header(struct sk_buff *skb, unsigned int hlen)
 }
 EXPORT_SYMBOL(skb_gro_header);
 
-int BCMFASTPATH dev_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
+int BCMFASTPATH_HOST dev_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
 {
 	struct sk_buff **pp = NULL;
 	struct packet_type *ptype;
@@ -2106,7 +2106,7 @@ normal:
 }
 EXPORT_SYMBOL(dev_gro_receive);
 
-static int BCMFASTPATH __napi_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
+static int BCMFASTPATH_HOST __napi_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
 {
 	struct sk_buff *p;
 
@@ -2120,7 +2120,7 @@ static int BCMFASTPATH __napi_gro_receive(struct net_device *gro_dev, struct sk_
 	return dev_gro_receive(gro_dev, skb);
 }
 
-int BCMFASTPATH napi_skb_finish(int ret, struct sk_buff *skb)
+int BCMFASTPATH_HOST napi_skb_finish(int ret, struct sk_buff *skb)
 {
 	int err = NET_RX_SUCCESS;
 
@@ -2141,7 +2141,7 @@ int BCMFASTPATH napi_skb_finish(int ret, struct sk_buff *skb)
 }
 EXPORT_SYMBOL(napi_skb_finish);
 
-int BCMFASTPATH napi_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
+int BCMFASTPATH_HOST napi_gro_receive(struct net_device *gro_dev, struct sk_buff *skb)
 {
 	skb_gro_reset_offset(skb);
 

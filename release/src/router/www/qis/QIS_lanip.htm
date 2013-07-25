@@ -19,16 +19,35 @@
 </style>
 <script type="text/JavaScript">
 function QKInternet_load_body(){
-	parent.document.title = "ASUS Wireless Router <#Web_Title#> - <#QKSet_ISP_head#>";
+	parent.document.title = "<#Web_Title#> - <#QKSet_ISP_head#>";
 	parent.set_step("t2");
-	display_lan_dns(<% nvram_get("lan_dnsenable_x"); %>);
-	change_ip_setting('<% nvram_get("lan_proto"); %>');
-	document.form.lan_proto_radio[0].checked = 1;
-	document.form.lan_proto_radio[1].checked = 0;
-	change_ip_setting('dhcp');
-	document.form.lan_dnsenable_x_radio[0].checked = 1;
-	document.form.lan_dnsenable_x_radio[1].checked = 0;
-	display_lan_dns(1);
+	
+	// protocol checkbox
+        if('<% nvram_get("lan_proto"); %>' == 'static'){
+                change_ip_setting('static');
+                document.form.lan_proto_radio[0].checked = 0;
+                document.form.lan_proto_radio[1].checked = 1;
+        }
+        else{
+                change_ip_setting('dhcp');
+                document.form.lan_proto_radio[0].checked = 1;
+                document.form.lan_proto_radio[1].checked = 0;
+        }
+	
+	// dns checkbox
+        if('<% nvram_get("lan_dnsenable_x"); %>' == '0'){
+                display_lan_dns(0);
+                document.form.lan_dnsenable_x_radio[0].checked = 0;
+                document.form.lan_dnsenable_x_radio[1].checked = 1;
+        }
+        else{
+                display_lan_dns(1);
+                document.form.lan_dnsenable_x_radio[0].checked = 1;
+                document.form.lan_dnsenable_x_radio[1].checked = 0;
+        }
+	
+
+	document.getElementById("nextButton").focus();
 }
 
 function display_lan_dns(flag){
@@ -38,11 +57,13 @@ function display_lan_dns(flag){
 
 function change_ip_setting(flag){
 	if(flag == "dhcp"){
+		document.form.lan_proto_radio[0].focus();
 		inputCtrl(document.form.lan_dnsenable_x_radio[0], 1);
 		inputCtrl(document.form.lan_dnsenable_x_radio[1], 1);
 		flag = 1; 
 	}
 	else if(flag == "static"){
+		document.form.lan_proto_radio[1].focus();
 		document.form.lan_dnsenable_x_radio[1].checked = 1;
 		inputCtrl(document.form.lan_dnsenable_x_radio[0], 0);
 		inputCtrl(document.form.lan_dnsenable_x_radio[1], 0);
@@ -175,11 +196,26 @@ function done_validating(action){
 function back_to_Adv(){
 	parent.location.href = '/Advanced_OperationMode_Content.asp';
 }
+
+function submitenter(myfield,e)
+{	
+	var keycode;
+	if (window.event) keycode = window.event.keyCode;
+	else if (e) keycode = e.which;
+	else return true;
+
+	if (keycode == 13){
+		submitForm();
+   	return false;
+  }
+	else
+   	return true;
+}
 </script>
 </head>
 
-<body onLoad="QKInternet_load_body();" onunload="">
-<form method="post" name="form" action="/start_apply.htm">
+<body onLoad="QKInternet_load_body();" onunload="" onKeyPress="submitenter(this,event)">
+<form method="post" name="form" action="/start_apply.htm" onsubmit="return submitForm();">
 <input type="hidden" name="current_page" value="QIS_lanip.htm">
 <input type="hidden" name="next_page" value="QIS_wireless.htm">   
 <input type="hidden" name="prev_page" value="">
@@ -207,8 +243,7 @@ function back_to_Adv(){
 
 		<table id="tblsetting_1" class="QISform" width="400" border=0 align="center" cellpadding="5" cellspacing="0" style="padding-left:100px;">
 			<tr>
-			<!--th width="50%">Get the LAN IP of <% nvram_get("productid"); %> automatically?</th-->
-			<th width="50%"><#LANHostConfig_x_LANDHCPClient_itemname#></th>
+			<th width="50%"><#LANHostConfig_x_LAN_DHCP_itemname#></th>
 			<td>
 				<input type="radio" name="lan_proto_radio" class="input" onclick="change_ip_setting('dhcp')" value="dhcp"><#checkbox_Yes#>
 				<input type="radio" name="lan_proto_radio" class="input" onclick="change_ip_setting('static')" value="static"><#checkbox_No#>
@@ -220,25 +255,25 @@ function back_to_Adv(){
 			  <a class="hintstyle" href="javascript:void(0);" onClick="openHint(4,1);"><#LANHostConfig_IPRouters_itemname#></a>
 			</th>			
 			<td>
-			  <input type="text" maxlength="15" class="input_15_table" id="lan_ipaddr" name="lan_ipaddr" value="<% nvram_get("lan_ipaddr"); %>" onKeyPress="return is_ipaddr(this);" onKeyUp="change_ipaddr(this);">
+			  <input type="text" maxlength="15" class="input_15_table" id="lan_ipaddr" name="lan_ipaddr" value="<% nvram_get("lan_ipaddr"); %>" onKeyPress="return is_ipaddr(this, event);">
 			</td>
 		  </tr>
 		  
 		  <tr>
 			<th>
-			  <a class="hintstyle"  href="javascript:void(0);" onClick="openHint(4,2);"><#LANHostConfig_SubnetMask_itemname#></a>
+			  <a class="hintstyle"  href="javascript:void(0);" onClick="openHint(4,2);"><#IPConnection_x_ExternalSubnetMask_itemname#></a>
 			</th>
 			<td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" onkeypress="return is_ipaddr(this);" onkeyup="change_ipaddr(this);" />
-			  <input type="hidden" name="dhcp_start" value="<% nvram_get("dhcp_start"); %>">
-			  <input type="hidden" name="dhcp_end" value="<% nvram_get("dhcp_end"); %>">
+				<input type="text" maxlength="15" class="input_15_table" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" onkeypress="return is_ipaddr(this, event);">
+				<input type="hidden" name="dhcp_start" value="<% nvram_get("dhcp_start"); %>">
+				<input type="hidden" name="dhcp_end" value="<% nvram_get("dhcp_end"); %>">
 			</td>
 		  </tr>
 
 			<tr>
 			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,3);"><#IPConnection_x_ExternalGateway_itemname#></a></th>
 			<td>
-				<input type="text" name="lan_gateway" maxlength="15" class="input_15_table" value="<% nvram_get("lan_gateway"); %>" onKeyPress="return is_ipaddr(this);" onKeyUp="change_ipaddr(this);">
+				<input type="text" name="lan_gateway" maxlength="15" class="input_15_table" value="<% nvram_get("lan_gateway"); %>" onKeyPress="return is_ipaddr(this, event);">
 			</td>
 			</tr>
 
@@ -255,7 +290,7 @@ function back_to_Adv(){
 				<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,13);"><#IPConnection_x_DNSServer1_itemname#></a>
 			</th>
       <td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_dns1_x" value="<% nvram_get("lan_dns1_x"); %>" onkeypress="return is_ipaddr(this)" onkeyup="change_ipaddr(this)"/>
+				<input type="text" maxlength="15" class="input_15_table" name="lan_dns1_x" value="<% nvram_get("lan_dns1_x"); %>" onkeypress="return is_ipaddr(this, event)" >
 			</td>
       </tr>
 
@@ -264,14 +299,15 @@ function back_to_Adv(){
 				<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,14);"><#IPConnection_x_DNSServer2_itemname#></a>
 			</th>
       <td>
-				<input type="text" maxlength="15" class="input_15_table" name="lan_dns2_x" value="<% nvram_get("lan_dns2_x"); %>" onkeypress="return is_ipaddr(this)" onkeyup="change_ipaddr(this)"/>
+				<input type="text" maxlength="15" class="input_15_table" name="lan_dns2_x" value="<% nvram_get("lan_dns2_x"); %>" onkeypress="return is_ipaddr(this, event)" >
 			</td>
       </tr>  
 		</table>
 
 <div class="apply_gen" style="margin-top:30px">
 	<!--input type="button" id="prevButton" value="<#CTL_prev#>" onclick="back_to_Adv();" class="button_gen"-->
-	<input type="button" id="nextButton" value="<#CTL_next#>" onclick="submitForm();" class="button_gen" >
+	<!--input type="submit" id="nextButton" value="<#CTL_next#>" class="button_gen"-->
+	<input type="button" id="nextButton" value="<#CTL_next#>" class="button_gen" onclick="submitForm();">
 </div>
 </div>
 </form>

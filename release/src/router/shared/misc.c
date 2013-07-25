@@ -584,17 +584,24 @@ const char *get_wan6face(void)
 
 int update_6rd_info(void)
 {
-	if(get_ipv6_service()==IPV6_6RD && nvram_match("ipv6_6rd_dhcp", "1"))
-	{
-		if(strlen(nvram_safe_get("wan0_6rd_router"))>0) {
-			nvram_set("ipv6_6rd_router", nvram_safe_get("wan0_6rd_router"));
-			nvram_set("ipv6_6rd_ip4size", nvram_safe_get("wan0_6rd_ip4size"));
-			nvram_set("ipv6_6rd_prefix", nvram_safe_get("wan0_6rd_prefix"));
-			nvram_set("ipv6_6rd_prefixlen", nvram_safe_get("wan0_6rd_prefixlen"));
-			nvram_set("ipv6_prefix_length", nvram_safe_get("wan0_6rd_prefixlen"));
-			return 1;
-		}
-		else return 0;
+	if (get_ipv6_service() == IPV6_6RD && nvram_match("ipv6_6rd_dhcp", "1")) {
+		char addr6[INET6_ADDRSTRLEN + 1];
+		char *prefix;
+		struct in6_addr addr;
+
+		if (!nvram_invmatch("wan0_6rd_router", ""))
+			return 0;
+
+		/* try to compact IPv6 prefix */
+		prefix = nvram_safe_get("wan0_6rd_prefix");
+		if (inet_pton(AF_INET6, prefix, &addr) == 1)
+			prefix = inet_ntop(AF_INET6, &addr, addr6, sizeof(addr6));
+
+		nvram_set("ipv6_6rd_prefix", prefix);
+		nvram_set("ipv6_6rd_router", nvram_safe_get("wan0_6rd_router"));
+		nvram_set("ipv6_6rd_prefixlen", nvram_safe_get("wan0_6rd_prefixlen"));
+		nvram_set("ipv6_6rd_ip4size", nvram_safe_get("wan0_6rd_ip4size"));
+		return 1;
 	}
 	else return -1;
 }
@@ -865,10 +872,8 @@ void bcmvlan_models(int model, char *vlan)
 {
 	if(model==MODEL_RTN16||model==MODEL_RTN15U||model==MODEL_RTN66U||model==MODEL_RTAC66U)
 		strcpy(vlan, "vlan1");
-	else if(model==MODEL_RTN12||model==MODEL_RTN12B1||model==MODEL_RTN12C1||model==MODEL_RTN12D1||model==MODEL_RTN12HP||model==MODEL_RTN10U||model==MODEL_RTN10D) 
+	else if(model==MODEL_RTN53||model==MODEL_RTN12||model==MODEL_RTN12B1||model==MODEL_RTN12C1||model==MODEL_RTN12D1||model==MODEL_RTN12HP||model==MODEL_RTN10U||model==MODEL_RTN10D) 
 		strcpy(vlan, "vlan0");
-	else if(model==MODEL_RTN53)
-		strcpy(vlan, "vlan2");
 	else strcpy(vlan, "");
 }
 

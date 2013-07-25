@@ -161,7 +161,7 @@ int bs_encrypt;
 //#define OTS_LOG 1
 //#define OTS_SIMU 1
 
-static int rand_seed_by_time(void)
+int rand_seed_by_time(void)
 {
 	time_t atime;
 

@@ -260,19 +260,42 @@ function switchPage(page){
 			<table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">
 				<tr>
 		  			<td bgcolor="#4D595D" valign="top">
-						<div style="margin-top:8px;" align="right">
+						<table>
+						<tr>
+						<td>
+						<table width="100%" >
+						<tr >
+						<td  class="formfonttitle" align="left">								
+										<div style="margin-top:5px;"><#Menu_TrafficManager#> - QoS</div>
+									</td>
+						<td align="right" >	
+						<div style="margin-top:5px;">
 	   					<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 								<!--option><#switchpage#></option-->
 								<option value="1"><#qos_automatic_mode#></option>
- 								<option value="2" selected><#qos_user_prio#></option>
-								<option value="3"><#qos_user_rules#></option>								
+								<option value="2" selected><#qos_user_prio#></option>
+								<option value="3" ><#qos_user_rules#></option>
 							</select>	    
 						</div>
-		  			<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-		  			<div class="formfontdesc"><#UserQoS_desc#></div>
-		  			<div class="formfontdesc" id="is_qos_enable_desc" style="color:#FFCC00;"><#UserQoS_desc_zero#></div>
-		  
-							
+						
+						</td>
+						</tr>
+						</table>
+						</td>
+						</tr>
+						
+						
+		  			<tr>
+          				<td height="5"><img src="images/New_ui/export/line_export.png" /></td>
+        			</tr>
+					<tr>
+						<td style="font-style: italic;font-size: 14px;">
+		  				<div class="formfontdesc"><#UserQoS_desc#></div>
+							<div class="formfontdesc" id="is_qos_enable_desc" style="color:#FFCC00;"><#UserQoS_desc_zero#></div>
+		  			</td>
+					</tr>
+
+					<tr><td>		
 						<table width="100%"  border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
 							<thead>	
 							<tr>
@@ -440,11 +463,12 @@ function switchPage(page){
 							</tr>		  
 							</table>
 
-
+						</td></tr>
+						<tr><td>
 						<table width="100%"  border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;">
 							<thead>
 							<tr>
-							<td><#highest_prio_packet#> &nbsp;&nbsp;&nbsp;&nbsp;( <#prio_packet_note#> )
+							<td><#highest_prio_packet#><!-- &nbsp;&nbsp;&nbsp;&nbsp;( <#prio_packet_note#> ) -->
 									<a id="packet_table_display_id" style="margin-left:490px;display:none;" onclick='bw_crtl_display("packet_table_display_id", "packet_table");'>-</a>
 								</td>
 							</tr>
@@ -454,6 +478,10 @@ function switchPage(page){
 								<td>
 									<div id="packet_table">
 										<table width="100%" border="0" cellpadding="4" cellspacing="0">
+											<tr><td colspan="5" style="font-size:12px; border-collapse: collapse;border:0;">
+														<span><#prio_packet_note#></span>
+													</td>
+											</tr>
 											<tr>
 												<td style="font-size:12px; border-collapse: collapse;border:0;">		
 													<input type="checkbox" name="qos_ack_checkbox" <% nvram_match("qos_ack", "on", "checked"); %>>ACK
@@ -481,10 +509,13 @@ function switchPage(page){
 								</td>
 							</tr>
 						</table>
+					</td></tr>	
+					<tr><td>
 					<div class="apply_gen">
 						<input name="button" type="button" class="button_gen" onClick="applyRule()" value="<#CTL_apply#>"/>
 					</div>
-												
+					</td></tr>
+					<tr><td>					
 					<div id="manual_BW_setting" style="display:none;">
 						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 							<thead>
@@ -516,7 +547,8 @@ function switchPage(page){
 							</tr>
 						</table>
 					</div>	
-												
+					</td></tr>
+						</table>						
 					</td>
 				</tr>
 		

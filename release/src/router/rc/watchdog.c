@@ -64,8 +64,6 @@
 #define SETUP_TIMEOUT_COUNT	SETUP_TIMEOUT * 10 /* 60 times a second */
 #endif // BTN_SETUP
 
-static int nm_timer = 0;
-static int httpd_timer = 0;
 #if 0
 static int cpu_timer = 0;
 static int ddns_timer = 1;
@@ -120,6 +118,16 @@ alarmtimer(unsigned long sec, unsigned long usec)
 }
 
 extern int no_need_to_start_wps();
+
+void led_control_normal(void)
+{
+	// the behaviro in normal when wps led != power led
+	// wps led = on, power led = on
+
+	led_control(LED_WPS, LED_ON);
+	// in case LED_WPS != LED_POWER
+	led_control(LED_POWER, LED_ON);
+}
  
 void btn_check(void)
 {
@@ -551,16 +559,14 @@ void timecheck(void)
 
 	// radio on/off
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
-#if 0
-		/* TODO: when wl_radio = 0, not to do timecheck_item */
-		if (!nvram_get_int(wl_nvname("radio", unit, 0))){
+		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+		if (nvram_match(strcat_r(prefix, "radio", tmp), "0")){
 			item++;
 			unit++;
 			continue;
 		}
-#endif
 
-		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 		svcDate = nvram_safe_get(strcat_r(prefix, "radio_date_x", tmp));
 		svcTime = nvram_safe_get(strcat_r(prefix, "radio_time_x", tmp));
 		svcTime2 = nvram_safe_get(strcat_r(prefix, "radio_time2_x", tmp));
@@ -605,12 +611,11 @@ void timecheck(void)
 					if (!need_commit) need_commit = 1;
 #ifdef CONFIG_BCMWL5
 					eval("wl", "-i", word, "closed", "1");
-					eval("wl", "-i", word, "maxassoc", "0");
+					eval("wl", "-i", word, "bss_maxassoc", "1");
 					eval("wl", "-i", word, "bss", "down");
-//	 				eval("wlconf", word, "down");
 #endif
-	                        	ifconfig(word, 0, NULL, NULL);
-	                        	eval("brctl", "delif", lan_ifname, word);
+					ifconfig(word, 0, NULL, NULL);
+					eval("brctl", "delif", lan_ifname, word);
 				}
 				else
 				{
@@ -689,7 +694,7 @@ static void catch_sig(int sig)
 #endif
 }
 
-#ifdef RTCONFIG_BRCM_USBAP
+#if defined(RTCONFIG_BRCM_USBAP) || defined(RTAC66U)
 unsigned long get_5g_count()
 {
 	FILE *f;
@@ -727,6 +732,9 @@ void fake_wl_led_5g(void)
 	static unsigned int data_5g = 0;
 	unsigned long count_5g;	
 	int i;
+	static int j;
+	static int status = -1;
+	static int status_old;
 
 	// check data per 10 count
 	if((blink_5g_check%10)==0) {
@@ -740,7 +748,27 @@ void fake_wl_led_5g(void)
 	}
 
 	if(blink_5g) {
+#ifdef RTAC66U
+		j = rand_seed_by_time() % 3;
+#endif
 		for(i=0;i<10;i++) {
+#ifdef RTAC66U
+			usleep(33*1000);
+
+			status_old = status;
+			if (((i%2)==0) && (i > (3 + 2*j)))
+				status = 0;
+			else
+				status = 1;
+
+			if (status != status_old)
+			{
+				if (status)
+					led_control(LED_5G, LED_ON);
+				else
+					led_control(LED_5G, LED_OFF);
+			}
+#else
 			usleep(50*1000);
 			if(i%2==0) {
 				led_control(LED_5G, LED_OFF);
@@ -748,6 +776,7 @@ void fake_wl_led_5g(void)
 			else {
 				led_control(LED_5G, LED_ON);
 			}
+#endif
 		}
 		led_control(LED_5G, LED_ON);
 	}
@@ -758,7 +787,10 @@ void fake_wl_led_5g(void)
 
 void led_check(void)
 {
-#ifdef RTCONFIG_BRCM_USBAP
+#if defined(RTCONFIG_BRCM_USBAP) || defined(RTAC66U)
+#ifdef RTAC66U
+	if (nvram_match("led_5g", "1"))
+#endif
 	fake_wl_led_5g();
 #endif
 
@@ -816,11 +848,9 @@ void swmode_check()
 
 void ddns_check(void)
 {
-	char ddns_return[16];
-
-        if( nvram_match("ddns_enable_x", "1") &&
-           (nvram_match("wan0_state_t", "2") && nvram_match("wan0_auxstate_t", "0")) )
-        {
+	if( nvram_match("ddns_enable_x", "1") &&
+	   (nvram_match("wan0_state_t", "2") && nvram_match("wan0_auxstate_t", "0")) )
+	{
 		if (pids("ez-ipupdate")) //ez-ipupdate is running!
 			return;
 
@@ -834,10 +864,10 @@ void ddns_check(void)
 			 if( nvram_match("ddns_updated", "1") )
 				return;
 		}
-                logmessage("watchdog", "start ddns.");
+		logmessage("watchdog", "start ddns.");
 		unlink("/tmp/ddns.cache");
-                notify_rc("start_ddns");
-        }
+		notify_rc("start_ddns");
+	}
 	return;
 }
 
@@ -883,16 +913,6 @@ void watchdog(int sig)
 	return;
 }
 
-void led_control_normal(void)
-{
-	// the behaviro in normal when wps led != power led
-	// wps led = on, power led = on
-	
-	led_control(LED_WPS, LED_ON);
-	// in case LED_WPS != LED_POWER
-	led_control(LED_POWER, LED_ON);
-}
-
 int 
 watchdog_main(int argc, char *argv[])
 {
@@ -931,7 +951,6 @@ watchdog_main(int argc, char *argv[])
 	_dprintf("TZ watchdog\n");
 	/* set timer */
 	alarmtimer(NORMAL_PERIOD, 0);
-
 
 	led_control_normal();
 

@@ -68,7 +68,7 @@ void generate_switch_para(void)
 		case MODEL_RTN12D1:
 		case MODEL_RTN12HP:
 		case MODEL_RTN53:
-		{					/* WAN L1 L2 L3 L4 CPU */
+		{				      /* WAN L1 L2 L3 L4 CPU */
 			const int ports[SWPORT_COUNT] = { 4, 3, 2, 1, 0, 5 };
 			/* TODO: switch_wantag? */
 
@@ -90,7 +90,7 @@ void generate_switch_para(void)
 		}
 
 		case MODEL_RTN15U:
-		{					/* WAN L1 L2 L3 L4 CPU */
+		{				      /* WAN L1 L2 L3 L4 CPU */
 			const int ports[SWPORT_COUNT] = { 4, 3, 2, 1, 0, 8 };
 			/* TODO: switch_wantag? */
 
@@ -106,7 +106,7 @@ void generate_switch_para(void)
 		}
 
 		case MODEL_RTN16:
-		{					/* WAN L1 L2 L3 L4 CPU */
+		{				      /* WAN L1 L2 L3 L4 CPU */
 			const int ports[SWPORT_COUNT] = { 0, 4, 3, 2, 1, 8 };
 			int wancfg = (!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", "")) ? SWCFG_DEFAULT : cfg;
 
@@ -190,7 +190,7 @@ void generate_switch_para(void)
 
 		case MODEL_RTN66U:
 		case MODEL_RTAC66U:
-		{					/* WAN L1 L2 L3 L4 CPU */
+		{				      /* WAN L1 L2 L3 L4 CPU */
 			const int ports[SWPORT_COUNT] = { 0, 1, 2, 3, 4, 8 };
 			int wancfg = (!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", "")) ? SWCFG_DEFAULT : cfg;
 
@@ -273,8 +273,23 @@ void generate_switch_para(void)
 		}
 
 		case MODEL_RTN10U:
+		{				      /* WAN L1 L2 L3 L4 CPU */
+			const int ports[SWPORT_COUNT] = { 0, 4, 3, 2, 1, 5 };
+			/* TODO: switch_wantag? */
+
+			switch_gen_config(lan, ports, cfg, 0, "*");
+			switch_gen_config(wan, ports, cfg, 1, "u");
+			nvram_set("vlan0ports", lan);
+			nvram_set("vlan1ports", wan);
+			switch_gen_config(lan, ports, cfg, 0, NULL);
+			switch_gen_config(wan, ports, cfg, 1, NULL);
+			nvram_set("lanports", lan);
+			nvram_set("wanports", wan);
+			break;
+		}
+
 		case MODEL_RTN10D:
-		{					/* WAN L1 L2 L3 L4 CPU */
+		{				      /* WAN L1 L2 L3 L4 CPU */
 			const int ports[SWPORT_COUNT] = { 0, 1, 2, 3, 4, 5 };
 			/* TODO: switch_wantag? */
 
@@ -317,11 +332,11 @@ void init_switch()
 #endif
 	) {
 		nvram_set("ctf_disable", "1");
-		nvram_set("pktc_disable", "1");
+//		nvram_set("pktc_disable", "1");
 	}
 	else {
 		nvram_set("ctf_disable", "0");
-		nvram_set("pktc_disable", "0");
+//		nvram_set("pktc_disable", "0");
 	}
 	// ctf must be loaded prior to any other modules 
 	if (nvram_get_int("ctf_disable") == 0)
@@ -757,8 +772,9 @@ int set_wltxpower()
 				{
 					if (nvram_match(strcat_r(prefix, "country_code", tmp), "US"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "0"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "0");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
 							commit_needed++;
 						}
@@ -766,29 +782,34 @@ int set_wltxpower()
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2"))
 					{
 						nvram_set(strcat_r(prefix, "country_code", tmp), "US");
+						nvram_set(strcat_r(prefix2, "ccode", tmp2), "US");
+						nvram_set(strcat_r(prefix, "country_rev", tmp), "0");
 						nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
 						commit_needed++;
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "13"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "13"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "13");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "13");
 							commit_needed++;
 						}
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "TW"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "0"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "0");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
 							commit_needed++;
 						}
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "CN"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "1"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "1"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "1");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "1");
 							commit_needed++;
 						}
@@ -799,37 +820,43 @@ int set_wltxpower()
 					if (nvram_match(strcat_r(prefix, "country_code", tmp), "US"))
 					{
 						nvram_set(strcat_r(prefix, "country_code", tmp), "Q2");
+						nvram_set(strcat_r(prefix2, "ccode", tmp2), "Q2");
+						nvram_set(strcat_r(prefix, "country_rev", tmp), "12");
 						nvram_set(strcat_r(prefix2, "regrev", tmp2), "12");
 						commit_needed++;
 					}
 					if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "12"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "12"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "12");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "12");
 							commit_needed++;
 						}
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "15"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "15"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "15");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "15");
 							commit_needed++;
 						}
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "TW"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "4"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "4"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "4");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "4");
 							commit_needed++;
 						}
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "CN"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "5"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "5"))
 						{
+							nvram_set(strcat_r(prefix, "country_rev", tmp), "5");
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "5");
 							commit_needed++;
 						}
@@ -837,7 +864,7 @@ int set_wltxpower()
 				}
 
 				break;
-			
+
 			case MODEL_RTN66U:
 				if (nvram_match(strcat_r(prefix, "nband", tmp), "2"))		// 2.4G
 				{
@@ -873,13 +900,13 @@ int set_wltxpower()
 						}
 #ifndef MEDIA_REVIEW
 						if (nvram_match(strcat_r(prefix, "country_code", tmp), "US")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "2"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "2"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "39");
 							commit_needed++;
 						}
 						else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "5"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "5"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "3");
 							commit_needed++;
@@ -927,13 +954,13 @@ int set_wltxpower()
 						}
 #ifndef MEDIA_REVIEW
 						if (nvram_match(strcat_r(prefix, "country_code", tmp), "US")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "39"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "39"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "2");
 							commit_needed++;
 						}
 						else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "3"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "3"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "5");
 							commit_needed++;
@@ -1015,13 +1042,13 @@ int set_wltxpower()
 						}
 #ifndef MEDIA_REVIEW
 						if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "0"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "2");
 							commit_needed++;
 						}
 						else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "3"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "3"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
 							commit_needed++;
@@ -1103,13 +1130,13 @@ int set_wltxpower()
 
 #ifndef MEDIA_REVIEW
 						if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "2"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "2"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
 							commit_needed++;
 						}
 						else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU")
-							&& nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+							&& nvram_match(strcat_r(prefix, "country_rev", tmp), "0"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "3");
 							commit_needed++;
@@ -1134,39 +1161,23 @@ int set_wltxpower()
 				{
 					if (nvram_match(strcat_r(prefix, "country_code", tmp), "US"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "2"))
 						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
+							nvram_set(strcat_r(prefix2, "regrev", tmp2), "2");
 							commit_needed++;
 						}
-					}
-					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2"))
-					{
-						nvram_set(strcat_r(prefix, "country_code", tmp), "US");
-						nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
-						commit_needed++;
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "13"))
-						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "13");
-							commit_needed++;
-						}
+						nvram_set(strcat_r(prefix2, "ccode", tmp2), "XU");
+						nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
+						commit_needed++;
 					}
-					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "TW"))
+					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "XU"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "0"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "0"))
 						{
 							nvram_set(strcat_r(prefix2, "regrev", tmp2), "0");
-							commit_needed++;
-						}
-					}
-					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "CN"))
-					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "1"))
-						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "1");
 							commit_needed++;
 						}
 					}
@@ -1175,39 +1186,23 @@ int set_wltxpower()
 				{
 					if (nvram_match(strcat_r(prefix, "country_code", tmp), "US"))
 					{
-						nvram_set(strcat_r(prefix, "country_code", tmp), "Q2");
-						nvram_set(strcat_r(prefix2, "regrev", tmp2), "12");
-						commit_needed++;
-					}
-					if (nvram_match(strcat_r(prefix, "country_code", tmp), "Q2"))
-					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "12"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "13"))
 						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "12");
+							nvram_set(strcat_r(prefix2, "regrev", tmp2), "13");
 							commit_needed++;
 						}
+					}
+					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "XU"))
+					{
+						nvram_set(strcat_r(prefix2, "ccode", tmp2), "EU");
+						nvram_set(strcat_r(prefix2, "regrev", tmp2), "3");
+						commit_needed++;
 					}
 					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "EU"))
 					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "15"))
+						if (!nvram_match(strcat_r(prefix, "country_rev", tmp), "3"))
 						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "15");
-							commit_needed++;
-						}
-					}
-					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "TW"))
-					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "4"))
-						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "4");
-							commit_needed++;
-						}
-					}
-					else if (nvram_match(strcat_r(prefix, "country_code", tmp), "CN"))
-					{
-						if (!nvram_match(strcat_r(prefix2, "regrev", tmp2), "5"))
-						{
-							nvram_set(strcat_r(prefix2, "regrev", tmp2), "5");
+							nvram_set(strcat_r(prefix2, "regrev", tmp2), "3");
 							commit_needed++;
 						}
 					}
@@ -1244,10 +1239,12 @@ int is_ure(int unit)
 	return 0;
 }
 #endif
-
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 int is_psta(int unit)
 {
+	if (unit < 0) return 0;
+
 	if ((nvram_get_int("sw_mode") == SW_MODE_AP) &&
 		(nvram_get_int("wlc_psta") == 1) &&
 		(nvram_get_int("wlc_band") == unit))
@@ -1256,7 +1253,7 @@ int is_psta(int unit)
 	return 0;
 }
 #endif
-
+#endif
 void generate_wl_para(int unit, int subunit)
 {
 	dbG("unit %d subunit %d\n", unit, subunit);
@@ -1265,18 +1262,13 @@ void generate_wl_para(int unit, int subunit)
 	char tmp2[100], prefix2[]="wlXXXXXXX_";
 	char list[640];
 	char *nv, *nvp, *b;
-#if 1
-	char word[32], *next;
+#ifndef RTCONFIG_BCMWL6
+	char word[256], *next;
 	int match;
-	int wps_band;
 #endif
 	if (subunit == -1)
 	{
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-#ifdef RTCONFIG_PROXYSTA
-		if (is_psta(1 - unit))
-			nvram_set(strcat_r(prefix, "bss_enabled", tmp), "0");
-#endif
 #if 0
 		if (unit == nvram_get_int("wps_band") && nvram_match("wps_enable", "1"))
 #else
@@ -1290,9 +1282,11 @@ void generate_wl_para(int unit, int subunit)
 	{
 		snprintf(prefix, sizeof(prefix), "wl%d.%d_", unit, subunit);
 		snprintf(prefix2, sizeof(prefix2), "wl%d_", unit);
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
-		if (is_psta(unit) || is_psta(1 - unit))
+		if (is_psta(unit) /*|| is_psta(1 - unit)*/)
 			nvram_set(strcat_r(prefix, "bss_enabled", tmp), "0");
+#endif
 #endif
 	}
 
@@ -1345,6 +1339,7 @@ void generate_wl_para(int unit, int subunit)
 	//TODO: recover nvram from repeater
 	else
 #endif
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 	if (is_psta(unit))
 	{
@@ -1362,18 +1357,15 @@ void generate_wl_para(int unit, int subunit)
 			nvram_set(strcat_r(prefix, "key4", tmp), nvram_safe_get("wlc_wep_key"));
 			nvram_set(strcat_r(prefix, "crypto", tmp), nvram_safe_get("wlc_crypto"));
 			nvram_set(strcat_r(prefix, "wpa_psk", tmp), nvram_safe_get("wlc_wpa_psk"));
-#ifdef RTCONFIG_BCMWL6
 			if (nvram_match(strcat_r(prefix, "phytype", tmp), "v")) // 802.11AC
 				nvram_set(strcat_r(prefix, "bw", tmp), "3");
 			else
 				nvram_set(strcat_r(prefix, "bw", tmp), "2");
-#else
-			nvram_set(strcat_r(prefix, "bw", tmp), nvram_safe_get("wlc_nbw_cap"));
-#endif
 		}
 		else
 			nvram_set(strcat_r(prefix, "bss_enabled", tmp), "0");
 	}
+#endif
 #endif
 	if (nvram_match(strcat_r(prefix, "auth_mode_x", tmp), "shared"))
 	{
@@ -1451,6 +1443,7 @@ void generate_wl_para(int unit, int subunit)
 		if (is_ure(unit)) nvram_set(strcat_r(prefix, "mode", tmp), "wet");
 		else
 #endif
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 		if (is_psta(unit))
 		{
@@ -1458,6 +1451,7 @@ void generate_wl_para(int unit, int subunit)
 			nvram_set(strcat_r(prefix, "ure", tmp), "0");
 		}
 		else
+#endif
 #endif
 		if (nvram_match(strcat_r(prefix, "mode_x", tmp), "1")) // wds only
 			nvram_set(strcat_r(prefix, "mode", tmp), "wds");
@@ -1664,22 +1658,6 @@ void generate_wl_para(int unit, int subunit)
 			nvram_set(strcat_r(prefix, "wme_bss_disable", tmp), nvram_safe_get(strcat_r(prefix2, "wme_bss_disable", tmp2)));
 			nvram_set(strcat_r(prefix, "wpa_gtk_rekey", tmp), nvram_safe_get(strcat_r(prefix2, "wpa_gtk_rekey", tmp2)));
 			nvram_set(strcat_r(prefix, "wmf_bss_enable", tmp), nvram_safe_get(strcat_r(prefix2, "wmf_bss_enable", tmp2)));
-
-			if (!nvram_get(strcat_r(prefix, "lanaccess", tmp)))
-				nvram_set(strcat_r(prefix, "lanaccess", tmp), "off");
-
-			if (!nvram_get(strcat_r(prefix, "expire", tmp)))
-				nvram_set(strcat_r(prefix, "expire", tmp), "0");
-			else
-			{
-				snprintf(prefix2, sizeof(prefix2), "wl%d.%d_", unit, subunit);
-				nvram_set(strcat_r(prefix, "expire_tmp", tmp), nvram_safe_get(strcat_r(prefix2, "expire", tmp2)));
-			}
-		}
-		else
-		{
-			nvram_set(strcat_r(prefix, "expire", tmp), "0");
-			nvram_set(strcat_r(prefix, "expire_tmp", tmp), "0");
 		}
 	}
 

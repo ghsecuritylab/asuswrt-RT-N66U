@@ -45,6 +45,7 @@ var pool_end_end = parseInt(pool_end.split(".")[3]);
 var static_enable = '<% nvram_get("dhcp_static_x"); %>';
 var dhcp_staticlists = '<% nvram_get("dhcp_staticlist"); %>';
 var staticclist_row = dhcp_staticlists.split('&#60');
+var dualwan_mode = '<% nvram_get("wans_mode"); %>';
 
 function initial(){
 	show_menu();	
@@ -69,6 +70,12 @@ function initial(){
 
 	addOnlineHelp($("faq"), ["ASUSWRT", "VPN"]);
 	check_pptpd_broadcast();
+	
+	if(dualwan_mode == "lb"){
+		$('wan_ctrl').style.display = "none";
+		$('dualwan_ctrl').style.display = "";	
+	}
+		
 }
 
 function changeMppe(){
@@ -238,6 +245,7 @@ function addRow_Group(upper){
 		return false;	
 	}			
 
+	if(validForm()){
 		//Viz check same rule  //match(username) is not accepted
 		if(item_num >=2){
 			for(i=0; i<rule_num; i++){	
@@ -253,6 +261,8 @@ function addRow_Group(upper){
 		addRow(document.form.pptpd_clientlist_username ,1);
 		addRow(document.form.pptpd_clientlist_password, 0);
 		showpptpd_clientlist();		
+		
+	}
 }
 
 function del_Row(r){
@@ -430,7 +440,8 @@ function set_pptpd_broadcast(obj){
 								  <div class="formfonttitle"><#BOP_isp_heart_item#> - <#t2BC#></div>
 								  <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 								  <div class="formfontdesc"><#PPTP_desc#></div>
-								  <div class="formfontdesc"><#PPTP_desc2#> <% nvram_get("wan0_ipaddr"); %></div>
+								  <div id="wan_ctrl" class="formfontdesc"><#PPTP_desc2#> <% nvram_get("wan0_ipaddr"); %></div>
+								  <div id="dualwan_ctrl" style="display:none;" class="formfontdesc"><#PPTP_desc2#> <span class="formfontdesc">Primary WAN IP : <% nvram_get("wan0_ipaddr"); %> </sapn><span class="formfontdesc">Secondary WAN IP : <% nvram_get("wan1_ipaddr"); %> </sapn></div>
 								  <div class="formfontdesc" style="margin-top:-10px;font-weight: bolder;"><#PPTP_desc3#></div>
 									<div class="formfontdesc" style="margin-top:-10px;">
 										(7) <a id="faq" href="" target="_blank" style="font-family:Lucida Console;text-decoration:underline;"><#BOP_isp_heart_item#> FAQ</a>
@@ -456,7 +467,7 @@ function set_pptpd_broadcast(obj){
 											</td>
 									  </tr>
 										<tr>
-											<th><#vpn_broadcast#></th>
+											<th><#vpn_network_place#></th>
 											<td>
 												<input type="radio" value="1" id="pptpd_broadcast_ppp_yes" name="pptpd_broadcast_ppp" onchange="set_pptpd_broadcast(this);"/><#checkbox_Yes#>
 												<input type="radio" value="0" id="pptpd_broadcast_ppp_no" name="pptpd_broadcast_ppp" onchange="set_pptpd_broadcast(this);"/><#checkbox_No#>										

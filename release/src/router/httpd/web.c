@@ -49,6 +49,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #include <proto/ethernet.h>   //add by Viz 2010.08
+#include <net/route.h>
 
 #include <typedefs.h>
 #include <bcmutils.h>
@@ -1013,6 +1014,10 @@ ej_dump(int eid, webs_t wp, int argc, char_t **argv)
 		strcpy(filename, "/tmp/smartsync/.logs/system.log");
 		ret += dump_file(wp, filename); 
 	}
+        else if(!strcmp(file, "clouddisk.log")){
+                strcpy(filename, "/tmp/lighttpd/syslog.log");
+                ret += dump_file(wp, filename);
+        }
 #endif
 
 	sprintf(filename, "/tmp/%s", file);
@@ -1774,50 +1779,54 @@ static int ajax_wanstate_hook(int eid, webs_t wp, int argc, char_t **argv){
 }
 
 static int wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
-	char type[16], ip[16], netmask[16], gateway[16], statusstr[16];
-	int status = 0, unit;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
 	int wan_state = -1, wan_sbstate = -1, wan_auxstate = -1;
-	char wan_proto[16];
-	
+	int unit, status = 0;
+	char *statusstr[2] = { "Disconnected", "Connected" };
+	char *wan_proto, *type;
+	char *ip = "0.0.0.0";
+	char *netmask = "0.0.0.0";
+	char *gateway = "0.0.0.0";
+	unsigned int lease = 0, expires = 0;
+	char *xtype = "";
+	char *xip = "0.0.0.0";
+	char *xnetmask = "0.0.0.0";
+	char *xgateway = "0.0.0.0";
+	unsigned int xlease = 0, xexpires = 0;
+
 	/* current unit */
 	unit = wan_primary_ifunit();
+
+printf("httpd: unit: %d\n", unit);
+
 	wan_prefix(unit, prefix);
-	
+
 	wan_state = nvram_get_int(strcat_r(prefix, "state_t", tmp));
 	wan_sbstate = nvram_get_int(strcat_r(prefix, "sbstate_t", tmp));
 	wan_auxstate = nvram_get_int(strcat_r(prefix, "auxstate_t", tmp));
-	
-	memset(wan_proto, 0, 16);
-	strcpy(wan_proto, nvram_safe_get(strcat_r(prefix, "proto", tmp)));
-	
-	memset(statusstr, 0, 16);
+
+	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
+
 	if(unit == 1)
 	{
 		if(wan_state == WAN_STATE_INITIALIZING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_CONNECTING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_DISCONNECTED){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_STOPPED){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else{
 			status = 1;
-			strcpy(statusstr, "Connected");
 		}
 	}
 	else if(wan_state == WAN_STATE_DISABLED){
 		status = 0;
-		strcpy(statusstr, "Disconnected");
 	}
 // DSLTODO, need a better integration	
 #ifdef RTCONFIG_DSL
@@ -1826,18 +1835,15 @@ static int wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
 	//Some AUXSTATE is displayed for reference only
 	else if(wan_auxstate == WAN_AUXSTATE_NOPHY && (nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOLINK)) { 
 		status = 0;
-		strcpy(statusstr, "Disconnected");
 	}
 #else
 	//Some AUXSTATE is displayed for reference only
 	else if(wan_auxstate == WAN_AUXSTATE_NOPHY && (nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOLINK)) { 
 		status = 0;
-		strcpy(statusstr, "Disconnected");
 	}
-#endif	
+#endif
 	else if(wan_auxstate == WAN_AUXSTATE_NO_INTERNET_ACTIVITY&&(nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOINTERNET)) { 
 		status = 0;
-		strcpy(statusstr, "Disconnected");
 	}
 	else if(!strcmp(wan_proto, "pppoe")
 			|| !strcmp(wan_proto, "pptp")
@@ -1846,41 +1852,32 @@ static int wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
 	{
 		if(wan_state == WAN_STATE_INITIALIZING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_CONNECTING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_DISCONNECTED){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_STOPPED && wan_sbstate != WAN_STOPPED_REASON_PPP_LACK_ACTIVITY){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else{
 			status = 1;
-			strcpy(statusstr, "Connected");
 		}
 	}
 	else{
 		if(wan_state == WAN_STATE_STOPPED && wan_sbstate == WAN_STOPPED_REASON_INVALID_IPADDR){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_INITIALIZING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_CONNECTING){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else if(wan_state == WAN_STATE_DISCONNECTED){
 			status = 0;
-			strcpy(statusstr, "Disconnected");
 		}
 		else {
 			// treat short lease time as disconnected
@@ -1889,45 +1886,258 @@ static int wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
 			is_private_subnet(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)))
 			) {
 				status = 0;
-				strcpy(statusstr, "Disconnected");
 			}
 			else {
 				status = 1;
-				strcpy(statusstr, "Connected");
 			}
 		}
 	}
-	
-	memset(type, 0, 16);
+
 	if(unit == 1)
-		strcpy(type, "USB Modem");
+		type = "USB Modem";
 	else // dhcp
-		strcpy(type, wan_proto);
-	
-	memset(ip, 0, 16);
-	memset(netmask, 0, 16);
-	memset(gateway, 0, 16);
-	if(status == 0){
-		strcpy(ip, "0.0.0.0");
-		strcpy(netmask, "0.0.0.0");
-		strcpy(gateway, "0.0.0.0");	
+		type = wan_proto;
+
+	if(status != 0){
+		ip = nvram_safe_get(strcat_r(prefix, "ipaddr", tmp));
+		netmask = nvram_safe_get(strcat_r(prefix, "netmask", tmp));
+		gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
+		lease = nvram_get_int(strcat_r(prefix, "lease", tmp));
+		if (lease > 0)
+			expires = nvram_get_int(strcat_r(prefix, "expires", tmp)) - uptime();
 	}
-	else{
-		strcpy(ip, nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)));
-		strcpy(netmask, nvram_safe_get(strcat_r(prefix, "netmask", tmp)));
-		strcpy(gateway, nvram_safe_get(strcat_r(prefix, "gateway", tmp)));	
-	}
-	
+
 	websWrite(wp, "function wanlink_status() { return %d;}\n", status);
-	websWrite(wp, "function wanlink_statusstr() { return '%s';}\n", statusstr);
+	websWrite(wp, "function wanlink_statusstr() { return '%s';}\n", statusstr[status]);
 	websWrite(wp, "function wanlink_type() { return '%s';}\n", type);
 	websWrite(wp, "function wanlink_ipaddr() { return '%s';}\n", ip);
 	websWrite(wp, "function wanlink_netmask() { return '%s';}\n", netmask);
 	websWrite(wp, "function wanlink_gateway() { return '%s';}\n", gateway);
 	websWrite(wp, "function wanlink_dns() { return '%s';}\n", nvram_safe_get(strcat_r(prefix, "dns", tmp)));
-	websWrite(wp, "function wanlink_lease() { return %s;}\n", nvram_safe_get(strcat_r(prefix, "lease", tmp)));
+	websWrite(wp, "function wanlink_lease() { return %d;}\n", lease);
+	websWrite(wp, "function wanlink_expires() { return %d;}\n", expires);
 	websWrite(wp, "function is_private_subnet() { return '%d';}\n", is_private_subnet(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp))));
-	
+
+	if (strcmp(wan_proto, "pppoe") == 0 ||
+	    strcmp(wan_proto, "pptp") == 0 ||
+	    strcmp(wan_proto, "l2tp") == 0) {
+		int dhcpenable = nvram_get_int(strcat_r(prefix, "dhcpenable_x", tmp));
+#if 1 /* TODO: tmporary change! remove after WEB UI support */
+		if (strcmp(wan_proto, "pppoe") == 0 &&
+		    dhcpenable && nvram_match(strcat_r(prefix, "vpndhcp", tmp), "0"))
+			dhcpenable = 2;
+#endif /* TODO: tmporary change! remove after WEB UI support */
+
+		if (dhcpenable == 0)
+			xtype = "static";
+		else if (dhcpenable != 2 || strcmp(wan_proto, "pppoe") != 0)
+			xtype = "dhcp";
+		xip = nvram_safe_get(strcat_r(prefix, "xipaddr", tmp));
+		xnetmask = nvram_safe_get(strcat_r(prefix, "xnetmask", tmp));
+		xgateway = nvram_safe_get(strcat_r(prefix, "xgateway", tmp));
+		xlease = nvram_get_int(strcat_r(prefix, "xlease", tmp));
+		if (xlease > 0)
+			xexpires = nvram_get_int(strcat_r(prefix, "xexpires", tmp)) - uptime();
+	}
+
+	websWrite(wp, "function wanlink_xtype() { return '%s';}\n", xtype);
+	websWrite(wp, "function wanlink_xipaddr() { return '%s';}\n", xip);
+	websWrite(wp, "function wanlink_xnetmask() { return '%s';}\n", xnetmask);
+	websWrite(wp, "function wanlink_xgateway() { return '%s';}\n", xgateway);
+	websWrite(wp, "function wanlink_xdns() { return '%s';}\n", nvram_safe_get(strcat_r(prefix, "xdns", tmp)));
+	websWrite(wp, "function wanlink_xlease() { return %d;}\n", xlease);
+	websWrite(wp, "function wanlink_xexpires() { return %d;}\n", xexpires);
+
+	return 0;
+}
+
+static int secondary_wanlink_hook(int eid, webs_t wp, int argc, char_t **argv){
+#ifdef RTCONFIG_DUALWAN
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	int wan_state = -1, wan_sbstate = -1, wan_auxstate = -1;
+	int unit, status = 0;
+	char *statusstr[2] = { "Disconnected", "Connected" };
+	char *wan_proto, *type;
+	char *ip = "0.0.0.0";
+	char *netmask = "0.0.0.0";
+	char *gateway = "0.0.0.0";
+	unsigned int lease = 0, expires = 0;
+	char *xtype = "";
+	char *xip = "0.0.0.0";
+	char *xnetmask = "0.0.0.0";
+	char *xgateway = "0.0.0.0";
+	unsigned int xlease = 0, xexpires = 0;
+
+	/* current unit */
+	unit = 1;
+	wan_prefix(unit, prefix);
+
+	wan_state = nvram_get_int(strcat_r(prefix, "state_t", tmp));
+	wan_sbstate = nvram_get_int(strcat_r(prefix, "sbstate_t", tmp));
+	wan_auxstate = nvram_get_int(strcat_r(prefix, "auxstate_t", tmp));
+
+	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
+
+	if(unit == 1)
+	{
+		if(wan_state == WAN_STATE_INITIALIZING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_CONNECTING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_DISCONNECTED){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_STOPPED){
+			status = 0;
+		}
+		else{
+			status = 1;
+		}
+	}
+	else if(wan_state == WAN_STATE_DISABLED){
+		status = 0;
+	}
+// DSLTODO, need a better integration	
+#ifdef RTCONFIG_DSL
+	// if dualwan & enable lan port as wan
+	// it always report disconnected
+	//Some AUXSTATE is displayed for reference only
+	else if(wan_auxstate == WAN_AUXSTATE_NOPHY && (nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOLINK)) { 
+		status = 0;
+	}
+#else
+	//Some AUXSTATE is displayed for reference only
+	else if(wan_auxstate == WAN_AUXSTATE_NOPHY && (nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOLINK)) { 
+		status = 0;
+	}
+#endif
+	else if(wan_auxstate == WAN_AUXSTATE_NO_INTERNET_ACTIVITY&&(nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOINTERNET)) { 
+		status = 0;
+	}
+	else if(!strcmp(wan_proto, "pppoe")
+			|| !strcmp(wan_proto, "pptp")
+			|| !strcmp(wan_proto, "l2tp")
+			)
+	{
+		if(wan_state == WAN_STATE_INITIALIZING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_CONNECTING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_DISCONNECTED){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_STOPPED && wan_sbstate != WAN_STOPPED_REASON_PPP_LACK_ACTIVITY){
+			status = 0;
+		}
+		else{
+			status = 1;
+		}
+	}
+	else{
+		if(wan_state == WAN_STATE_STOPPED && wan_sbstate == WAN_STOPPED_REASON_INVALID_IPADDR){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_INITIALIZING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_CONNECTING){
+			status = 0;
+		}
+		else if(wan_state == WAN_STATE_DISCONNECTED){
+			status = 0;
+		}
+		else {
+			// treat short lease time as disconnected
+			if(!strcmp(wan_proto, "dhcp") &&
+			nvram_get_int(strcat_r(prefix, "lease", tmp)) <= 60 && 
+			is_private_subnet(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)))
+			) {
+				status = 0;
+			}
+			else {
+				status = 1;
+			}
+		}
+	}
+
+	if(unit == 1)
+		type = "USB Modem";
+	else // dhcp
+		type = wan_proto;
+
+	if(status != 0){
+		ip = nvram_safe_get(strcat_r(prefix, "ipaddr", tmp));
+		netmask = nvram_safe_get(strcat_r(prefix, "netmask", tmp));
+		gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
+		lease = nvram_get_int(strcat_r(prefix, "lease", tmp));
+		if (lease > 0)
+			expires = nvram_get_int(strcat_r(prefix, "expires", tmp)) - uptime();
+	}
+
+	websWrite(wp, "function secondary_wanlink_status() { return %d;}\n", status);
+	websWrite(wp, "function secondary_wanlink_statusstr() { return '%s';}\n", statusstr[status]);
+	websWrite(wp, "function secondary_wanlink_type() { return '%s';}\n", type);
+	websWrite(wp, "function secondary_wanlink_ipaddr() { return '%s';}\n", ip);
+	websWrite(wp, "function secondary_wanlink_netmask() { return '%s';}\n", netmask);
+	websWrite(wp, "function secondary_wanlink_gateway() { return '%s';}\n", gateway);
+	websWrite(wp, "function secondary_wanlink_dns() { return '%s';}\n", nvram_safe_get(strcat_r(prefix, "dns", tmp)));
+	websWrite(wp, "function secondary_wanlink_lease() { return %d;}\n", lease);
+	websWrite(wp, "function secondary_wanlink_expires() { return %d;}\n", expires);
+	websWrite(wp, "function is_private_subnet() { return %d;}\n", is_private_subnet(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp))));
+
+	if (strcmp(wan_proto, "pppoe") == 0 ||
+	    strcmp(wan_proto, "pptp") == 0 ||
+	    strcmp(wan_proto, "l2tp") == 0) {
+		int dhcpenable = nvram_get_int(strcat_r(prefix, "dhcpenable_x", tmp));
+#if 1 /* TODO: tmporary change! remove after WEB UI support */
+		if (strcmp(wan_proto, "pppoe") == 0 &&
+		    dhcpenable && nvram_match(strcat_r(prefix, "vpndhcp", tmp), "0"))
+			dhcpenable = 2;
+#endif /* TODO: tmporary change! remove after WEB UI support */
+
+		if (dhcpenable == 0)
+			xtype = "static";
+		else if (dhcpenable != 2 || strcmp(wan_proto, "pppoe") != 0)
+			xtype = "dhcp";
+		xip = nvram_safe_get(strcat_r(prefix, "xipaddr", tmp));
+		xnetmask = nvram_safe_get(strcat_r(prefix, "xnetmask", tmp));
+		xgateway = nvram_safe_get(strcat_r(prefix, "xgateway", tmp));
+		xlease = nvram_get_int(strcat_r(prefix, "xlease", tmp));
+		if (xlease > 0)
+			xexpires = nvram_get_int(strcat_r(prefix, "xexpires", tmp)) - uptime();
+	}
+
+	websWrite(wp, "function secondary_wanlink_xtype() { return '%s';}\n", xtype);
+	websWrite(wp, "function secondary_wanlink_xipaddr() { return '%s';}\n", xip);
+	websWrite(wp, "function secondary_wanlink_xnetmask() { return '%s';}\n", xnetmask);
+	websWrite(wp, "function secondary_wanlink_xgateway() { return '%s';}\n", xgateway);
+	websWrite(wp, "function secondary_wanlink_xdns() { return '%s';}\n", nvram_safe_get(strcat_r(prefix, "xdns", tmp)));
+	websWrite(wp, "function secondary_wanlink_xlease() { return %d;}\n", xlease);
+	websWrite(wp, "function secondary_wanlink_xexpires() { return %d;}\n", xexpires);
+#else
+	websWrite(wp, "function secondary_wanlink_status() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_statusstr() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_type() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_ipaddr() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_netmask() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_gateway() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_dns() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_lease() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_expires() { return -1;}\n");
+	websWrite(wp, "function is_private_subnet() { return -1;}\n");
+
+	websWrite(wp, "function secondary_wanlink_xtype() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xipaddr() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xnetmask() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xgateway() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xdns() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xlease() { return -1;}\n");
+	websWrite(wp, "function secondary_wanlink_xexpires() { return -1;}\n");
+#endif
 	return 0;
 }
 
@@ -2437,7 +2647,7 @@ static void INET6_displayroutes(webs_t wp)
 			}
  ERROR:
 			perror("fscanf");
-			return ret;
+			return;
 		}
 
 		/* Do the addr6x shift-and-insert changes to ':'-delimit addresses.
@@ -4432,6 +4642,7 @@ struct except_mime_handler except_mime_handlers[] = {
 	{ "gotoHomePage.htm", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "update_appstate.asp", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "update_cloudstatus.asp", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "get_webdavInfo.asp", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "*.gz", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "*.tgz", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "*.zip", MIME_EXCEPTION_NOAUTH_ALL},
@@ -6387,6 +6598,29 @@ int ej_cloud_status(int eid, webs_t wp, int argc, char **argv){
 
 	return 0;
 }
+
+int ej_webdavInfo(int eid, webs_t wp, int argc, char **argv) {
+	websWrite(wp, "// pktInfo=['PrinterInfo','SSID','NetMask','ProductID','FWVersion','OPMode','MACAddr','Regulation'];\n");
+	websWrite(wp, "pktInfo=['','%s',", nvram_safe_get("wl0_ssid"));
+	websWrite(wp, "'%s',", nvram_safe_get("lan_netmask"));
+	websWrite(wp, "'%s',", nvram_safe_get("productid"));
+	websWrite(wp, "'%s.%s',", nvram_safe_get("firmver"), nvram_safe_get("buildno"));
+	websWrite(wp, "'%s',", nvram_safe_get("sw_mode"));
+	websWrite(wp, "'%s',", nvram_safe_get("et0macaddr"));
+	websWrite(wp, "''];\n");
+
+	websWrite(wp, "// webdavInfo=['Webdav','HTTPType','HTTPPort','DDNS','HostName','WAN0IPAddr','','xSetting','HTTPSPort'];\n");
+        websWrite(wp, "webdavInfo=['%s',", nvram_safe_get("enable_webdav"));
+        websWrite(wp, "'%s',", nvram_safe_get("http_enable"));
+        websWrite(wp, "'%s',", nvram_safe_get("webdav_http_port"));
+        websWrite(wp, "'%s',", nvram_safe_get("ddns_enable_x"));
+        websWrite(wp, "'%s',", nvram_safe_get("ddns_hostname_x"));
+        websWrite(wp, "'%s',", nvram_safe_get("wan0_ipaddr"));
+        websWrite(wp, "'%s',", nvram_safe_get(""));
+        websWrite(wp, "'%s',", nvram_safe_get("x_Setting"));
+        websWrite(wp, "'%s'", nvram_safe_get("webdav_https_port"));
+        websWrite(wp, "];\n");
+}
 #endif
 #endif
 
@@ -6912,6 +7146,15 @@ ej_select_list(int eid, webs_t wp, int argc, char_t **argv)
 	return ret;
 }
 
+static int  
+ej_radio_status(int eid, webs_t wp, int argc, char_t **argv)
+{
+        int retval = 0;
+        
+	retval += websWrite(wp, "radio_2=%d;\nradio_5=%d;", get_radio(0,0), get_radio(1,0));
+        return retval;
+}
+
 struct ej_handler ej_handlers[] = {
 	{ "nvram_get", ej_nvram_get},
 	{ "nvram_default_get", ej_nvram_default_get},
@@ -6964,6 +7207,7 @@ struct ej_handler ej_handlers[] = {
 	{ "wanlink_dsl", wanlink_hook_dsl},
 #endif
 	{ "wanlink", wanlink_hook},
+	{ "secondary_wanlink", secondary_wanlink_hook},
 	{ "wan_action", wan_action_hook},
 	{ "get_wan_unit", get_wan_unit_hook},
 	{ "check_hwnat", check_hwnat}, 
@@ -7018,6 +7262,7 @@ struct ej_handler ej_handlers[] = {
 #endif
 #ifdef RTCONFIG_CLOUDSYNC
 	{ "cloud_status", ej_cloud_status},
+	{ "getWebdavInfo", ej_webdavInfo},
 #endif
 #endif
 
@@ -7043,7 +7288,8 @@ struct ej_handler ej_handlers[] = {
 #ifdef RTCONFIG_PROXYSTA
 	{ "wlc_psta_state", ej_wl_auth_psta},
 #endif	
-	{ "get_default_reboot_time", ej_get_default_reboot_time},	
+	{ "get_default_reboot_time", ej_get_default_reboot_time},
+	{ "radio_status", ej_radio_status},
 	{ NULL, NULL }
 };
 
@@ -7196,7 +7442,6 @@ char *trim_r(char *str)
 	return (str);
 }
 
-
 int
 ej_get_default_reboot_time(int eid, webs_t wp, int argc, char_t **argv)
 {
@@ -7205,5 +7450,3 @@ ej_get_default_reboot_time(int eid, webs_t wp, int argc, char_t **argv)
 	retval += websWrite(wp, nvram_safe_get("reboot_time"));
 	return retval;
 }
-
-

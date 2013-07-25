@@ -76,12 +76,13 @@ uint32_t get_phy_status(uint32_t portmask)
 		vecarg[1] = 0;
 		if ((portmask & (1U << i)) == 0)
 			continue;
-		
+
 		if (ioctl(fd, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0)
 			continue;
-		//Brcm bug, need repeate again to get the latest info
-                if (ioctl(fd, SIOCGETCPHYRD2, (caddr_t)&ifr) < 0)
-                        continue;
+		/* link is down, but negotiation has started
+		 * read register again, use previous value, if failed */
+		if ((vecarg[1] & 0x22) == 0x20)
+			ioctl(fd, SIOCGETCPHYRD2, (caddr_t)&ifr);
 
 		if (vecarg[1] & (1U << 2))
 			mask |= (1U << i);
@@ -158,7 +159,8 @@ uint32_t set_phy_ctrl(uint32_t portmask, uint32_t ctrl)
 	} else
 	/* 5325E/535x */
 	/* TODO: same as above, according SDK only 5325 */
-	if (model == MODEL_RTN12 || model == MODEL_RTN10U || model == MODEL_RTN10D || model == MODEL_RTN53) {
+	if (model == MODEL_RTN12 || model == MODEL_RTN10U || model == MODEL_RTN10D || model == MODEL_RTN53 
+		|| model == MODEL_RTN12B1 || model == MODEL_RTN12C1 || model == MODEL_RTN12D1 || model == MODEL_RTN12HP) {
 		reg = 0x1e;
 		mask= 0x0608;
 		off = 0x0008;
@@ -247,12 +249,12 @@ int check_imagefile(char *fname)
 
 int get_radio(int unit, int subunit)
 {
-	uint32 n;
+	int n = 0;
 
 	//_dprintf("get radio %x %x %s\n", unit, subunit, nvram_safe_get(wl_nvname("ifname", unit, subunit)));
 
 	return (wl_ioctl(nvram_safe_get(wl_nvname("ifname", unit, subunit)), WLC_GET_RADIO, &n, sizeof(n)) == 0) &&
-		((n & WL_RADIO_SW_DISABLE)  == 0);
+		!(n & (WL_RADIO_SW_DISABLE | WL_RADIO_HW_DISABLE));
 }
 
 void set_radio(int on, int unit, int subunit)
@@ -267,11 +269,28 @@ void set_radio(int on, int unit, int subunit)
 		snprintf(prefix, sizeof(prefix), "wl%d.%d_", unit, subunit);
 	else
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+	if (nvram_match(strcat_r(prefix, "radio", tmp), "0")) return;
+
 #if 0
 	sprintf(tmpstr, "%d", on);
 	nvram_set(strcat_r(prefix, "radio", tmp),  tmpstr);
 	nvram_commit();
 #endif
+#ifdef RTAC66U
+	snprintf(tmp, sizeof(tmp), "%sradio", prefix);
+	if(!strcmp(tmp, "wl1_radio")){
+		if(on){
+			nvram_set("led_5g", "1");
+			led_control(LED_5G, LED_ON);
+		}
+		else{
+			nvram_set("led_5g", "0");
+			led_control(LED_5G, LED_OFF);
+		}
+	}
+#endif
+
 	if(subunit>0) {
 		sprintf(tmpstr, "%d", subunit);
 		if(on) eval("wl", "-i", nvram_safe_get(wl_nvname("ifname", unit, 0)), "bss", "-C", tmpstr, "up");

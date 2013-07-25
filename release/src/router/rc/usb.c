@@ -755,7 +755,7 @@ _dprintf("cloudsync: mounted_path=%s.\n", mounted_path);
 		 * unless it's an unmount request from the Web GUI.
 		 */
 		if ((count == 1) && ((flags & EFH_USER) == 0)){
-_dprintf("restart_nas_services(%d): test 1.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 1.\n", getpid());
 			restart_nas_services(1, 0);
 		}
 		sleep(1);
@@ -1135,7 +1135,7 @@ void hotplug_usb_storage_device(int host_no, int action_add, uint flags)
 			 * or hotplug_usb() already did.
 			 */
 			if (exec_for_host(host_no, 0x00, flags, mount_partition)) {
-_dprintf("restart_nas_services(%d): test 2.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 2.\n", getpid());
 				restart_nas_services(1, 1); // restart all NAS applications
 			}
 		}
@@ -1149,7 +1149,7 @@ _dprintf("restart_nas_services(%d): test 2.\n", getpid());
 			/* Restart NAS applications (they could be killed by umount_mountpoint),
 			 * or just re-read the configuration.
 			 */
-_dprintf("restart_nas_services(%d): test 3.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 3.\n", getpid());
 			restart_nas_services(1, 1);
 		}
 	}
@@ -1160,7 +1160,7 @@ _dprintf("restart_nas_services(%d): test 3.\n", getpid());
 void remove_storage_main(int shutdn)
 {
 	if (shutdn){
-_dprintf("restart_nas_services(%d): test 4.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 4.\n", getpid());
 		restart_nas_services(1, 0);
 	}
 	/* Unmount all partitions */
@@ -1331,7 +1331,7 @@ void hotplug_usb(void)
 				}
 				TRACE_PT(" mount to dev: %s\n", devname);
 				if (mount_partition(devname, host, NULL, device, EFH_HP_ADD)) {
-_dprintf("restart_nas_services(%d): test 5.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 5.\n", getpid());
 					//restart_nas_services(1, 1); // restart all NAS applications
 					notify_rc_after_wait("restart_nasapps");
 				}
@@ -1344,7 +1344,7 @@ _dprintf("restart_nas_services(%d): test 5.\n", getpid());
 			/* Restart NAS applications (they could be killed by umount_mountpoint),
 			 * or just re-read the configuration.
 			 */
-_dprintf("restart_nas_services(%d): test 6.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 6.\n", getpid());
 			//restart_nas_services(1, 1);
 			notify_rc_after_wait("restart_nasapps");
 		}
@@ -1919,7 +1919,9 @@ stop_mt_daapd()
 		system("killall mDNSResponder");
 
 	if (pids("mt-daapd"))
-		system("killall mt-daapd");
+		system("killall -SIGKILL mt-daapd");
+
+	unlink("/etc/mt-daapd.conf");
 
 	logmessage("iTunes", "daemon is stoped");
 }
@@ -2350,7 +2352,7 @@ int ejusb_main(int argc, const char *argv[]){
 	}
 	free_disk_data(&disk_list);
 
-_dprintf("restart_nas_services(%d): test 7.\n", getpid());
+//_dprintf("restart_nas_services(%d): test 7.\n", getpid());
 	//restart_nas_services(1, 1);
 	notify_rc_after_wait("restart_nasapps");
 

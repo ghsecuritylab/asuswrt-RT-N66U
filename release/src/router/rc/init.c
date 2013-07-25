@@ -106,6 +106,7 @@ wps_restore_defaults(void)
 
 	nvram_set("wps_device_name", get_productid());
 	nvram_set("wps_modelnum", get_productid());
+	nvram_set("boardnum", nvram_get("serial_no") ? : nvram_safe_get("et0macaddr"));
 }
 #endif /* RTCONFIG_WPS */
 
@@ -358,6 +359,7 @@ wl_defaults(void)
 				nvram_set(strcat_r(prefix, "closed", tmp), "0");
 				nvram_set(strcat_r(prefix, "infra", tmp), "1");
 				nvram_set(strcat_r(prefix, "macmode", tmp), "disabled");
+				nvram_set(strcat_r(prefix, "maxassoc", tmp), "128");
 				nvram_set(strcat_r(prefix, "mode", tmp), "ap");
 				nvram_set(strcat_r(prefix, "net_reauth", tmp), "36000");
 				nvram_set(strcat_r(prefix, "preauth", tmp), "");
@@ -720,6 +722,9 @@ restore_defaults(void)
 	model = get_model();
 
 	switch(model) {
+		case MODEL_RTN10U:
+                        nvram_set("reboot_time", "85"); // default is 60 sec
+                        break;
 #ifdef RTCONFIG_RALINK
 #ifdef RTCONFIG_DSL
 		case MODEL_DSLN55U:
@@ -736,6 +741,10 @@ restore_defaults(void)
 #endif
 
 	nvram_set("success_start_service", "0");
+#ifdef RTAC66U
+	nvram_set("led_5g", "0");
+#endif
+
 }
 
 /* Set terminal settings to reasonable defaults */
@@ -1162,12 +1171,9 @@ int init_nvram(void)
 		nvram_set_int("btn_wps_gpio", 23|GPIO_ACTIVE_LOW);
 		nvram_set_int("led_pwr_gpio", 18|GPIO_ACTIVE_LOW);
 		nvram_set_int("led_wps_gpio", 18|GPIO_ACTIVE_LOW);
-		nvram_set_int("led_wan_gpio", 5|GPIO_ACTIVE_LOW);
-		nvram_set_int("et_swleds", 0x0f);
-		nvram_set_int("sb/1/ledbh4", 2);
-		nvram_set_int("sb/1/ledbh5", 11);
-		nvram_set_int("sb/1/ledbh6", 11);
-		add_rc_support("pwrctrl"); // only for N12HP
+		nvram_set_int("led_wan_gpio", 4|GPIO_ACTIVE_LOW);
+		nvram_set_int("sb/1/ledbh5", 2);
+		add_rc_support("pwrctrl");
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -1178,11 +1184,8 @@ int init_nvram(void)
 		nvram_set_int("btn_wps_gpio", 23|GPIO_ACTIVE_LOW);
 		nvram_set_int("led_pwr_gpio", 18|GPIO_ACTIVE_LOW);
 		nvram_set_int("led_wps_gpio", 18|GPIO_ACTIVE_LOW);
-		nvram_set_int("led_wan_gpio", 5|GPIO_ACTIVE_LOW);
-		nvram_set_int("et_swleds", 0x0f);
-		nvram_set_int("sb/1/ledbh4", 2);
-		nvram_set_int("sb/1/ledbh5", 11);
-		nvram_set_int("sb/1/ledbh6", 11);
+		nvram_set_int("led_wan_gpio", 4|GPIO_ACTIVE_LOW);
+		nvram_set_int("sb/1/ledbh5", 2);
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -1597,6 +1600,10 @@ int init_nvram(void)
 	// TODO: hide USB Modem UI in 3.0.0.1
 	if(strcmp(nvram_safe_get("firmver"), "3.0.0.1")!=0)
 		add_rc_support("modem");
+
+#ifdef RTCONFIG_USB_BECEEM	
+	add_rc_support("wimax");
+#endif
 #endif
 
 #ifdef RTCONFIG_HTTPS
@@ -1605,6 +1612,7 @@ int init_nvram(void)
 
 #ifdef RTCONFIG_WEBDAV
 	add_rc_support("webdav");
+	nvram_set("start_aicloud", "1");
 #endif
 
 #ifdef RTCONFIG_CLOUDSYNC
@@ -1629,20 +1637,23 @@ int init_nvram(void)
 		add_rc_support("appnone");
 	else add_rc_support("appnet");
 
-#ifdef RTCONFIG_RALINK
-#ifdef RTCONFIG_DSL
-	if(model==MODEL_DSLN55U) 
-		add_rc_support("nodm");
-#endif
-#endif
+// DSL-N55U will follow N56U to have DM
+//#ifdef RTCONFIG_RALINK
+//#ifdef RTCONFIG_DSL
+//	if(model==MODEL_DSLN55U) 
+//		add_rc_support("nodm");
+//#endif
+//#endif
 #endif // RTCONFIG_APP_NETINSTALLED
 #endif // RTCONFIG_USB
 
 #ifdef RTCONFIG_WIRELESSREPEATER
 	add_rc_support("repeater");
 #endif
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 	add_rc_support("psta");
+#endif
 #endif
 #ifdef RTCONFIG_BCMWL6
 	add_rc_support("wl6");
@@ -1968,7 +1979,6 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 #ifdef RTCONFIG_DSL
 			start_dsl();
 #endif
-			start_vlan();
 			start_lan();
 			start_wan();
 			start_services();
@@ -2093,6 +2103,7 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 			}
 
 #ifdef RTCONFIG_BCMWL6
+#ifdef ACS_ONCE
 			if (nvram_match("acsd_restart_wl", "1"))
 			{
 				nvram_set("acsd_restart_wl", "0");
@@ -2103,6 +2114,7 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 				nvram_set("wly0_chanspec", "0");
 				nvram_set("wly1_chanspec", "0");
 			}
+#endif
 #endif
 
 			nvram_set("success_start_service", "1");

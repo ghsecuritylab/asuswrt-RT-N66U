@@ -278,10 +278,12 @@ void init_switch_mode()
 		nvram_set("wan_nat_x", "1");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
 		nvram_set("wl0_bss_enabled", "1");
 		nvram_set("wl1_bss_enabled", "1");
+#endif
 #endif
 	}
 	else if (nvram_match("sw_mode_ex", "4"))		// Router mode
@@ -289,10 +291,12 @@ void init_switch_mode()
 		nvram_set("wan_nat_x", "0");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
 		nvram_set("wl0_bss_enabled", "1");
 		nvram_set("wl1_bss_enabled", "1");
+#endif
 #endif
 	}
 #ifdef RTCONFIG_WIRELESSREPEATER
@@ -327,8 +331,10 @@ void init_switch_mode()
 		nvram_set("wl0.1_wme", nvram_safe_get("wl_wme"));
 		nvram_set("wl0.1_wme_bss_disable", nvram_safe_get("wl_wme_bss_disable"));
 		nvram_set("wl0.1_wmf_bss_enable", nvram_safe_get("wl_wmf_bss_enable"));
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
+#endif
 #endif
 	}
 #endif	/* RTCONFIG_WIRELESSREPEATER */
@@ -345,10 +351,12 @@ void init_switch_mode()
 		nvram_set("wan_nat_x", "1");
 		nvram_set("wan_route_x", "IP_Routed");
 		nvram_set("wl_mode_ex", "ap");
+#ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
 		nvram_set("wlc_psta", "0");
 		nvram_set("wl0_bss_enabled", "1");
 		nvram_set("wl1_bss_enabled", "1");
+#endif
 #endif
 	}
 }

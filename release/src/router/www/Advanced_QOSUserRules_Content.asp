@@ -278,7 +278,7 @@ function showqos_rulelist(){
 							}else
 								code +='<td width="'+wid[j]+'%">'+ qos_rulelist_col[j] +'</td>';																						
 						}else if(j==5){
-								code += '<td width="'+wid[j]+'%"><select class="input_option">';
+								code += '<td width="'+wid[j]+'%"><select class="input_option" style="width:85px;">';
 
 
 								if(qos_rulelist_col[5] =="0")
@@ -734,10 +734,19 @@ function valid_IPorMAC(obj){
 	<tr>
 		<td valign="top" >
 			<table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">			
-			<tbody>
+
 				<tr>
 		  			<td bgcolor="#4D595D" valign="top">
-						<div style="margin-top:8px;" align="right">
+						<table>
+						<tr>
+						<td>
+						<table width="100%" >
+						<tr >
+						<td  class="formfonttitle" align="left">								
+										<div style="margin-top:5px;"><#Menu_TrafficManager#> - QoS</div>
+									</td>
+						<td align="right" >	
+						<div style="margin-top:5px;">
 	   					<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 								<!--option><#switchpage#></option-->
 								<option value="1"><#qos_automatic_mode#></option>
@@ -745,9 +754,23 @@ function valid_IPorMAC(obj){
 								<option value="3" selected><#qos_user_rules#></option>
 							</select>	    
 						</div>
-		  			<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-		  			<div class="formfontdesc" id="is_qos_enable_desc" style="color:#FFCC00;"><#UserQoSRule_desc_zero#></div>		  			
-		  	
+						
+						</td>
+						</tr>
+						</table>
+						</td>
+						</tr>
+						
+		  			<tr>
+          				<td height="5"><img src="images/New_ui/export/line_export.png" /></td>
+        			</tr>
+					<tr id="is_qos_enable_desc">
+					<td>
+		  			<div class="formfontdesc" style="font-style: italic;font-size: 14px;color:#FFCC00;"><ul><li><#UserQoSRule_desc_zero#></li></ul></div>
+					</td>
+					</tr>
+					<tr>
+					<td>
 						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px">
 							<thead>
 							<tr>
@@ -778,7 +801,7 @@ function valid_IPorMAC(obj){
 								<td width="19%"><input type="text" maxlength="17" class="input_15_table" name="qos_ip_x_0" style="width:125px;"></td>
 								<td width="15%"><input type="text" class="input_12_table" name="qos_port_x_0" onKeyPress="return is_portrange(this, event)"></td>
 								<td width="13%">
-									<select name='qos_proto_x_0' class="input_option" style="width:87px;">
+									<select name='qos_proto_x_0' class="input_option" style="width:75px;">
 										<option value='tcp'>TCP</option>
 										<option value='udp'>UDP</option>
 										<option value='tcp/udp' selected>TCP/UDP</option>
@@ -794,7 +817,7 @@ function valid_IPorMAC(obj){
 									<input type="hidden" name="qos_transferred_x_0" value="">
 								</td>
 								<td width="11%">
-									<select name='qos_prio_x_0' class="input_option" style="width:auto;">
+									<select name='qos_prio_x_0' class="input_option" style="width:87px;"> <!--style="width:auto;"-->
 										<option value='0'><#Highest#></option>
 										<option value='1' selected><#High#></option>
 										<option value='2'><#Medium#></option>
@@ -808,15 +831,21 @@ function valid_IPorMAC(obj){
 								</td>
 							</tr>
 							</table>
-							
 							<div id="qos_rulelist_Block"></div>
-							
+							</td>							
+						</tr>
+						<!--tr><td>
+							<div id="qos_rulelist_Block"></div>
+						</td></tr-->
+						<tr><td>
 							<div class="apply_gen">
 								<input name="button" type="button" class="button_gen" onClick="applyRule()" value="<#CTL_apply#>"/>
-							</div>							
+							</div>
+						</td></tr>		
+						</table>			
 					</td>
 				</tr>
-			</tbody>	
+
 		
 			</table>
 		</td>

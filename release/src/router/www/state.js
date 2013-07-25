@@ -1535,6 +1535,7 @@ function validate_account(string_obj, flag){
 				||  string_obj.value.charAt(i) == '<'
 				||  string_obj.value.charAt(i) == '>'
 				||  string_obj.value.charAt(i) == '@'
+				||  string_obj.value.charAt(i) == ' '
 				){
 			invalid_char = invalid_char+string_obj.value.charAt(i);
 		}

@@ -566,8 +566,10 @@ start_ecmh(char *wan_ifname)
 void
 stop_igmpproxy()
 {
-        if (pids("udpxy")) killall_tk("udpxy");
-        if (pids("igmpproxy")) killall_tk("igmpproxy");
+	if (pids("udpxy"))
+		killall_tk("udpxy");
+	if (pids("igmpproxy"))
+		killall_tk("igmpproxy");
 }
 
 void	// oleg patch , add
@@ -2381,8 +2383,7 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 		return;
 	/* start multicast router when not VPN */
 	if (strcmp(wan_proto, "dhcp") == 0 ||
-	    strcmp(wan_proto, "static") == 0 ||
-	    strcmp(wan_proto, "pppoe") == 0)
+	    strcmp(wan_proto, "static") == 0)
 		start_igmpproxy(wan_ifname);
 
 	//add_iQosRules(wan_ifname);
@@ -2427,6 +2428,13 @@ _dprintf("%s(%s): unset xdns=%s.\n", __FUNCTION__, wan_ifname, nvram_safe_get("w
 	/* Stop post-authenticator */
 	stop_auth(wan_unit, 1);
 
+	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
+
+	/* stop multicast router when not VPN */
+	if (strcmp(wan_proto, "dhcp") == 0 ||
+	    strcmp(wan_proto, "static") == 0)
+		stop_igmpproxy();
+
 	/* Remove default route to gateway if specified */
 	if(wan_unit == wan_primary_ifunit())
 		route_del(wan_ifname, 0, "0.0.0.0", 
@@ -2451,8 +2459,6 @@ _dprintf("%s(%s): unset xdns=%s.\n", __FUNCTION__, wan_ifname, nvram_safe_get("w
 		nvram_unset(strcat_r(prefix, "dns", tmp));
 #endif
 
-	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
-
 	if (strcmp(wan_proto, "static") == 0)
 		ifconfig(wan_ifname, IFUP, NULL, NULL);
 
@@ -2462,8 +2468,6 @@ _dprintf("%s(%s): unset xdns=%s.\n", __FUNCTION__, wan_ifname, nvram_safe_get("w
 	if(nvram_match("wans_mode", "lb"))
 		add_multi_routes();
 #endif
-
-	stop_igmpproxy();
 }
 
 int

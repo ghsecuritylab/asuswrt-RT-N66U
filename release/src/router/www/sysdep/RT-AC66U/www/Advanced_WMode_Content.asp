@@ -84,7 +84,7 @@ function initial(){
 	show_menu();
 	load_body();	
 
-	if(sw_mode == 2 && '<% nvram_get("wl_unit"); %>' == '<% nvram_get("wlc_band"); %>'){
+	if((sw_mode == 2 || sw_mode == 4)&& '<% nvram_get("wl_unit"); %>' == '<% nvram_get("wlc_band"); %>'){
 		for(var i=5; i>=3; i--)
 			$("MainTable1").deleteRow(i);
 		for(var i=2; i>=0; i--)
@@ -376,10 +376,10 @@ function wl_bw_hint(){  //Control display chanspec hint when wl_bw=0 or not
 		  	<div>&nbsp;</div>
 		  	<div class="formfonttitle"><#menu5_1#> - <#menu5_1_3#></div>
 		  	<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-		  	<div class="formfontdesc"><#WLANConfig11b_display3_sectiondesc#></div>
-				<div id="wl_bw_hint" style="font-size:13px;font-family: Arial, Helvetica, sans-serif;color:#FC0;margin-left:28px;">4. You are currently using the Auto channel. Click <a style="font-size:13px;font-family: Lucida Console;color:#FC0;text-decoration:underline;" href="/Advanced_Wireless_Content.asp?af=wl_bw">Here</a> to modify.</div>
-		  	<div style="margin-left:10px;">(2.4GHz MAC) <% nvram_get("wl0_hwaddr"); %></div>
-		  	<div id="mac_5g" style="margin-left:10px;">(5GHz MAC) <% nvram_get("wl1_hwaddr"); %></div>
+		  	<div class="formfontdesc"><#WLANConfig11b_display3_sectiondesc#></div>				
+		  	<div style="margin-left:40px;">(2.4GHz MAC) <% nvram_get("wl0_hwaddr"); %></div>
+		  	<div id="mac_5g" style="margin-left:40px;">(5GHz MAC) <% nvram_get("wl1_hwaddr"); %></div>
+		  	<div id="wl_bw_hint" style="font-size:13px;font-family: Arial, Helvetica, sans-serif;color:#FC0;margin-left:28px;">5. You are currently using the Auto channel. Click <a style="font-size:13px;font-family: Lucida Console;color:#FC0;text-decoration:underline;" href="/Advanced_Wireless_Content.asp?af=wl_bw">Here</a> to modify.</div>
 			
 			<table id="MainTable1" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 			  <thead>

@@ -25,7 +25,7 @@
 #
 #   The license which is distributed with this software in the file COPYRIGHT
 #   applies to this software. If your distribution is missing this file, you
-#   may request it from <pekkas@netcore.fi>.
+#   may request it from <reubenhwk@gmail.com>.
 #
 
 VPATH = @srcdir@
@@ -1219,7 +1219,7 @@ dist-hook:
 	rm -f $(distdir)/gram.h
 	rm -f $(distdir)/scanner.c
 
-scanner.o: gram.h
+scanner.c: gram.h
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

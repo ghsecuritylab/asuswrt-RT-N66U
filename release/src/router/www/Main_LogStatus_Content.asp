@@ -15,6 +15,7 @@
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
+<script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script>
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
@@ -155,4 +156,13 @@ function clearLog(){
 </table>
 <div id="footer"></div>
 </body>
+<script type="text/javascript">
+<!--[if !IE]>-->
+	jQuery.noConflict();
+	(function($){
+		var textArea = document.getElementById('textarea');
+		textArea.scrollTop = textArea.scrollHeight;
+	})(jQuery);
+<!--<![endif]-->
+</script>
 </html>

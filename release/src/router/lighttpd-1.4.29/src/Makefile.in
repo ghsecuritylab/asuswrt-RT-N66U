@@ -156,6 +156,13 @@ mod_accesslog_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) $(mod_accesslog_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
+mod_aicloud_auth_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_mod_aicloud_auth_la_OBJECTS = mod_aicloud_auth.lo
+mod_aicloud_auth_la_OBJECTS = $(am_mod_aicloud_auth_la_OBJECTS)
+mod_aicloud_auth_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(mod_aicloud_auth_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 mod_aidisk_access_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_mod_aidisk_access_la_OBJECTS = mod_aidisk_access.lo
 mod_aidisk_access_la_OBJECTS = $(am_mod_aidisk_access_la_OBJECTS)
@@ -498,10 +505,10 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(liblightcomp_la_SOURCES) $(mod_access_la_SOURCES) \
-	$(mod_accesslog_la_SOURCES) $(mod_aidisk_access_la_SOURCES) \
-	$(mod_alias_la_SOURCES) $(mod_auth_la_SOURCES) \
-	$(mod_cgi_la_SOURCES) $(mod_cml_la_SOURCES) \
-	$(mod_compress_la_SOURCES) \
+	$(mod_accesslog_la_SOURCES) $(mod_aicloud_auth_la_SOURCES) \
+	$(mod_aidisk_access_la_SOURCES) $(mod_alias_la_SOURCES) \
+	$(mod_auth_la_SOURCES) $(mod_cgi_la_SOURCES) \
+	$(mod_cml_la_SOURCES) $(mod_compress_la_SOURCES) \
 	$(mod_create_captcha_image_la_SOURCES) \
 	$(mod_dirlisting_la_SOURCES) $(mod_evasive_la_SOURCES) \
 	$(mod_evhost_la_SOURCES) $(mod_expire_la_SOURCES) \
@@ -521,9 +528,10 @@ SOURCES = $(liblightcomp_la_SOURCES) $(mod_access_la_SOURCES) \
 	$(lighttpd_monitor_SOURCES) $(proc_open_SOURCES)
 DIST_SOURCES = $(am__liblightcomp_la_SOURCES_DIST) \
 	$(mod_access_la_SOURCES) $(mod_accesslog_la_SOURCES) \
-	$(mod_aidisk_access_la_SOURCES) $(mod_alias_la_SOURCES) \
-	$(mod_auth_la_SOURCES) $(mod_cgi_la_SOURCES) \
-	$(mod_cml_la_SOURCES) $(mod_compress_la_SOURCES) \
+	$(mod_aicloud_auth_la_SOURCES) $(mod_aidisk_access_la_SOURCES) \
+	$(mod_alias_la_SOURCES) $(mod_auth_la_SOURCES) \
+	$(mod_cgi_la_SOURCES) $(mod_cml_la_SOURCES) \
+	$(mod_compress_la_SOURCES) \
 	$(mod_create_captcha_image_la_SOURCES) \
 	$(mod_dirlisting_la_SOURCES) $(mod_evasive_la_SOURCES) \
 	$(mod_evhost_la_SOURCES) $(mod_expire_la_SOURCES) \
@@ -744,8 +752,8 @@ lib_LTLIBRARIES = $(am__append_1) mod_flv_streaming.la mod_evasive.la \
 	mod_expire.la mod_evhost.la mod_simple_vhost.la mod_fastcgi.la \
 	mod_extforward.la mod_access.la mod_compress.la mod_auth.la \
 	mod_rewrite.la mod_redirect.la mod_status.la mod_accesslog.la \
-	mod_aidisk_access.la mod_create_captcha_image.la \
-	mod_sharelink.la
+	mod_aicloud_auth.la mod_aidisk_access.la \
+	mod_create_captcha_image.la mod_sharelink.la
 @NO_RDYNAMIC_TRUE@liblightcomp_la_SOURCES = $(common_src)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_CFLAGS = $(AM_CFLAGS) $(LIBEV_CFLAGS)
 @NO_RDYNAMIC_TRUE@liblightcomp_la_LDFLAGS = -avoid-version -no-undefined
@@ -856,6 +864,9 @@ mod_status_la_LIBADD = $(common_libadd)
 mod_accesslog_la_SOURCES = mod_accesslog.c
 mod_accesslog_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
 mod_accesslog_la_LIBADD = $(common_libadd)
+mod_aicloud_auth_la_SOURCES = mod_aicloud_auth.c
+mod_aicloud_auth_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+mod_aicloud_auth_la_LIBADD = $(common_libadd)
 mod_aidisk_access_la_SOURCES = mod_aidisk_access.c
 mod_aidisk_access_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
 mod_aidisk_access_la_LIBADD = $(common_libadd)
@@ -973,6 +984,8 @@ mod_access.la: $(mod_access_la_OBJECTS) $(mod_access_la_DEPENDENCIES)
 	$(AM_V_CCLD)$(mod_access_la_LINK) -rpath $(libdir) $(mod_access_la_OBJECTS) $(mod_access_la_LIBADD) $(LIBS)
 mod_accesslog.la: $(mod_accesslog_la_OBJECTS) $(mod_accesslog_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_accesslog_la_LINK) -rpath $(libdir) $(mod_accesslog_la_OBJECTS) $(mod_accesslog_la_LIBADD) $(LIBS)
+mod_aicloud_auth.la: $(mod_aicloud_auth_la_OBJECTS) $(mod_aicloud_auth_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(mod_aicloud_auth_la_LINK) -rpath $(libdir) $(mod_aicloud_auth_la_OBJECTS) $(mod_aicloud_auth_la_LIBADD) $(LIBS)
 mod_aidisk_access.la: $(mod_aidisk_access_la_OBJECTS) $(mod_aidisk_access_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(mod_aidisk_access_la_LINK) -rpath $(libdir) $(mod_aidisk_access_la_OBJECTS) $(mod_aidisk_access_la_LIBADD) $(LIBS)
 mod_alias.la: $(mod_alias_la_OBJECTS) $(mod_alias_la_DEPENDENCIES) 
@@ -1204,6 +1217,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_access.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_accesslog.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_aicloud_auth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_aidisk_access.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_alias.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_auth.Plo@am__quote@
